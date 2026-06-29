@@ -40,4 +40,29 @@ urlpatterns = [
     path("batches/", views.StockBatchListView.as_view(), name="batch-list"),
     path("serials/", views.SerialNumberListCreateView.as_view(), name="serial-list"),
     path("serials/<uuid:serial_id>/", views.SerialNumberDetailView.as_view(), name="serial-detail"),
+    # Manufacturing: bills of materials
+    path("boms/", views.BillOfMaterialsListCreateView.as_view(), name="bom-list"),
+    path("boms/<uuid:bom_id>/", views.BillOfMaterialsDetailView.as_view(), name="bom-detail"),
+    path(
+        "boms/<uuid:bom_id>/components/",
+        views.BOMComponentListCreateView.as_view(),
+        name="bom-component-list",
+    ),
+    # Manufacturing: work orders
+    path("work-orders/", views.WorkOrderListCreateView.as_view(), name="work-order-list"),
+    path(
+        "work-orders/<uuid:work_order_id>/",
+        views.WorkOrderDetailView.as_view(),
+        name="work-order-detail",
+    ),
+    path(
+        "work-orders/<uuid:work_order_id>/complete/",
+        views.WorkOrderCompleteView.as_view(),
+        name="work-order-complete",
+    ),
+    path(
+        "work-orders/<uuid:work_order_id>/cancel/",
+        views.WorkOrderCancelView.as_view(),
+        name="work-order-cancel",
+    ),
 ]

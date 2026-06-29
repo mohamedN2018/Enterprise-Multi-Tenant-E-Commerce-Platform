@@ -17,12 +17,16 @@ from apps.core.exceptions import BusinessRuleError, ConflictError, NotFoundError
 from apps.core.services import BaseService, atomic
 from apps.inventory.services import InventoryService
 from apps.procurement.models import (
+    BillOfMaterials,
+    BOMComponent,
     PurchaseOrder,
     PurchaseOrderLine,
     PurchaseOrderStatus,
     SerialNumber,
     StockBatch,
     Supplier,
+    WorkOrder,
+    WorkOrderStatus,
 )
 
 _CENTS = Decimal("0.01")
@@ -253,3 +257,108 @@ class ProcurementService(BaseService):
             suffix += 1
             code = f"{base}-{suffix}"
         return code
+
+
+class ManufacturingService(BaseService):
+    """Bills of materials + work orders.
+
+    Completing a work order consumes the component stock (which also depletes the
+    components' batches FEFO via the ``stock_committed`` signal) and receives the
+    finished goods into the warehouse — all through ``InventoryService``.
+    """
+
+    def __init__(self, inventory: InventoryService | None = None) -> None:
+        self.inventory = inventory or InventoryService()
+
+    # --- Bills of materials ---
+    @atomic
+    def create_bom(self, *, store, output_variant, name: str) -> BillOfMaterials:
+        if BillOfMaterials.all_objects.filter(
+            store=store, output_variant=output_variant, is_deleted=False
+        ).exists():
+            raise ConflictError("This variant already has a bill of materials.", code="bom_exists")
+        return BillOfMaterials.objects.create(store=store, output_variant=output_variant, name=name)
+
+    @atomic
+    def add_component(self, *, store, bom, component_variant, quantity: int) -> BOMComponent:
+        if quantity <= 0:
+            raise ValidationError("Component quantity must be positive.")
+        if component_variant.id == bom.output_variant_id:
+            raise BusinessRuleError(
+                "A product cannot be a component of itself.", code="self_component"
+            )
+        if bom.components.filter(component_variant=component_variant).exists():
+            raise ConflictError("This component is already in the BOM.", code="component_exists")
+        return BOMComponent.objects.create(
+            store=store, bom=bom, component_variant=component_variant, quantity=quantity
+        )
+
+    def get_bom(self, *, store, bom_id) -> BillOfMaterials:
+        bom = BillOfMaterials.objects.filter(store=store, id=bom_id).first()
+        if bom is None:
+            raise NotFoundError("Bill of materials not found.")
+        return bom
+
+    # --- Work orders ---
+    @atomic
+    def create_work_order(self, *, store, bom, warehouse, quantity: int) -> WorkOrder:
+        if quantity <= 0:
+            raise ValidationError("Quantity to produce must be positive.")
+        if not bom.components.exists():
+            raise ValidationError("The BOM has no components.", code="empty_bom")
+        return WorkOrder.objects.create(
+            store=store,
+            bom=bom,
+            warehouse=warehouse,
+            number=self._generate_wo_number(store),
+            quantity=quantity,
+            status=WorkOrderStatus.DRAFT,
+        )
+
+    @atomic
+    def complete_work_order(self, *, work_order: WorkOrder) -> WorkOrder:
+        if work_order.status != WorkOrderStatus.DRAFT:
+            raise ConflictError("Only a draft work order can be completed.", code="not_draft")
+        components = list(work_order.bom.components.select_related("component_variant"))
+        # Consume raw materials (rolls back entirely if any component is short).
+        for component in components:
+            self.inventory.issue(
+                store=work_order.store,
+                variant=component.component_variant,
+                warehouse=work_order.warehouse,
+                quantity=component.quantity * work_order.quantity,
+                reference=f"wo:{work_order.number}",
+                note="production consumption",
+            )
+        # Receive the finished goods.
+        self.inventory.receive(
+            store=work_order.store,
+            variant=work_order.bom.output_variant,
+            warehouse=work_order.warehouse,
+            quantity=work_order.quantity,
+            reference=f"wo:{work_order.number}",
+            note="production output",
+        )
+        work_order.status = WorkOrderStatus.COMPLETED
+        work_order.completed_at = timezone.now()
+        work_order.save(update_fields=["status", "completed_at", "updated_at"])
+        return work_order
+
+    @atomic
+    def cancel_work_order(self, *, work_order: WorkOrder) -> WorkOrder:
+        if work_order.status == WorkOrderStatus.COMPLETED:
+            raise ConflictError("A completed work order cannot be cancelled.", code="completed")
+        work_order.status = WorkOrderStatus.CANCELLED
+        work_order.save(update_fields=["status", "updated_at"])
+        return work_order
+
+    def get_work_order(self, *, store, work_order_id) -> WorkOrder:
+        work_order = WorkOrder.objects.filter(store=store, id=work_order_id).first()
+        if work_order is None:
+            raise NotFoundError("Work order not found.")
+        return work_order
+
+    @staticmethod
+    def _generate_wo_number(store) -> str:
+        sequence = WorkOrder.all_objects.filter(store=store).count() + 1
+        return f"WO-{sequence:06d}"

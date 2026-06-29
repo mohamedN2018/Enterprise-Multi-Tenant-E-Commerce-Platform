@@ -7,11 +7,14 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from apps.procurement.models import (
+    BillOfMaterials,
+    BOMComponent,
     PurchaseOrder,
     PurchaseOrderLine,
     SerialNumber,
     StockBatch,
     Supplier,
+    WorkOrder,
 )
 
 _ZERO = Decimal("0")
@@ -142,3 +145,52 @@ class RegisterSerialsSerializer(serializers.Serializer):
 
 class UpdateSerialStatusSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=SerialNumber._meta.get_field("status").choices)
+
+
+# --- Manufacturing -------------------------------------------------------
+class BOMComponentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BOMComponent
+        fields = ("id", "component_variant", "quantity", "created_at")
+        read_only_fields = fields
+
+
+class BillOfMaterialsSerializer(serializers.ModelSerializer):
+    components = BOMComponentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = BillOfMaterials
+        fields = ("id", "output_variant", "name", "is_active", "components", "created_at")
+        read_only_fields = fields
+
+
+class CreateBOMSerializer(serializers.Serializer):
+    output_variant_id = serializers.UUIDField()
+    name = serializers.CharField(max_length=150)
+
+
+class AddBOMComponentSerializer(serializers.Serializer):
+    component_variant_id = serializers.UUIDField()
+    quantity = serializers.IntegerField(min_value=1)
+
+
+class WorkOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkOrder
+        fields = (
+            "id",
+            "number",
+            "bom",
+            "warehouse",
+            "quantity",
+            "status",
+            "completed_at",
+            "created_at",
+        )
+        read_only_fields = fields
+
+
+class CreateWorkOrderSerializer(serializers.Serializer):
+    bom_id = serializers.UUIDField()
+    warehouse_id = serializers.UUIDField()
+    quantity = serializers.IntegerField(min_value=1)

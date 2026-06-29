@@ -16,9 +16,21 @@ from apps.core.exceptions import NotFoundError, ValidationError
 from apps.core.mixins import BaseAPIView, BaseGenericAPIView
 from apps.core.responses import APIResponse
 from apps.inventory.models import Warehouse
-from apps.procurement.models import PurchaseOrder, SerialNumber, StockBatch, Supplier
+from apps.procurement.models import (
+    BillOfMaterials,
+    PurchaseOrder,
+    SerialNumber,
+    StockBatch,
+    Supplier,
+    WorkOrder,
+)
 from apps.procurement.serializers import (
+    AddBOMComponentSerializer,
+    BillOfMaterialsSerializer,
+    BOMComponentSerializer,
+    CreateBOMSerializer,
     CreatePurchaseOrderSerializer,
+    CreateWorkOrderSerializer,
     PurchaseOrderSerializer,
     ReceivePurchaseOrderSerializer,
     RegisterSerialsSerializer,
@@ -26,8 +38,9 @@ from apps.procurement.serializers import (
     StockBatchSerializer,
     SupplierSerializer,
     UpdateSerialStatusSerializer,
+    WorkOrderSerializer,
 )
-from apps.procurement.services import ProcurementService
+from apps.procurement.services import ManufacturingService, ProcurementService
 from apps.stores.context import StoreContextMixin
 
 
@@ -252,3 +265,120 @@ class SerialNumberDetailView(StoreContextMixin, BaseAPIView):
         data = _validated(UpdateSerialStatusSerializer, request)
         serial = ProcurementService().set_serial_status(serial=serial, status=data["status"])
         return APIResponse.success(SerialNumberSerializer(serial).data, message="Serial updated.")
+
+
+# --- Manufacturing: bills of materials -------------------------------------
+class BillOfMaterialsListCreateView(
+    _ResolveMixin, StoreContextMixin, BaseGenericAPIView, generics.ListAPIView
+):
+    permission_classes = [IsAuthenticated]
+    serializer_class = BillOfMaterialsSerializer
+    filterset_fields = ("is_active", "output_variant")
+
+    def get_queryset(self):
+        return BillOfMaterials.objects.prefetch_related("components").all()
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        self.require_write()
+        data = _validated(CreateBOMSerializer, request)
+        bom = ManufacturingService().create_bom(
+            store=self.store,
+            output_variant=self._variant(data["output_variant_id"]),
+            name=data["name"],
+        )
+        return APIResponse.success(
+            BillOfMaterialsSerializer(bom).data,
+            message="Bill of materials created.",
+            status_code=201,
+        )
+
+
+class BillOfMaterialsDetailView(StoreContextMixin, BaseGenericAPIView, generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = BillOfMaterialsSerializer
+    lookup_url_kwarg = "bom_id"
+
+    def get_queryset(self):
+        return BillOfMaterials.objects.prefetch_related("components")
+
+
+class BOMComponentListCreateView(_ResolveMixin, StoreContextMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def _bom(self) -> BillOfMaterials:
+        return ManufacturingService().get_bom(store=self.store, bom_id=self.kwargs["bom_id"])
+
+    def get(self, request: Request, bom_id) -> Response:
+        components = self._bom().components.all()
+        return APIResponse.success(BOMComponentSerializer(components, many=True).data)
+
+    def post(self, request: Request, bom_id) -> Response:
+        self.require_write()
+        data = _validated(AddBOMComponentSerializer, request)
+        component = ManufacturingService().add_component(
+            store=self.store,
+            bom=self._bom(),
+            component_variant=self._variant(data["component_variant_id"]),
+            quantity=data["quantity"],
+        )
+        return APIResponse.success(
+            BOMComponentSerializer(component).data, message="Component added.", status_code=201
+        )
+
+
+# --- Manufacturing: work orders --------------------------------------------
+class WorkOrderListCreateView(
+    _ResolveMixin, StoreContextMixin, BaseGenericAPIView, generics.ListAPIView
+):
+    permission_classes = [IsAuthenticated]
+    serializer_class = WorkOrderSerializer
+    filterset_fields = ("status", "bom", "warehouse")
+
+    def get_queryset(self):
+        return WorkOrder.objects.all()
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        self.require_write()
+        data = _validated(CreateWorkOrderSerializer, request)
+        work_order = ManufacturingService().create_work_order(
+            store=self.store,
+            bom=ManufacturingService().get_bom(store=self.store, bom_id=data["bom_id"]),
+            warehouse=self._warehouse(data["warehouse_id"]),
+            quantity=data["quantity"],
+        )
+        return APIResponse.success(
+            WorkOrderSerializer(work_order).data, message="Work order created.", status_code=201
+        )
+
+
+class WorkOrderDetailView(StoreContextMixin, BaseGenericAPIView, generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = WorkOrderSerializer
+    lookup_url_kwarg = "work_order_id"
+
+    def get_queryset(self):
+        return WorkOrder.objects.all()
+
+
+class _WorkOrderActionView(StoreContextMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+    action = ""
+    message = ""
+
+    def post(self, request: Request, work_order_id) -> Response:
+        self.require_write()
+        work_order = ManufacturingService().get_work_order(
+            store=self.store, work_order_id=work_order_id
+        )
+        work_order = getattr(ManufacturingService(), self.action)(work_order=work_order)
+        return APIResponse.success(WorkOrderSerializer(work_order).data, message=self.message)
+
+
+class WorkOrderCompleteView(_WorkOrderActionView):
+    action = "complete_work_order"
+    message = "Work order completed."
+
+
+class WorkOrderCancelView(_WorkOrderActionView):
+    action = "cancel_work_order"
+    message = "Work order cancelled."

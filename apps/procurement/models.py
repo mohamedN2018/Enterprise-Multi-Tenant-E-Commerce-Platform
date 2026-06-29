@@ -151,6 +151,98 @@ class StockBatch(TenantOwnedModel):
         return f"{self.batch_number}: {self.quantity}"
 
 
+class BillOfMaterials(TenantOwnedModel):
+    """The recipe for manufacturing one unit of a finished-good variant."""
+
+    output_variant = models.ForeignKey(
+        "catalog.ProductVariant", on_delete=models.PROTECT, related_name="bills_of_materials"
+    )
+    name = models.CharField(max_length=150)
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta(TenantOwnedModel.Meta):
+        verbose_name = "Bill of materials"
+        verbose_name_plural = "Bills of materials"
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["store", "output_variant"],
+                condition=Q(is_deleted=False),
+                name="uniq_bom_output_variant",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class BOMComponent(TenantOwnedModel):
+    bom = models.ForeignKey(BillOfMaterials, on_delete=models.CASCADE, related_name="components")
+    component_variant = models.ForeignKey(
+        "catalog.ProductVariant", on_delete=models.PROTECT, related_name="+"
+    )
+    quantity = models.PositiveIntegerField(default=1)
+
+    class Meta(TenantOwnedModel.Meta):
+        verbose_name = "BOM component"
+        verbose_name_plural = "BOM components"
+        ordering = ("created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["bom", "component_variant"],
+                condition=Q(is_deleted=False),
+                name="uniq_bom_component",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.quantity} x {self.component_variant_id}"
+
+
+class WorkOrderStatus(models.TextChoices):
+    DRAFT = "draft", "Draft"
+    COMPLETED = "completed", "Completed"
+    CANCELLED = "cancelled", "Cancelled"
+
+
+class WorkOrder(TenantOwnedModel):
+    """An instruction to produce ``quantity`` finished units from a BOM.
+
+    Completing it consumes the component stock and receives the finished goods
+    into the warehouse, all through ``InventoryService``.
+    """
+
+    bom = models.ForeignKey(BillOfMaterials, on_delete=models.PROTECT, related_name="work_orders")
+    warehouse = models.ForeignKey(
+        "inventory.Warehouse", on_delete=models.PROTECT, related_name="work_orders"
+    )
+    number = models.CharField(max_length=40)
+    quantity = models.PositiveIntegerField()
+    status = models.CharField(
+        max_length=12,
+        choices=WorkOrderStatus.choices,
+        default=WorkOrderStatus.DRAFT,
+        db_index=True,
+    )
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta(TenantOwnedModel.Meta):
+        verbose_name = "Work order"
+        verbose_name_plural = "Work orders"
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["store", "number"],
+                condition=Q(is_deleted=False),
+                name="uniq_work_order_store_number",
+            )
+        ]
+        indexes = [models.Index(fields=["store", "status"])]
+
+    def __str__(self) -> str:
+        return self.number
+
+
 class SerialStatus(models.TextChoices):
     IN_STOCK = "in_stock", "In stock"
     SOLD = "sold", "Sold"
