@@ -228,6 +228,10 @@ class CheckoutService(BaseService):
         from apps.catalog.services import DigitalFulfillmentService
 
         DigitalFulfillmentService().fulfill(order=order)
+        # Award loyalty points (no-op when the store's earn rate is 0).
+        from apps.rewards.services import LoyaltyService
+
+        LoyaltyService().earn_for_order(order=order)
         return order
 
     @atomic

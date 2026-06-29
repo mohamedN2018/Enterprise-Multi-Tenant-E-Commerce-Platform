@@ -57,6 +57,7 @@ LOCAL_APPS = [
     "apps.promotions",
     "apps.pricing",
     "apps.finance",
+    "apps.rewards",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -287,8 +288,16 @@ FRONTEND_PASSWORD_RESET_PATH = env("FRONTEND_PASSWORD_RESET_PATH", default="/aut
 
 # --- Payments --------------------------------------------------------------
 # Allow-list of payment gateway codes exposed by the API (must be registered).
-PAYMENT_ENABLED_GATEWAYS = env.list("PAYMENT_ENABLED_GATEWAYS", default=["manual"])
+PAYMENT_ENABLED_GATEWAYS = env.list("PAYMENT_ENABLED_GATEWAYS", default=["manual", "store_credit"])
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
+
+# --- Rewards ---------------------------------------------------------------
+REWARDS = {
+    # Loyalty points earned per unit of order total (0 = disabled / no-op).
+    "LOYALTY_EARN_RATE": env.float("LOYALTY_EARN_RATE", default=0.0),
+    # Wallet credit granted per loyalty point on redemption.
+    "LOYALTY_REDEEM_RATE": env("LOYALTY_REDEEM_RATE", default="0.01"),
+}
 
 AUTH_SETTINGS = {
     # Block login until the email address is verified.
