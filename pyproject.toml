@@ -1,0 +1,70 @@
+[project]
+name = "marketplace-backend"
+version = "0.1.0"
+description = "Enterprise multi-tenant (Shopify-style) e-commerce platform backend"
+requires-python = ">=3.11"
+
+# ---------------------------------------------------------------------------
+# Ruff - linter & formatter
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["migrations", ".venv", "venv", "staticfiles", "media"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",   # pycodestyle / pyflakes
+    "I",             # isort
+    "UP",            # pyupgrade
+    "B",             # bugbear
+    "C4",            # comprehensions
+    "DJ",            # flake8-django
+    "SIM",           # simplify
+    "RUF",           # ruff-specific
+]
+ignore = [
+    "B008",   # function calls in argument defaults (DRF/Django pattern)
+    "RUF012", # mutable class attrs (Django Meta / DRF)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+
+# ---------------------------------------------------------------------------
+# mypy - static typing
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.13"
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unused_configs = true
+ignore_missing_imports = true
+check_untyped_defs = true
+exclude = ["migrations/", "tests/", "venv/", ".venv/"]
+
+[tool.django-stubs]
+django_settings_module = "config.settings.development"
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+addopts = "--strict-markers --tb=short -ra"
+markers = [
+    "unit: fast isolated unit tests",
+    "integration: tests that touch the database / external services",
+    "api: end-to-end API tests",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["apps"]
+omit = ["*/migrations/*", "*/tests/*", "*/test_*.py", "config/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

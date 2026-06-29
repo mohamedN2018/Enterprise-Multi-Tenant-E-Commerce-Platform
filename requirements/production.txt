@@ -1,0 +1,5 @@
+# Production-only dependencies.
+-r base.txt
+
+# --- Error & performance monitoring (wired via DJANGO_SENTRY_DSN) ---
+sentry-sdk==2.19.2

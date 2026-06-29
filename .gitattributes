@@ -1,0 +1,21 @@
+# Normalize line endings. The project is deployed on Linux, so the repository
+# stores LF and checks out LF everywhere (overrides core.autocrlf on Windows).
+* text=auto eol=lf
+
+# Files executed inside the Linux container MUST be LF.
+*.sh        text eol=lf
+*.py        text eol=lf
+Dockerfile  text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+
+# Binary assets (never normalized).
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.woff  binary
+*.woff2 binary
+*.mo   binary

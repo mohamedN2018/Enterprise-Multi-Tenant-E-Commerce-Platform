@@ -1,0 +1,18 @@
+# Development & CI dependencies.
+-r base.txt
+
+# --- Testing ---
+pytest==8.3.4
+pytest-django==4.9.0
+pytest-cov==6.0.0
+factory-boy==3.3.1
+Faker==33.1.0
+
+# --- Linting / typing ---
+ruff==0.8.4
+mypy==1.13.0
+django-stubs==5.1.1
+djangorestframework-stubs==3.15.2
+
+# --- Developer experience ---
+ipython==8.30.0
