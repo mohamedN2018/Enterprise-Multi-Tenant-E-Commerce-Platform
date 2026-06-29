@@ -39,4 +39,15 @@ urlpatterns = [
         views.BundleComponentDetailView.as_view(),
         name="component-detail",
     ),
+    # Digital products (staff)
+    path(
+        "variants/<uuid:variant_id>/digital/",
+        views.DigitalAssetView.as_view(),
+        name="variant-digital",
+    ),
+    path(
+        "variants/<uuid:variant_id>/license-keys/",
+        views.LicenseKeyListCreateView.as_view(),
+        name="variant-license-keys",
+    ),
 ]

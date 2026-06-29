@@ -7,6 +7,8 @@ default variant per product).
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from django.utils import timezone
 
 from apps.catalog.models import (
@@ -14,6 +16,10 @@ from apps.catalog.models import (
     Brand,
     BundleComponent,
     Category,
+    DigitalAsset,
+    DownloadGrant,
+    LicenseKey,
+    LicenseKeyStatus,
     Product,
     ProductStatus,
     ProductVariant,
@@ -182,3 +188,137 @@ class BundleService(BaseService):
 
     def remove_component(self, *, component: BundleComponent) -> None:
         component.delete()
+
+
+class DigitalProductService(BaseService):
+    """Staff-side management of digital assets and license-key pools."""
+
+    def get_variant(self, *, variant_id) -> ProductVariant:
+        variant = ProductVariant.objects.filter(id=variant_id).first()
+        if variant is None:
+            raise NotFoundError("Product variant not found.")
+        return variant
+
+    def get_asset(self, *, variant) -> DigitalAsset | None:
+        return DigitalAsset.objects.filter(variant=variant).first()
+
+    @atomic
+    def upsert_asset(self, *, store, variant, data: dict) -> DigitalAsset:
+        asset, _ = DigitalAsset.objects.get_or_create(store=store, variant=variant)
+        for field, value in data.items():
+            setattr(asset, field, value)
+        asset.save()
+        return asset
+
+    def list_license_keys(self, *, variant):
+        return LicenseKey.objects.filter(variant=variant)
+
+    @atomic
+    def add_license_keys(self, *, store, variant, keys: list[str]) -> list[LicenseKey]:
+        cleaned = [k.strip() for k in keys if k.strip()]
+        if not cleaned:
+            raise ValidationError("Provide at least one license key.", code="no_keys")
+        existing = set(
+            LicenseKey.all_objects.filter(
+                store=store, key__in=cleaned, is_deleted=False
+            ).values_list("key", flat=True)
+        )
+        duplicates = [k for k in cleaned if k in existing]
+        if duplicates:
+            raise ConflictError(
+                f"These license keys already exist: {', '.join(duplicates)}",
+                code="duplicate_keys",
+            )
+        return LicenseKey.objects.bulk_create(
+            [LicenseKey(store=store, variant=variant, key=k) for k in dict.fromkeys(cleaned)]
+        )
+
+
+class DigitalFulfillmentService(BaseService):
+    """Fulfil digital order items: assign license keys + create download grants.
+
+    Invoked from ``CheckoutService.confirm_order`` inside its transaction, so any
+    failure (e.g. insufficient license keys) rolls the confirmation back.
+    """
+
+    @atomic
+    def fulfill(self, *, order) -> list[DownloadGrant]:
+        grants: list[DownloadGrant] = []
+        for item in order.items.select_related("variant"):
+            asset = DigitalAsset.objects.filter(variant=item.variant, is_active=True).first()
+            if asset is None:
+                continue
+            if asset.requires_license:
+                self._assign_licenses(
+                    asset=asset, order=order, user=order.user, quantity=item.quantity
+                )
+            grants.append(self._create_grant(order=order, asset=asset, variant=item.variant))
+        return grants
+
+    def _assign_licenses(self, *, asset, order, user, quantity: int) -> None:
+        available = list(
+            LicenseKey.objects.select_for_update().filter(
+                variant=asset.variant, status=LicenseKeyStatus.AVAILABLE
+            )[:quantity]
+        )
+        if len(available) < quantity:
+            raise BusinessRuleError(
+                "Not enough license keys available to fulfil this order.",
+                code="insufficient_license_keys",
+            )
+        now = timezone.now()
+        for license_key in available:
+            license_key.status = LicenseKeyStatus.ASSIGNED
+            license_key.assigned_order = order
+            license_key.assigned_user = user
+            license_key.assigned_at = now
+            license_key.save(
+                update_fields=[
+                    "status",
+                    "assigned_order",
+                    "assigned_user",
+                    "assigned_at",
+                    "updated_at",
+                ]
+            )
+
+    def _create_grant(self, *, order, asset, variant) -> DownloadGrant:
+        expires_at = None
+        if asset.download_expiry_days:
+            expires_at = timezone.now() + timedelta(days=asset.download_expiry_days)
+        return DownloadGrant.objects.create(
+            store=order.store,
+            order=order,
+            user=order.user,
+            variant=variant,
+            digital_asset=asset,
+            download_limit=asset.download_limit,
+            expires_at=expires_at,
+        )
+
+
+class DownloadService(BaseService):
+    """Buyer-side download access enforcing per-grant limits/expiry."""
+
+    def get_grant(self, *, user, token) -> DownloadGrant:
+        grant = (
+            DownloadGrant.objects.filter(token=token, user=user)
+            .select_related("digital_asset")
+            .first()
+        )
+        if grant is None:
+            raise NotFoundError("Download not found.")
+        return grant
+
+    @atomic
+    def consume(self, *, grant: DownloadGrant) -> str:
+        locked = DownloadGrant.objects.select_for_update().get(pk=grant.pk)
+        if not locked.can_download():
+            raise BusinessRuleError(
+                "This download is no longer available (limit reached or expired).",
+                code="download_unavailable",
+            )
+        locked.download_count += 1
+        locked.save(update_fields=["download_count", "updated_at"])
+        asset = locked.digital_asset
+        return asset.download_url if asset else ""

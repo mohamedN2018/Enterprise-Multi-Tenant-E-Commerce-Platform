@@ -9,7 +9,16 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from apps.catalog.models import Brand, BundleComponent, Category, Product, ProductVariant
+from apps.catalog.models import (
+    Brand,
+    BundleComponent,
+    Category,
+    DigitalAsset,
+    DownloadGrant,
+    LicenseKey,
+    Product,
+    ProductVariant,
+)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -132,4 +141,82 @@ class ProductSerializer(serializers.ModelSerializer):
             "components",
             "created_at",
             "updated_at",
+        )
+
+
+class DigitalAssetSerializer(serializers.ModelSerializer):
+    download_url = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = DigitalAsset
+        fields = (
+            "id",
+            "variant",
+            "name",
+            "file",
+            "external_url",
+            "download_url",
+            "download_limit",
+            "download_expiry_days",
+            "requires_license",
+            "is_active",
+            "updated_at",
+        )
+        read_only_fields = ("id", "variant", "download_url", "updated_at")
+
+
+class LicenseKeySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LicenseKey
+        fields = ("id", "key", "status", "assigned_at", "created_at")
+        read_only_fields = fields
+
+
+class AddLicenseKeysSerializer(serializers.Serializer):
+    keys = serializers.ListField(child=serializers.CharField(max_length=255), allow_empty=False)
+
+
+class DownloadGrantSerializer(serializers.ModelSerializer):
+    remaining_downloads = serializers.SerializerMethodField()
+    can_download = serializers.SerializerMethodField()
+    license_keys = serializers.SerializerMethodField()
+    download_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DownloadGrant
+        fields = (
+            "id",
+            "order",
+            "variant",
+            "token",
+            "download_url",
+            "download_limit",
+            "download_count",
+            "remaining_downloads",
+            "expires_at",
+            "can_download",
+            "license_keys",
+            "created_at",
+        )
+        read_only_fields = fields
+
+    def get_remaining_downloads(self, obj):
+        return obj.remaining_downloads
+
+    def get_can_download(self, obj) -> bool:
+        return obj.can_download()
+
+    def get_download_url(self, obj) -> str:
+        return obj.digital_asset.download_url if obj.digital_asset else ""
+
+    def get_license_keys(self, obj) -> list[str]:
+        from apps.catalog.models import LicenseKeyStatus
+
+        return list(
+            LicenseKey.objects.filter(
+                assigned_order=obj.order,
+                variant=obj.variant,
+                assigned_user=obj.user,
+                status=LicenseKeyStatus.ASSIGNED,
+            ).values_list("key", flat=True)
         )

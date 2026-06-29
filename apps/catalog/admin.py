@@ -4,7 +4,16 @@ from __future__ import annotations
 
 from django.contrib import admin
 
-from apps.catalog.models import Brand, BundleComponent, Category, Product, ProductVariant
+from apps.catalog.models import (
+    Brand,
+    BundleComponent,
+    Category,
+    DigitalAsset,
+    DownloadGrant,
+    LicenseKey,
+    Product,
+    ProductVariant,
+)
 
 
 @admin.register(Category)
@@ -48,3 +57,32 @@ class ProductVariantAdmin(admin.ModelAdmin):
     list_display = ("sku", "product", "store", "price", "stock_quantity", "is_default", "is_active")
     list_filter = ("is_active", "is_default")
     search_fields = ("sku", "product__name", "store__name")
+
+
+@admin.register(DigitalAsset)
+class DigitalAssetAdmin(admin.ModelAdmin):
+    list_display = ("variant", "store", "requires_license", "download_limit", "is_active")
+    list_filter = ("requires_license", "is_active")
+    search_fields = ("variant__sku", "name", "store__name")
+
+
+@admin.register(LicenseKey)
+class LicenseKeyAdmin(admin.ModelAdmin):
+    list_display = ("key", "variant", "store", "status", "assigned_user", "assigned_at")
+    list_filter = ("status",)
+    search_fields = ("key", "variant__sku", "store__name")
+
+
+@admin.register(DownloadGrant)
+class DownloadGrantAdmin(admin.ModelAdmin):
+    list_display = (
+        "token",
+        "variant",
+        "user",
+        "order",
+        "download_count",
+        "download_limit",
+        "expires_at",
+    )
+    search_fields = ("token", "variant__sku", "user__email", "order__number")
+    readonly_fields = ("token", "download_count")

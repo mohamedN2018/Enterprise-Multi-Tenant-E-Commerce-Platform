@@ -32,17 +32,28 @@ def _money(value) -> Decimal:
 
 
 def _available_for(variant) -> int:
-    from apps.catalog.models import COMPOSITE_KINDS
+    from apps.catalog.models import COMPOSITE_KINDS, ProductType
 
+    product = variant.product
     # Bundles/kits/composites have no stock of their own; availability is the
     # most constraining required component.
-    if variant.product.kind in COMPOSITE_KINDS:
+    if product.kind in COMPOSITE_KINDS:
         components = list(
-            variant.product.components.filter(is_optional=False).select_related("component_variant")
+            product.components.filter(is_optional=False).select_related("component_variant")
         )
         if not components:
             return 0
         return min(_available_for(c.component_variant) // c.quantity for c in components)
+    # Digital goods are not stock-limited, unless gated by a finite license-key pool.
+    if product.product_type == ProductType.DIGITAL:
+        from apps.catalog.models import DigitalAsset, LicenseKey, LicenseKeyStatus
+
+        asset = DigitalAsset.objects.filter(variant=variant, is_active=True).first()
+        if asset is not None and asset.requires_license:
+            return LicenseKey.objects.filter(
+                variant=variant, status=LicenseKeyStatus.AVAILABLE
+            ).count()
+        return 1_000_000
     agg = StockItem.objects.filter(variant=variant).aggregate(
         on_hand=Sum("quantity"), reserved=Sum("reserved_quantity")
     )
@@ -198,6 +209,11 @@ class CheckoutService(BaseService):
             self.inventory.commit(reservation=reservation)
         order.status = OrderStatus.CONFIRMED
         order.save(update_fields=["status", "updated_at"])
+        # Fulfil any digital items (assign license keys + create download grants).
+        # No-op for orders without digital products.
+        from apps.catalog.services import DigitalFulfillmentService
+
+        DigitalFulfillmentService().fulfill(order=order)
         return order
 
     @atomic
@@ -235,9 +251,11 @@ class CheckoutService(BaseService):
 
     def _reserve_for_item(self, *, store, variant, quantity: int, reference: str) -> None:
         """Reserve stock for a cart line: components for composites, else the variant."""
-        from apps.catalog.models import COMPOSITE_KINDS
+        from apps.catalog.models import COMPOSITE_KINDS, ProductType
 
         product = variant.product
+        if product.product_type == ProductType.DIGITAL:
+            return  # digital goods hold no physical stock
         if product.kind in COMPOSITE_KINDS:
             for component in product.components.filter(is_optional=False).select_related(
                 "component_variant"

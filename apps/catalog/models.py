@@ -11,11 +11,18 @@ on in later increments.
 
 from __future__ import annotations
 
+import secrets
+
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
 from apps.core.models import TenantOwnedModel
+
+
+def _generate_download_token() -> str:
+    return secrets.token_urlsafe(32)
 
 
 class SEOFields(models.Model):
@@ -239,3 +246,120 @@ class BundleComponent(TenantOwnedModel):
 
     def __str__(self) -> str:
         return f"{self.quantity} x {self.component_variant_id} in {self.bundle_id}"
+
+
+# --- Digital products ------------------------------------------------------
+class LicenseKeyStatus(models.TextChoices):
+    AVAILABLE = "available", "Available"
+    ASSIGNED = "assigned", "Assigned"
+    REVOKED = "revoked", "Revoked"
+
+
+class DigitalAsset(TenantOwnedModel):
+    """Downloadable deliverable for a (digital) product variant."""
+
+    variant = models.OneToOneField(
+        ProductVariant, on_delete=models.CASCADE, related_name="digital_asset"
+    )
+    name = models.CharField(max_length=255, blank=True)
+    file = models.FileField(upload_to="catalog/digital/", null=True, blank=True)
+    external_url = models.URLField(blank=True)
+    # Per-grant limits (null = unlimited / never expires).
+    download_limit = models.PositiveIntegerField(null=True, blank=True)
+    download_expiry_days = models.PositiveIntegerField(null=True, blank=True)
+    requires_license = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+
+    class Meta(TenantOwnedModel.Meta):
+        verbose_name = "Digital asset"
+        verbose_name_plural = "Digital assets"
+
+    def __str__(self) -> str:
+        return self.name or f"asset:{self.variant_id}"
+
+    @property
+    def download_url(self) -> str:
+        if self.file:
+            return self.file.url
+        return self.external_url
+
+
+class LicenseKey(TenantOwnedModel):
+    variant = models.ForeignKey(
+        ProductVariant, on_delete=models.CASCADE, related_name="license_keys"
+    )
+    key = models.CharField(max_length=255)
+    status = models.CharField(
+        max_length=16,
+        choices=LicenseKeyStatus.choices,
+        default=LicenseKeyStatus.AVAILABLE,
+        db_index=True,
+    )
+    assigned_order = models.ForeignKey(
+        "orders.Order", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    assigned_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    assigned_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta(TenantOwnedModel.Meta):
+        verbose_name = "License key"
+        verbose_name_plural = "License keys"
+        ordering = ("created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["store", "key"],
+                condition=Q(is_deleted=False),
+                name="uniq_license_key_store",
+            )
+        ]
+        indexes = [models.Index(fields=["variant", "status"])]
+
+    def __str__(self) -> str:
+        return self.key
+
+
+class DownloadGrant(TenantOwnedModel):
+    """Access granted to a buyer for a digital asset after order confirmation."""
+
+    order = models.ForeignKey(
+        "orders.Order", on_delete=models.CASCADE, related_name="download_grants"
+    )
+    variant = models.ForeignKey(ProductVariant, on_delete=models.PROTECT, related_name="+")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="download_grants"
+    )
+    digital_asset = models.ForeignKey(
+        DigitalAsset, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    download_limit = models.PositiveIntegerField(null=True, blank=True)
+    download_count = models.PositiveIntegerField(default=0)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    token = models.CharField(
+        max_length=64, unique=True, default=_generate_download_token, editable=False
+    )
+
+    class Meta(TenantOwnedModel.Meta):
+        verbose_name = "Download grant"
+        verbose_name_plural = "Download grants"
+        ordering = ("-created_at",)
+        indexes = [models.Index(fields=["user", "order"])]
+
+    def __str__(self) -> str:
+        return f"grant:{self.token[:8]} ({self.variant_id})"
+
+    @property
+    def is_expired(self) -> bool:
+        return self.expires_at is not None and timezone.now() > self.expires_at
+
+    @property
+    def remaining_downloads(self):
+        if self.download_limit is None:
+            return None
+        return max(self.download_limit - self.download_count, 0)
+
+    def can_download(self) -> bool:
+        if self.is_expired:
+            return False
+        return self.download_limit is None or self.download_count < self.download_limit

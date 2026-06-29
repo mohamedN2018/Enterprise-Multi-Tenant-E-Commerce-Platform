@@ -12,19 +12,29 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
 from apps.catalog.access import StoreContextMixin
-from apps.catalog.models import Brand, Category, Product, ProductVariant
+from apps.catalog.models import Brand, Category, DownloadGrant, Product, ProductVariant
 from apps.catalog.serializers import (
+    AddLicenseKeysSerializer,
     BrandSerializer,
     BundleComponentCreateSerializer,
     BundleComponentSerializer,
     CategorySerializer,
+    DigitalAssetSerializer,
+    DownloadGrantSerializer,
+    LicenseKeySerializer,
     ProductSerializer,
     ProductVariantSerializer,
 )
-from apps.catalog.services import BundleService, CatalogService
+from apps.catalog.services import (
+    BundleService,
+    CatalogService,
+    DigitalProductService,
+    DownloadService,
+)
 from apps.core.exceptions import NotFoundError
 from apps.core.mixins import BaseAPIView, BaseGenericAPIView
 from apps.core.responses import APIResponse
+from apps.stores.context import RequireStoreMixin
 
 
 # --- Category --------------------------------------------------------------
@@ -219,3 +229,80 @@ class BundleComponentDetailView(StoreContextMixin, BaseAPIView):
         component = service.get_component(bundle=bundle, component_id=component_id)
         service.remove_component(component=component)
         return APIResponse.success(message="Component removed.")
+
+
+# --- Digital assets & license keys (staff) ---------------------------------
+class DigitalAssetView(StoreContextMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, variant_id):
+        service = DigitalProductService()
+        variant = service.get_variant(variant_id=variant_id)
+        asset = service.get_asset(variant=variant)
+        data = DigitalAssetSerializer(asset).data if asset else None
+        return APIResponse.success(data=data)
+
+    def put(self, request, variant_id):
+        self.require_write()
+        service = DigitalProductService()
+        variant = service.get_variant(variant_id=variant_id)
+        serializer = DigitalAssetSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        asset = service.upsert_asset(
+            store=self.store, variant=variant, data=serializer.validated_data
+        )
+        return APIResponse.success(
+            DigitalAssetSerializer(asset).data, message="Digital asset saved."
+        )
+
+
+class LicenseKeyListCreateView(StoreContextMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, variant_id):
+        service = DigitalProductService()
+        variant = service.get_variant(variant_id=variant_id)
+        keys = service.list_license_keys(variant=variant)
+        return APIResponse.success(LicenseKeySerializer(keys, many=True).data)
+
+    def post(self, request, variant_id):
+        self.require_write()
+        service = DigitalProductService()
+        variant = service.get_variant(variant_id=variant_id)
+        serializer = AddLicenseKeysSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        created = service.add_license_keys(
+            store=self.store, variant=variant, keys=serializer.validated_data["keys"]
+        )
+        return APIResponse.success(
+            LicenseKeySerializer(created, many=True).data,
+            message=f"{len(created)} license key(s) added.",
+            status_code=201,
+        )
+
+
+# --- Buyer downloads -------------------------------------------------------
+class DownloadGrantListView(RequireStoreMixin, BaseGenericAPIView, generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = DownloadGrantSerializer
+
+    def get_queryset(self):
+        return DownloadGrant.objects.filter(user=self.request.user).select_related("digital_asset")
+
+
+class DownloadView(RequireStoreMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, token):
+        service = DownloadService()
+        grant = service.get_grant(user=request.user, token=token)
+        url = service.consume(grant=grant)
+        grant.refresh_from_db()
+        return APIResponse.success(
+            data={
+                "download_url": url,
+                "download_count": grant.download_count,
+                "remaining_downloads": grant.remaining_downloads,
+            },
+            message="Download authorized.",
+        )
