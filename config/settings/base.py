@@ -49,6 +49,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "apps.core",
     "apps.accounts",
+    "apps.stores",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -265,9 +266,9 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
 # --- Tenancy ---------------------------------------------------------------
-# Dotted path to a callable(request) -> Store|None used by CurrentRequestMiddleware
-# to resolve the active tenant. Wired in once the stores app exists (Feature 2).
-TENANT_RESOLVER = env("TENANT_RESOLVER", default=None)
+# Callable(request) -> Store|None used by CurrentRequestMiddleware to resolve the
+# active tenant from request headers / subdomain.
+TENANT_RESOLVER = env("TENANT_RESOLVER", default="apps.stores.tenancy.resolve_store")
 
 # --- Authentication flows --------------------------------------------------
 # Frontend base URL used to build verification / password-reset links in emails.

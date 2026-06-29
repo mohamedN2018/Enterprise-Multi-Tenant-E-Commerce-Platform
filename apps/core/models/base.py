@@ -20,7 +20,12 @@ from django.db import models
 from django.utils import timezone
 
 from apps.core import tenancy
-from apps.core.managers import AllObjectsManager, SoftDeleteManager
+from apps.core.managers import (
+    AllObjectsManager,
+    SoftDeleteManager,
+    TenantAllObjectsManager,
+    TenantManager,
+)
 
 
 class UUIDPrimaryKeyModel(models.Model):
@@ -119,3 +124,26 @@ class BaseModel(UUIDPrimaryKeyModel, TimeStampedModel, AuditModel, SoftDeleteMod
                 self.created_by = actor
             self.updated_by = actor
         super().save(*args, **kwargs)
+
+
+class TenantOwnedModel(BaseModel):
+    """Base for store-scoped (tenant-owned) domain models.
+
+    Adds the mandatory ``store`` foreign key and swaps in the tenant-aware
+    managers so ``objects`` is automatically filtered to the current store
+    (resolved from the request/task context). Use ``all_objects`` for
+    privileged, cross-tenant access.
+    """
+
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        related_name="%(app_label)s_%(class)s_set",
+        db_index=True,
+    )
+
+    objects = TenantManager()
+    all_objects = TenantAllObjectsManager()
+
+    class Meta(BaseModel.Meta):
+        abstract = True
