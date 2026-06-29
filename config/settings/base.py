@@ -301,6 +301,11 @@ REWARDS = {
     "LOYALTY_EARN_RATE": env.float("LOYALTY_EARN_RATE", default=0.0),
     # Wallet credit granted per loyalty point on redemption.
     "LOYALTY_REDEEM_RATE": env("LOYALTY_REDEEM_RATE", default="0.01"),
+    # Referral wallet credit for the referrer / referee on a qualifying order
+    # (0 = no payout). The referee's order must reach REFERRAL_MIN_ORDER.
+    "REFERRER_REWARD": env("REFERRER_REWARD", default="0.00"),
+    "REFEREE_REWARD": env("REFEREE_REWARD", default="0.00"),
+    "REFERRAL_MIN_ORDER": env("REFERRAL_MIN_ORDER", default="0.00"),
 }
 
 AUTH_SETTINGS = {

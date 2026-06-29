@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from apps.rewards.models import GiftCard, WalletTransaction
+from apps.rewards.models import GiftCard, Referral, WalletTransaction
 
 _ZERO = Decimal("0")
 
@@ -36,3 +36,25 @@ class RedeemGiftCardSerializer(serializers.Serializer):
 
 class RedeemPointsSerializer(serializers.Serializer):
     points = serializers.IntegerField(min_value=1)
+
+
+class ReferralSerializer(serializers.ModelSerializer):
+    referee_email = serializers.CharField(source="referee.email", read_only=True)
+
+    class Meta:
+        model = Referral
+        fields = (
+            "id",
+            "referee_email",
+            "code",
+            "status",
+            "referrer_reward",
+            "referee_reward",
+            "rewarded_at",
+            "created_at",
+        )
+        read_only_fields = fields
+
+
+class ApplyReferralSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=20)

@@ -8,6 +8,8 @@ from apps.rewards.models import (
     GiftCard,
     LoyaltyAccount,
     LoyaltyTransaction,
+    Referral,
+    ReferralCode,
     Wallet,
     WalletTransaction,
 )
@@ -47,3 +49,18 @@ class LoyaltyAccountAdmin(admin.ModelAdmin):
     list_display = ("user", "store", "points")
     search_fields = ("user__email", "store__name")
     inlines = (LoyaltyTransactionInline,)
+
+
+@admin.register(ReferralCode)
+class ReferralCodeAdmin(admin.ModelAdmin):
+    list_display = ("code", "user", "store", "uses_count")
+    search_fields = ("code", "user__email", "store__name")
+    readonly_fields = ("uses_count",)
+
+
+@admin.register(Referral)
+class ReferralAdmin(admin.ModelAdmin):
+    list_display = ("referrer", "referee", "store", "status", "referrer_reward", "rewarded_at")
+    list_filter = ("status",)
+    search_fields = ("referrer__email", "referee__email", "code", "store__name")
+    readonly_fields = ("rewarded_at",)

@@ -12,6 +12,9 @@ urlpatterns = [
     path("gift-cards/redeem/", views.GiftCardRedeemView.as_view(), name="gift-card-redeem"),
     path("loyalty/", views.LoyaltyView.as_view(), name="loyalty"),
     path("loyalty/redeem/", views.LoyaltyRedeemView.as_view(), name="loyalty-redeem"),
+    path("referrals/", views.ReferralListView.as_view(), name="referral-list"),
+    path("referrals/code/", views.ReferralCodeView.as_view(), name="referral-code"),
+    path("referrals/apply/", views.ReferralApplyView.as_view(), name="referral-apply"),
     # Staff
     path("gift-cards/", views.GiftCardListCreateView.as_view(), name="gift-card-list"),
 ]

@@ -9,13 +9,20 @@ from apps.core.mixins import BaseAPIView, BaseGenericAPIView
 from apps.core.responses import APIResponse
 from apps.rewards.models import GiftCard
 from apps.rewards.serializers import (
+    ApplyReferralSerializer,
     GiftCardSerializer,
     IssueGiftCardSerializer,
     RedeemGiftCardSerializer,
     RedeemPointsSerializer,
+    ReferralSerializer,
     WalletTransactionSerializer,
 )
-from apps.rewards.services import GiftCardService, LoyaltyService, WalletService
+from apps.rewards.services import (
+    GiftCardService,
+    LoyaltyService,
+    ReferralService,
+    WalletService,
+)
 from apps.stores.context import RequireStoreMixin, StoreContextMixin
 
 
@@ -79,6 +86,40 @@ class LoyaltyRedeemView(RequireStoreMixin, BaseAPIView):
             },
             message="Points redeemed to wallet credit.",
         )
+
+
+# --- Buyer: referrals ------------------------------------------------------
+class ReferralCodeView(RequireStoreMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        stats = ReferralService().stats(store=self.store, user=request.user)
+        return APIResponse.success(data=stats)
+
+
+class ReferralApplyView(RequireStoreMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ApplyReferralSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        referral = ReferralService().apply_code(
+            store=self.store, referee=request.user, code=serializer.validated_data["code"]
+        )
+        return APIResponse.success(
+            ReferralSerializer(referral).data,
+            message="Referral code applied.",
+            status_code=201,
+        )
+
+
+class ReferralListView(RequireStoreMixin, BaseGenericAPIView, generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ReferralSerializer
+    filterset_fields = ("status",)
+
+    def get_queryset(self):
+        return ReferralService().list_made(store=self.store, user=self.request.user)
 
 
 # --- Staff: gift cards -----------------------------------------------------

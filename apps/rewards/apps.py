@@ -9,4 +9,8 @@ class RewardsConfig(AppConfig):
 
     def ready(self) -> None:
         # Register the store-credit payment gateway with the payments registry.
-        from apps.rewards import gateway  # noqa: F401
+        # Connect referral reward settlement to the order-confirmed signal.
+        from apps.rewards import (
+            gateway,  # noqa: F401
+            receivers,  # noqa: F401
+        )
