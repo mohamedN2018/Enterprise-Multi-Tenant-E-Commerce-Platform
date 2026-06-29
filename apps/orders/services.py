@@ -253,9 +253,17 @@ class CheckoutService(BaseService):
         coupon = service.validate(store=store, code=code, user=user, subtotal=subtotal)
         return coupon, service.compute_discount(coupon=coupon, subtotal=subtotal)
 
+    @staticmethod
+    def _tax_rate(store) -> Decimal:
+        # Tax engine (zones/rates by country); falls back to the store's flat
+        # default_tax_rate when no zone is configured.
+        from apps.finance.services import TaxService
+
+        return TaxService().resolve_rate(store=store, country=store.country or None)
+
     def _totals(self, *, store, amount: Decimal) -> tuple[Decimal, Decimal]:
         """Return (tax_total, total) for a taxable ``amount`` (subtotal - discount)."""
-        rate = store.settings.default_tax_rate or Decimal("0")
+        rate = self._tax_rate(store)
         if store.settings.tax_inclusive_pricing:
             divisor = Decimal("1") + rate / Decimal("100")
             net = amount / divisor if divisor else amount
