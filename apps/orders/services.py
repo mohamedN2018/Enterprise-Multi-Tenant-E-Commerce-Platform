@@ -32,6 +32,17 @@ def _money(value) -> Decimal:
 
 
 def _available_for(variant) -> int:
+    from apps.catalog.models import COMPOSITE_KINDS
+
+    # Bundles/kits/composites have no stock of their own; availability is the
+    # most constraining required component.
+    if variant.product.kind in COMPOSITE_KINDS:
+        components = list(
+            variant.product.components.filter(is_optional=False).select_related("component_variant")
+        )
+        if not components:
+            return 0
+        return min(_available_for(c.component_variant) // c.quantity for c in components)
     agg = StockItem.objects.filter(variant=variant).aggregate(
         on_hand=Sum("quantity"), reserved=Sum("reserved_quantity")
     )
@@ -164,7 +175,7 @@ class CheckoutService(BaseService):
                 quantity=item.quantity,
                 line_total=_money(item.line_total),
             )
-            self._reserve(
+            self._reserve_for_item(
                 store=store, variant=item.variant, quantity=item.quantity, reference=reference
             )
 
@@ -221,6 +232,24 @@ class CheckoutService(BaseService):
             return _money(amount - net), _money(amount)
         tax = amount * rate / Decimal("100")
         return _money(tax), _money(amount + tax)
+
+    def _reserve_for_item(self, *, store, variant, quantity: int, reference: str) -> None:
+        """Reserve stock for a cart line: components for composites, else the variant."""
+        from apps.catalog.models import COMPOSITE_KINDS
+
+        product = variant.product
+        if product.kind in COMPOSITE_KINDS:
+            for component in product.components.filter(is_optional=False).select_related(
+                "component_variant"
+            ):
+                self._reserve(
+                    store=store,
+                    variant=component.component_variant,
+                    quantity=quantity * component.quantity,
+                    reference=reference,
+                )
+        else:
+            self._reserve(store=store, variant=variant, quantity=quantity, reference=reference)
 
     def _reserve(self, *, store, variant, quantity: int, reference: str) -> None:
         needed = quantity

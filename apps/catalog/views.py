@@ -15,13 +15,16 @@ from apps.catalog.access import StoreContextMixin
 from apps.catalog.models import Brand, Category, Product, ProductVariant
 from apps.catalog.serializers import (
     BrandSerializer,
+    BundleComponentCreateSerializer,
+    BundleComponentSerializer,
     CategorySerializer,
     ProductSerializer,
     ProductVariantSerializer,
 )
-from apps.catalog.services import CatalogService
+from apps.catalog.services import BundleService, CatalogService
 from apps.core.exceptions import NotFoundError
-from apps.core.mixins import BaseGenericAPIView
+from apps.core.mixins import BaseAPIView, BaseGenericAPIView
+from apps.core.responses import APIResponse
 
 
 # --- Category --------------------------------------------------------------
@@ -180,3 +183,39 @@ class VariantDetailView(
     def perform_destroy(self, instance):
         self.require_write()
         instance.delete()
+
+
+# --- Bundle components (for bundle/kit/composite products) -----------------
+class BundleComponentListCreateView(StoreContextMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, product_id):
+        bundle = BundleService().get_bundle(product_id=product_id)
+        components = BundleService().list_components(bundle)
+        return APIResponse.success(BundleComponentSerializer(components, many=True).data)
+
+    def post(self, request, product_id):
+        self.require_write()
+        bundle = BundleService().get_bundle(product_id=product_id)
+        serializer = BundleComponentCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        component = BundleService().add_component(
+            store=self.store, bundle=bundle, **serializer.validated_data
+        )
+        return APIResponse.success(
+            BundleComponentSerializer(component).data,
+            message="Component added.",
+            status_code=201,
+        )
+
+
+class BundleComponentDetailView(StoreContextMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, product_id, component_id):
+        self.require_write()
+        service = BundleService()
+        bundle = service.get_bundle(product_id=product_id)
+        component = service.get_component(bundle=bundle, component_id=component_id)
+        service.remove_component(component=component)
+        return APIResponse.success(message="Component removed.")

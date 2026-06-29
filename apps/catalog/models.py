@@ -40,6 +40,19 @@ class ProductStatus(models.TextChoices):
     ARCHIVED = "archived", "Archived"
 
 
+class ProductKind(models.TextChoices):
+    SIMPLE = "simple", "Simple"
+    CONFIGURABLE = "configurable", "Configurable"
+    BUNDLE = "bundle", "Bundle"
+    KIT = "kit", "Kit"
+    COMPOSITE = "composite", "Composite"
+
+
+#: Kinds whose sellable price/availability derive from their components rather
+#: than from their own stock.
+COMPOSITE_KINDS = frozenset({ProductKind.BUNDLE, ProductKind.KIT, ProductKind.COMPOSITE})
+
+
 class Category(TenantOwnedModel, SEOFields):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255)
@@ -113,6 +126,10 @@ class Product(TenantOwnedModel, SEOFields):
     )
     product_type = models.CharField(
         max_length=16, choices=ProductType.choices, default=ProductType.PHYSICAL
+    )
+    # Structural kind. Defaults to SIMPLE so existing products are unaffected.
+    kind = models.CharField(
+        max_length=16, choices=ProductKind.choices, default=ProductKind.SIMPLE, db_index=True
     )
     status = models.CharField(
         max_length=16,
@@ -195,3 +212,30 @@ class ProductVariant(TenantOwnedModel):
 
     def __str__(self) -> str:
         return f"{self.sku} ({self.name})" if self.name else self.sku
+
+
+class BundleComponent(TenantOwnedModel):
+    """A component (variant + quantity) of a bundle/kit/composite product."""
+
+    bundle = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="components")
+    component_variant = models.ForeignKey(
+        ProductVariant, on_delete=models.PROTECT, related_name="component_of"
+    )
+    quantity = models.PositiveIntegerField(default=1)
+    is_optional = models.BooleanField(default=False)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta(TenantOwnedModel.Meta):
+        verbose_name = "Bundle component"
+        verbose_name_plural = "Bundle components"
+        ordering = ("sort_order", "created_at")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["bundle", "component_variant"],
+                condition=Q(is_deleted=False),
+                name="uniq_bundle_component",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.quantity} x {self.component_variant_id} in {self.bundle_id}"

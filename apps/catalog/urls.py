@@ -29,4 +29,14 @@ urlpatterns = [
         views.VariantDetailView.as_view(),
         name="variant-detail",
     ),
+    path(
+        "products/<uuid:product_id>/components/",
+        views.BundleComponentListCreateView.as_view(),
+        name="component-list",
+    ),
+    path(
+        "products/<uuid:product_id>/components/<uuid:component_id>/",
+        views.BundleComponentDetailView.as_view(),
+        name="component-detail",
+    ),
 ]

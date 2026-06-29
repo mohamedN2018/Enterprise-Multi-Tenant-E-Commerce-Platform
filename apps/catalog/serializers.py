@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from apps.catalog.models import Brand, Category, Product, ProductVariant
+from apps.catalog.models import Brand, BundleComponent, Category, Product, ProductVariant
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -75,8 +75,32 @@ class ProductVariantSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "product", "created_at", "updated_at")
 
 
+class BundleComponentSerializer(serializers.ModelSerializer):
+    component_sku = serializers.CharField(source="component_variant.sku", read_only=True)
+
+    class Meta:
+        model = BundleComponent
+        fields = (
+            "id",
+            "component_variant",
+            "component_sku",
+            "quantity",
+            "is_optional",
+            "sort_order",
+        )
+        read_only_fields = fields
+
+
+class BundleComponentCreateSerializer(serializers.Serializer):
+    component_variant_id = serializers.UUIDField()
+    quantity = serializers.IntegerField(min_value=1, default=1)
+    is_optional = serializers.BooleanField(default=False)
+    sort_order = serializers.IntegerField(min_value=0, default=0)
+
+
 class ProductSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
+    components = BundleComponentSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
@@ -88,6 +112,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "category",
             "brand",
             "product_type",
+            "kind",
             "status",
             "is_active",
             "published_at",
@@ -95,6 +120,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "meta_description",
             "meta_keywords",
             "variants",
+            "components",
             "created_at",
             "updated_at",
         )
@@ -103,6 +129,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "slug",
             "published_at",
             "variants",
+            "components",
             "created_at",
             "updated_at",
         )
