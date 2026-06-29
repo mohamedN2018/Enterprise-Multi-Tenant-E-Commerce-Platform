@@ -20,6 +20,7 @@ from apps.core.views import health_check
 api_v1_patterns = [
     path("auth/", include("apps.accounts.urls")),
     path("stores/", include("apps.stores.urls")),
+    path("catalog/", include("apps.catalog.urls")),
 ]
 
 urlpatterns = [
