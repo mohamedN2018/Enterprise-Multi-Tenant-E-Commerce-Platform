@@ -7,6 +7,8 @@ confirms the order, which commits the reserved stock (see ``CheckoutService``).
 
 from __future__ import annotations
 
+from decimal import ROUND_HALF_UP, Decimal
+
 from django.utils import timezone
 
 from apps.core.exceptions import BusinessRuleError, ConflictError
@@ -18,6 +20,11 @@ from apps.payments.gateways.base import GatewayResult
 from apps.payments.models import Payment, PaymentEvent, PaymentStatus
 
 _CAPTURABLE = {PaymentStatus.PENDING, PaymentStatus.PROCESSING}
+_CENTS = Decimal("0.01")
+
+
+def _money(value) -> Decimal:
+    return Decimal(value).quantize(_CENTS, rounding=ROUND_HALF_UP)
 
 
 class PaymentService(BaseService):
@@ -55,6 +62,34 @@ class PaymentService(BaseService):
 
         if payment.status == PaymentStatus.CAPTURED and payment.order.status == OrderStatus.PENDING:
             self.checkout.confirm_order(order=payment.order)
+        return payment
+
+    @atomic
+    def refund_payment(self, *, payment: Payment, amount) -> Payment:
+        """Refund a captured payment through its original gateway.
+
+        Records a ``refund`` event and, when the full amount is refunded, marks
+        the payment ``REFUNDED``. Raises ``PaymentError`` (from the gateway) when
+        the gateway does not support refunds — callers may fall back to store
+        credit.
+        """
+        if payment.status != PaymentStatus.CAPTURED:
+            raise ConflictError("Only a captured payment can be refunded.", code="not_refundable")
+        amount = _money(amount)
+        if amount <= 0 or amount > payment.amount:
+            raise BusinessRuleError("Invalid refund amount.", code="invalid_refund_amount")
+        gateway = get_gateway(payment.gateway)
+        result = gateway.refund(payment=payment, amount=amount)
+        PaymentEvent.objects.create(
+            store=payment.store,
+            payment=payment,
+            event_type="refund",
+            message=(result.error or result.status)[:255],
+            data={**(result.raw or {}), "amount": str(amount)},
+        )
+        if amount >= payment.amount:
+            payment.status = PaymentStatus.REFUNDED
+            payment.save(update_fields=["status", "updated_at"])
         return payment
 
     def _apply(self, payment: Payment, result: GatewayResult, *, event: str) -> None:

@@ -151,20 +151,54 @@ class ReturnService(BaseService):
             )
         self._restock(rma)
         if rma.refund_amount > 0:
-            from apps.rewards.services import WalletService
-
-            WalletService().credit(
-                store=rma.store,
-                user=rma.user,
-                amount=rma.refund_amount,
-                reason="refund",
-                reference=f"return:{rma.id}",
-            )
-            rma.refund_reference = "wallet"
+            rma.refund_reference = self._issue_refund(rma)
         rma.status = ReturnStatus.REFUNDED
         rma.processed_at = timezone.now()
         rma.save(update_fields=["status", "refund_reference", "processed_at", "updated_at"])
         return rma
+
+    def _issue_refund(self, rma: ReturnRequest) -> str:
+        """Refund to the original gateway when possible, else to store credit.
+
+        A buyer who chose ``STORE_CREDIT`` is always credited to their wallet.
+        Otherwise the original captured payment's gateway is tried first; if there
+        is none, or it cannot refund, the amount falls back to wallet credit.
+        """
+        if rma.resolution != ReturnResolution.STORE_CREDIT:
+            reference = self._gateway_refund(rma)
+            if reference is not None:
+                return reference
+        self._wallet_refund(rma)
+        return "wallet"
+
+    def _gateway_refund(self, rma: ReturnRequest) -> str | None:
+        from apps.payments.exceptions import PaymentError
+        from apps.payments.models import Payment, PaymentStatus
+        from apps.payments.services import PaymentService
+
+        payment = (
+            Payment.objects.filter(store=rma.store, order=rma.order, status=PaymentStatus.CAPTURED)
+            .order_by("-created_at")
+            .first()
+        )
+        if payment is None:
+            return None
+        try:
+            PaymentService().refund_payment(payment=payment, amount=rma.refund_amount)
+        except PaymentError:
+            return None  # gateway can't refund -> caller falls back to store credit
+        return f"gateway:{payment.gateway}"
+
+    def _wallet_refund(self, rma: ReturnRequest) -> None:
+        from apps.rewards.services import WalletService
+
+        WalletService().credit(
+            store=rma.store,
+            user=rma.user,
+            amount=rma.refund_amount,
+            reason="refund",
+            reference=f"return:{rma.id}",
+        )
 
     def _restock(self, rma: ReturnRequest) -> None:
         from apps.catalog.models import ProductType

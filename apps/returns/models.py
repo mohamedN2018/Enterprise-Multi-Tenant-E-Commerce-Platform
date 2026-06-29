@@ -4,9 +4,10 @@
   moving through requested -> approved -> refunded (or rejected/cancelled).
 * ``ReturnItem``    — the specific order line + quantity being returned.
 
-On refund the order's items are restocked into inventory and the buyer is
-credited to their wallet (store credit). Original-payment-method refunds use the
-``PaymentGateway.refund`` interface and are a planned enhancement.
+On refund the order's items are restocked into inventory and the buyer is repaid:
+to the original payment gateway when one captured the order (via
+``PaymentGateway.refund``), otherwise — or when ``STORE_CREDIT`` was chosen — to
+their wallet as store credit.
 """
 
 from __future__ import annotations

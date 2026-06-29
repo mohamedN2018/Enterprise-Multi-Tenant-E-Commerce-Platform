@@ -28,3 +28,11 @@ class ManualGateway(PaymentGateway):
             transaction_id=f"manual-{payment.id}",
             raw={"note": "Marked as collected."},
         )
+
+    def refund(self, *, payment, amount) -> GatewayResult:
+        # Manual refunds are settled out of band (cash/transfer); we acknowledge it.
+        return GatewayResult(
+            status=PaymentStatus.REFUNDED,
+            transaction_id=f"manual-refund-{payment.id}",
+            raw={"note": "Manual refund acknowledged.", "amount": str(amount)},
+        )
