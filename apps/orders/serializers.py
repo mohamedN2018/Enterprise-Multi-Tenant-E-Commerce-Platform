@@ -118,3 +118,4 @@ class OrderSerializer(serializers.ModelSerializer):
 class CheckoutSerializer(serializers.Serializer):
     shipping_method_id = serializers.UUIDField(required=False, allow_null=True)
     country = serializers.CharField(required=False, allow_blank=True, default="")
+    currency = serializers.CharField(required=False, allow_blank=True, default="", max_length=3)

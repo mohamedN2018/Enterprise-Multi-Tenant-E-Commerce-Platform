@@ -160,7 +160,9 @@ class CheckoutService(BaseService):
         self.inventory = inventory or InventoryService()
 
     @atomic
-    def checkout(self, *, store, user, shipping_method_id=None, country=None) -> Order:
+    def checkout(
+        self, *, store, user, shipping_method_id=None, country=None, currency=None
+    ) -> Order:
         cart = (
             Cart.objects.filter(store=store, user=user, status=CartStatus.ACTIVE)
             .prefetch_related("items__variant__product")
@@ -179,7 +181,11 @@ class CheckoutService(BaseService):
         promo = self._auto_promotions(store=store, items=items, subtotal=subtotal)
         discount = _money(min(coupon_discount + promo.discount, subtotal))
         taxable = subtotal - discount
-        tax_total, taxed_total = self._totals(store=store, amount=taxable)
+        # Destination-based tax: use the shipping country, falling back to the
+        # store's own country (and then the store's flat default rate).
+        tax_total, taxed_total = self._totals(
+            store=store, amount=taxable, country=country or store.country or None
+        )
         weight = sum(
             (Decimal(str(item.variant.weight or 0)) * item.quantity for item in items),
             Decimal("0"),
@@ -195,16 +201,20 @@ class CheckoutService(BaseService):
             shipping_total = Decimal("0.00")
         total = _money(taxed_total + shipping_total)
 
+        # Optional settlement currency: convert all amounts once, recording the
+        # order in the chosen currency. Defaults to the store currency (identity).
+        order_currency, fx = self._resolve_currency(store=store, currency=currency)
+
         order = Order.objects.create(
             store=store,
             user=user,
             number=self._generate_number(store),
-            currency=store.currency,
-            subtotal=subtotal,
-            discount_total=discount,
-            tax_total=tax_total,
-            shipping_total=shipping_total,
-            total=total,
+            currency=order_currency,
+            subtotal=fx(subtotal),
+            discount_total=fx(discount),
+            tax_total=fx(tax_total),
+            shipping_total=fx(shipping_total),
+            total=fx(total),
             coupon_code=coupon.code if coupon else "",
             shipping_method=method.name if method else "",
             status=OrderStatus.PENDING,
@@ -217,9 +227,9 @@ class CheckoutService(BaseService):
                 variant=item.variant,
                 product_name=item.variant.product.name,
                 sku=item.variant.sku,
-                unit_price=item.unit_price,
+                unit_price=fx(item.unit_price),
                 quantity=item.quantity,
-                line_total=_money(item.line_total),
+                line_total=fx(item.line_total),
             )
             self._reserve_for_item(
                 store=store, variant=item.variant, quantity=item.quantity, reference=reference
@@ -283,12 +293,33 @@ class CheckoutService(BaseService):
         return coupon, service.compute_discount(coupon=coupon, subtotal=subtotal)
 
     @staticmethod
-    def _tax_rate(store) -> Decimal:
-        # Tax engine (zones/rates by country); falls back to the store's flat
-        # default_tax_rate when no zone is configured.
+    def _tax_rate(store, country=None) -> Decimal:
+        # Tax engine (zones/rates by destination country); falls back to the
+        # store's flat default_tax_rate when no zone matches.
         from apps.finance.services import TaxService
 
-        return TaxService().resolve_rate(store=store, country=store.country or None)
+        return TaxService().resolve_rate(store=store, country=country or store.country or None)
+
+    @staticmethod
+    def _resolve_currency(*, store, currency):
+        """Return (currency_code, convert_fn) for the order's settlement currency.
+
+        With no selection (or the store's own currency) this is the identity, so
+        orders settle in the store currency exactly as before.
+        """
+        target = (currency or "").strip().upper()
+        if not target or target == store.currency:
+            return store.currency, _money
+        from apps.finance.services import CurrencyService
+
+        service = CurrencyService()
+
+        def convert(amount):
+            return service.convert(
+                store=store, amount=amount, base_code=store.currency, target_code=target
+            )
+
+        return target, convert
 
     @staticmethod
     def _assert_fraud_cleared(order: Order) -> None:
@@ -323,9 +354,9 @@ class CheckoutService(BaseService):
             weight=weight,
         )
 
-    def _totals(self, *, store, amount: Decimal) -> tuple[Decimal, Decimal]:
+    def _totals(self, *, store, amount: Decimal, country=None) -> tuple[Decimal, Decimal]:
         """Return (tax_total, total) for a taxable ``amount`` (subtotal - discount)."""
-        rate = self._tax_rate(store)
+        rate = self._tax_rate(store, country)
         if store.settings.tax_inclusive_pricing:
             divisor = Decimal("1") + rate / Decimal("100")
             net = amount / divisor if divisor else amount
