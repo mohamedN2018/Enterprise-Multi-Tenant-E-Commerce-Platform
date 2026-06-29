@@ -62,6 +62,7 @@ LOCAL_APPS = [
     "apps.shipping",
     "apps.notifications",
     "apps.analytics",
+    "apps.fraud",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -306,6 +307,26 @@ REWARDS = {
     "REFERRER_REWARD": env("REFERRER_REWARD", default="0.00"),
     "REFEREE_REWARD": env("REFEREE_REWARD", default="0.00"),
     "REFERRAL_MIN_ORDER": env("REFERRAL_MIN_ORDER", default="0.00"),
+}
+
+# --- Fraud detection -------------------------------------------------------
+# Orders are risk-scored at checkout; score >= REVIEW_THRESHOLD holds the order
+# for manual review, >= REJECT_THRESHOLD recommends rejection. Each rule is OFF
+# by default (zero/empty threshold) so the engine approves until configured.
+FRAUD = {
+    "ENABLED": env.bool("FRAUD_ENABLED", default=True),
+    "REVIEW_THRESHOLD": env.int("FRAUD_REVIEW_THRESHOLD", default=50),
+    "REJECT_THRESHOLD": env.int("FRAUD_REJECT_THRESHOLD", default=100),
+    # High-value rule.
+    "HIGH_VALUE_THRESHOLD": env("FRAUD_HIGH_VALUE_THRESHOLD", default="0"),
+    "HIGH_VALUE_SCORE": env.int("FRAUD_HIGH_VALUE_SCORE", default=40),
+    # Velocity rule (too many orders in a short window).
+    "VELOCITY_WINDOW_MINUTES": env.int("FRAUD_VELOCITY_WINDOW_MINUTES", default=10),
+    "VELOCITY_MAX_ORDERS": env.int("FRAUD_VELOCITY_MAX_ORDERS", default=0),
+    "VELOCITY_SCORE": env.int("FRAUD_VELOCITY_SCORE", default=40),
+    # New-account rule (account younger than N minutes).
+    "NEW_ACCOUNT_MINUTES": env.int("FRAUD_NEW_ACCOUNT_MINUTES", default=0),
+    "NEW_ACCOUNT_SCORE": env.int("FRAUD_NEW_ACCOUNT_SCORE", default=30),
 }
 
 AUTH_SETTINGS = {

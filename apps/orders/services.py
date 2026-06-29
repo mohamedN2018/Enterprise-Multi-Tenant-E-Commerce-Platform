@@ -241,6 +241,7 @@ class CheckoutService(BaseService):
     def confirm_order(self, *, order: Order) -> Order:
         if order.status != OrderStatus.PENDING:
             raise ConflictError("Only a pending order can be confirmed.")
+        self._assert_fraud_cleared(order)
         for reservation in self._active_reservations(order):
             self.inventory.commit(reservation=reservation)
         order.status = OrderStatus.CONFIRMED
@@ -288,6 +289,17 @@ class CheckoutService(BaseService):
         from apps.finance.services import TaxService
 
         return TaxService().resolve_rate(store=store, country=store.country or None)
+
+    @staticmethod
+    def _assert_fraud_cleared(order: Order) -> None:
+        # Block confirmation while a fraud check holds the order. No-op when the
+        # fraud app isn't installed or the order was approved.
+        from apps.fraud.services import FraudService
+
+        if FraudService().is_blocked(order=order):
+            raise BusinessRuleError(
+                "This order is on hold pending fraud review.", code="order_on_hold"
+            )
 
     @staticmethod
     def _auto_promotions(*, store, items, subtotal):
