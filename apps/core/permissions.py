@@ -3,6 +3,7 @@
 Generic, composable building blocks. Store/role-scoped and object-level
 permissions for tenant membership are layered on top of these in later features.
 """
+
 from __future__ import annotations
 
 from rest_framework.permissions import SAFE_METHODS, BasePermission

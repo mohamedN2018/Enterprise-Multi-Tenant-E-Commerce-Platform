@@ -1,4 +1,5 @@
 """Admin forms for the custom user model (email-based, no username)."""
+
 from __future__ import annotations
 
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm

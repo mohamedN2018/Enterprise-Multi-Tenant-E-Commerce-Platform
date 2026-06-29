@@ -5,6 +5,7 @@ Environment-specific modules (development/production/test) import everything
 from here and override only what differs. Configuration is read from the
 environment (12-factor) via django-environ.
 """
+
 from datetime import timedelta
 from pathlib import Path
 
@@ -139,9 +140,7 @@ USE_S3 = env.bool("USE_S3", default=False)
 if USE_S3:
     STORAGES = {
         "default": {"BACKEND": "storages.backends.s3.S3Storage"},
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
-        },
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     }
     AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
@@ -154,9 +153,7 @@ if USE_S3:
 else:
     STORAGES = {
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
-        },
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     }
 
 # --- Cache -----------------------------------------------------------------
@@ -197,10 +194,16 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
         "anon": env("THROTTLE_ANON", default="60/min"),
         "user": env("THROTTLE_USER", default="1000/min"),
+        # Sensitive auth endpoints (brute-force / abuse protection).
+        "auth_login": env("THROTTLE_AUTH_LOGIN", default="10/min"),
+        "auth_register": env("THROTTLE_AUTH_REGISTER", default="5/min"),
+        "auth_password_reset": env("THROTTLE_AUTH_PASSWORD_RESET", default="5/min"),
+        "auth_email_verification": env("THROTTLE_AUTH_EMAIL_VERIFICATION", default="5/min"),
     },
     "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
     "DEFAULT_VERSION": "v1",
@@ -209,12 +212,8 @@ REST_FRAMEWORK = {
 
 # --- SimpleJWT -------------------------------------------------------------
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(
-        minutes=env.int("JWT_ACCESS_MINUTES", default=15)
-    ),
-    "REFRESH_TOKEN_LIFETIME": timedelta(
-        days=env.int("JWT_REFRESH_DAYS", default=7)
-    ),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env.int("JWT_ACCESS_MINUTES", default=15)),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=env.int("JWT_REFRESH_DAYS", default=7)),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
@@ -269,6 +268,24 @@ X_FRAME_OPTIONS = "DENY"
 # Dotted path to a callable(request) -> Store|None used by CurrentRequestMiddleware
 # to resolve the active tenant. Wired in once the stores app exists (Feature 2).
 TENANT_RESOLVER = env("TENANT_RESOLVER", default=None)
+
+# --- Authentication flows --------------------------------------------------
+# Frontend base URL used to build verification / password-reset links in emails.
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000")
+FRONTEND_EMAIL_VERIFICATION_PATH = env(
+    "FRONTEND_EMAIL_VERIFICATION_PATH", default="/auth/verify-email"
+)
+FRONTEND_PASSWORD_RESET_PATH = env("FRONTEND_PASSWORD_RESET_PATH", default="/auth/reset-password")
+
+AUTH_SETTINGS = {
+    # Block login until the email address is verified.
+    "REQUIRE_EMAIL_VERIFICATION": env.bool("REQUIRE_EMAIL_VERIFICATION", default=True),
+    # One-time token lifetimes.
+    "EMAIL_VERIFICATION_TTL_HOURS": env.int("EMAIL_VERIFICATION_TTL_HOURS", default=48),
+    "PASSWORD_RESET_TTL_HOURS": env.int("PASSWORD_RESET_TTL_HOURS", default=2),
+    # "Remember me" extends the refresh-token lifetime at login time.
+    "REMEMBER_ME_REFRESH_DAYS": env.int("REMEMBER_ME_REFRESH_DAYS", default=30),
+}
 
 # --- Logging ---------------------------------------------------------------
 LOGGING = {

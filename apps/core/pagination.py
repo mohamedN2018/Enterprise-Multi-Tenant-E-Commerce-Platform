@@ -1,4 +1,5 @@
 """Pagination that emits the project's envelope with rich ``meta.pagination``."""
+
 from __future__ import annotations
 
 from rest_framework.pagination import PageNumberPagination

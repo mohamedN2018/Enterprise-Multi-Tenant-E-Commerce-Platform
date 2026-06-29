@@ -1,4 +1,5 @@
 """WSGI entrypoint (synchronous HTTP, e.g. Gunicorn workers)."""
+
 import os
 
 from django.core.wsgi import get_wsgi_application

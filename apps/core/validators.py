@@ -1,4 +1,5 @@
 """Reusable validators."""
+
 from __future__ import annotations
 
 from django.core.exceptions import ValidationError
@@ -25,9 +26,7 @@ class FileSizeValidator:
     def __call__(self, file) -> None:
         max_bytes = int(self.max_mb * 1024 * 1024)
         if file.size > max_bytes:
-            raise ValidationError(
-                f"File too large. Maximum allowed size is {self.max_mb} MB."
-            )
+            raise ValidationError(f"File too large. Maximum allowed size is {self.max_mb} MB.")
 
     def __eq__(self, other) -> bool:
         return isinstance(other, FileSizeValidator) and self.max_mb == other.max_mb

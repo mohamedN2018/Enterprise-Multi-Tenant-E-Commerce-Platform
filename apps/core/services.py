@@ -4,10 +4,12 @@ Services hold business logic / use-cases. They orchestrate repositories,
 enforce invariants, and own transactional boundaries — keeping views thin and
 models persistence-focused (Clean Architecture / SOLID).
 """
+
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 from django.db import transaction
 

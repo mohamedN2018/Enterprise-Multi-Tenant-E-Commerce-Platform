@@ -5,9 +5,11 @@ construction, and makes data access trivially mockable in unit tests. Domain
 repositories subclass :class:`BaseRepository`, set ``model`` and add
 query methods expressing domain intent (e.g. ``active_for_store``).
 """
+
 from __future__ import annotations
 
-from typing import Any, Generic, Iterable, Optional, TypeVar
+from collections.abc import Iterable
+from typing import Any, Generic, TypeVar
 
 from django.db import models
 from django.db.models import QuerySet
@@ -18,7 +20,7 @@ M = TypeVar("M", bound=models.Model)
 class BaseRepository(Generic[M]):
     model: type[M]
 
-    def __init__(self, model: Optional[type[M]] = None) -> None:
+    def __init__(self, model: type[M] | None = None) -> None:
         if model is not None:
             self.model = model
         if not getattr(self, "model", None):
@@ -40,7 +42,7 @@ class BaseRepository(Generic[M]):
     def get_by_id(self, pk: Any) -> M:
         return self.get_queryset().get(pk=pk)
 
-    def get_or_none(self, **kwargs: Any) -> Optional[M]:
+    def get_or_none(self, **kwargs: Any) -> M | None:
         return self.get_queryset().filter(**kwargs).first()
 
     def exists(self, **kwargs: Any) -> bool:

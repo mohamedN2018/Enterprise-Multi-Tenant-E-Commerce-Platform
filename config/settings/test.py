@@ -1,9 +1,13 @@
 """Test settings: fast and hermetic."""
-from .base import *  # noqa: F401,F403
-from .base import env
+
+from .base import *  # noqa: F403
+from .base import SIMPLE_JWT, env
 
 DEBUG = False
 ALLOWED_HOSTS = ["*"]
+
+# Deterministic, sufficiently long signing key (avoids short-key warnings).
+SIMPLE_JWT["SIGNING_KEY"] = "test-signing-key-that-is-comfortably-over-32-bytes-long"
 
 # Fast password hashing for tests.
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
@@ -15,12 +19,8 @@ CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 
-# Default to a local Postgres test DB; override with DATABASE_URL in CI.
-DATABASES = {
-    "default": env.db(
-        "TEST_DATABASE_URL",
-        default="postgres://marketplace:marketplace@localhost:5432/marketplace_test",
-    )
-}
+# In-memory SQLite by default for fast, hermetic local runs. CI overrides with
+# TEST_DATABASE_URL=postgres://... to exercise the production database engine.
+DATABASES = {"default": env.db("TEST_DATABASE_URL", default="sqlite://:memory:")}
 
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"

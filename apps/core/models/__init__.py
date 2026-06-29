@@ -7,9 +7,9 @@ from apps.core.models.base import (
 )
 
 __all__ = [
-    "UUIDPrimaryKeyModel",
-    "TimeStampedModel",
-    "SoftDeleteModel",
     "AuditModel",
     "BaseModel",
+    "SoftDeleteModel",
+    "TimeStampedModel",
+    "UUIDPrimaryKeyModel",
 ]

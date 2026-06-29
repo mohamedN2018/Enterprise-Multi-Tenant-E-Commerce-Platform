@@ -1,4 +1,5 @@
 """Operational endpoints for the core app."""
+
 from __future__ import annotations
 
 from django.db import connections
@@ -28,7 +29,7 @@ from apps.core.responses import APIResponse
 @authentication_classes([])
 @permission_classes([AllowAny])
 @throttle_classes([])
-def health_check(request: Request) -> "APIResponse":
+def health_check(request: Request) -> APIResponse:
     """Return service health, including a database connectivity probe."""
     db_ok = True
     try:

@@ -1,10 +1,11 @@
 """Admin registration for the custom user model."""
+
 from __future__ import annotations
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from apps.accounts.forms import UserCreationForm, UserChangeForm
+from apps.accounts.forms import UserChangeForm, UserCreationForm
 from apps.accounts.models import User
 
 
@@ -30,21 +31,27 @@ class UserAdmin(BaseUserAdmin):
 
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        ("Permissions", {
-            "fields": (
-                "is_active",
-                "is_staff",
-                "is_superuser",
-                "groups",
-                "user_permissions",
-            )
-        }),
+        (
+            "Permissions",
+            {
+                "fields": (
+                    "is_active",
+                    "is_staff",
+                    "is_superuser",
+                    "groups",
+                    "user_permissions",
+                )
+            },
+        ),
         ("Soft delete", {"fields": ("is_deleted", "deleted_at")}),
         ("Audit", {"fields": ("id", "last_login", "created_at", "updated_at")}),
     )
     add_fieldsets = (
-        (None, {
-            "classes": ("wide",),
-            "fields": ("email", "password1", "password2"),
-        }),
+        (
+            None,
+            {
+                "classes": ("wide",),
+                "fields": ("email", "password1", "password2"),
+            },
+        ),
     )

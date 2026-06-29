@@ -9,9 +9,10 @@ Every JSON response shares one shape::
   lists from the pagination class).
 * :class:`APIResponse` is for views that want to set message/meta explicitly.
 """
+
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from rest_framework import status as http_status
 from rest_framework.renderers import JSONRenderer
@@ -55,7 +56,7 @@ class APIResponse:
         *,
         message: str = "OK",
         status_code: int = http_status.HTTP_200_OK,
-        meta: Optional[dict] = None,
+        meta: dict | None = None,
     ) -> Response:
         body: dict[str, Any] = {
             "success": True,

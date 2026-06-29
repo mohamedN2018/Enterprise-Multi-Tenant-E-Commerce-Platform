@@ -15,53 +15,53 @@ Consumers:
     * :class:`apps.core.models.base.BaseModel` stamps ``created_by`` /
       ``updated_by`` from the current user.
 """
+
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import TYPE_CHECKING, Any, Iterator, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:  # pragma: no cover
     from contextvars import Token
 
 # The values are intentionally typed loosely (Any) so this module never needs
 # to import domain models (Store / User), keeping the shared kernel dependency-free.
-_current_store: ContextVar[Optional[Any]] = ContextVar("current_store", default=None)
-_current_user: ContextVar[Optional[Any]] = ContextVar("current_user", default=None)
+_current_store: ContextVar[Any | None] = ContextVar("current_store", default=None)
+_current_user: ContextVar[Any | None] = ContextVar("current_user", default=None)
 
 
 # --- Store -----------------------------------------------------------------
-def get_current_store() -> Optional[Any]:
+def get_current_store() -> Any | None:
     """Return the active tenant (Store) for this request/task, or ``None``."""
     return _current_store.get()
 
 
-def set_current_store(store: Optional[Any]) -> "Token":
+def set_current_store(store: Any | None) -> Token:
     return _current_store.set(store)
 
 
-def reset_current_store(token: "Token") -> None:
+def reset_current_store(token: Token) -> None:
     _current_store.reset(token)
 
 
 # --- User ------------------------------------------------------------------
-def get_current_user() -> Optional[Any]:
+def get_current_user() -> Any | None:
     """Return the authenticated actor for this request/task, or ``None``."""
     return _current_user.get()
 
 
-def set_current_user(user: Optional[Any]) -> "Token":
+def set_current_user(user: Any | None) -> Token:
     return _current_user.set(user)
 
 
-def reset_current_user(token: "Token") -> None:
+def reset_current_user(token: Token) -> None:
     _current_user.reset(token)
 
 
 @contextmanager
-def tenant_context(
-    *, store: Optional[Any] = None, user: Optional[Any] = None
-) -> Iterator[None]:
+def tenant_context(*, store: Any | None = None, user: Any | None = None) -> Iterator[None]:
     """Temporarily bind a store/user — for Celery tasks, scripts and tests.
 
     Example::

@@ -3,6 +3,7 @@
 Configuration is pulled from Django settings using the ``CELERY_`` namespace,
 keeping a single source of truth (the settings module).
 """
+
 import os
 
 from celery import Celery

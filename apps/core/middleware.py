@@ -9,11 +9,12 @@ to ``callable(request) -> Store | None``). It is intentionally unset until the
 stores app exists; until then the resolver is a no-op and ``current_store`` is
 ``None`` (single-tenant/platform context).
 """
+
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from importlib import import_module
-from typing import Callable, Optional
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
@@ -23,7 +24,7 @@ from apps.core import tenancy
 logger = logging.getLogger(__name__)
 
 
-def _load_resolver() -> Optional[Callable[[HttpRequest], object]]:
+def _load_resolver() -> Callable[[HttpRequest], object] | None:
     path = getattr(settings, "TENANT_RESOLVER", None)
     if not path:
         return None
@@ -45,7 +46,7 @@ class CurrentRequestMiddleware:
         if self._resolver is not None:
             try:
                 store = self._resolver(request)
-            except Exception:  # noqa: BLE001 - tenant resolution must never 500 here
+            except Exception:
                 logger.exception("Tenant resolution failed for %s", request.path)
                 store = None
         store_token = tenancy.set_current_store(store)

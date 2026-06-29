@@ -1,5 +1,6 @@
 """Development settings: developer ergonomics over hardening."""
-from .base import *  # noqa: F401,F403
+
+from .base import *  # noqa: F403
 from .base import REST_FRAMEWORK, env
 
 DEBUG = True
@@ -15,6 +16,4 @@ REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] = [
 CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=True)
 
 # Email goes to the console unless overridden.
-EMAIL_BACKEND = env(
-    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
-)
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")

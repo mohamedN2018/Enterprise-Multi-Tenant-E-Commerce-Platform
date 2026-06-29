@@ -3,6 +3,7 @@
 WebSocket routes are added to the ProtocolTypeRouter as realtime features land
 (e.g. notifications in a later feature).
 """
+
 import os
 
 from django.core.asgi import get_asgi_application

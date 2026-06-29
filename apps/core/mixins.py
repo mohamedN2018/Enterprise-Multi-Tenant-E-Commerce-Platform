@@ -1,4 +1,5 @@
 """Reusable view mixins."""
+
 from __future__ import annotations
 
 from rest_framework.generics import GenericAPIView

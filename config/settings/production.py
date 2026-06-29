@@ -1,5 +1,6 @@
 """Production settings: security-hardened, fail-fast on misconfiguration."""
-from .base import *  # noqa: F401,F403
+
+from .base import *  # noqa: F403
 from .base import CACHES, CHANNEL_LAYERS, env
 
 DEBUG = False

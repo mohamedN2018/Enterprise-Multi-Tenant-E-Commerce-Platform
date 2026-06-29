@@ -10,6 +10,7 @@ Mix-ins (single responsibility each):
 request actor (see :mod:`apps.core.tenancy`). Domain models should subclass
 ``BaseModel`` unless they need a narrower contract.
 """
+
 from __future__ import annotations
 
 import uuid

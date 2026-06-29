@@ -3,6 +3,7 @@
 API is versioned under ``/api/v1/``. Each domain app contributes its own
 router/urlconf, included here as features land.
 """
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -17,8 +18,7 @@ from apps.core.views import health_check
 
 # --- API v1 ----------------------------------------------------------------
 api_v1_patterns = [
-    # Domain apps are mounted here feature by feature, e.g.:
-    # path("auth/", include("apps.accounts.urls")),
+    path("auth/", include("apps.accounts.urls")),
 ]
 
 urlpatterns = [

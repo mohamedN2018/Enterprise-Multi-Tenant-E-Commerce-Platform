@@ -11,9 +11,10 @@ exception (domain, DRF, or Django) into the project's consistent error envelope:
       "error_code": "..."
     }
 """
+
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -34,11 +35,11 @@ class DomainError(Exception):
 
     def __init__(
         self,
-        message: Optional[str] = None,
+        message: str | None = None,
         *,
         errors: Any = None,
-        code: Optional[str] = None,
-        status_code: Optional[int] = None,
+        code: str | None = None,
+        status_code: int | None = None,
     ) -> None:
         self.message = message or self.message
         self.errors = errors
@@ -85,9 +86,7 @@ class BusinessRuleError(DomainError):
 
 
 # --- Handler ---------------------------------------------------------------
-def _envelope(
-    *, message: str, errors: Any, error_code: str, status_code: int
-) -> Response:
+def _envelope(*, message: str, errors: Any, error_code: str, status_code: int) -> Response:
     return Response(
         {
             "success": False,
@@ -113,7 +112,7 @@ def _extract(response: Response, exc: Exception) -> tuple[str, Any, str]:
     return str(data), None, error_code
 
 
-def custom_exception_handler(exc: Exception, context: dict) -> Optional[Response]:
+def custom_exception_handler(exc: Exception, context: dict) -> Response | None:
     # 1) Our own domain errors map directly to the envelope.
     if isinstance(exc, DomainError):
         return _envelope(
