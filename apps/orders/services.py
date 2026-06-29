@@ -93,9 +93,10 @@ class CartService(BaseService):
         desired = quantity + (existing.quantity if existing else 0)
         if _available_for(variant) < desired:
             raise BusinessRuleError("Insufficient stock available.", code="insufficient_stock")
+        unit_price = self._resolve_price(store=store, variant=variant, user=user, quantity=desired)
         if existing is not None:
             existing.quantity = desired
-            existing.unit_price = variant.price
+            existing.unit_price = unit_price
             existing.save(update_fields=["quantity", "unit_price", "updated_at"])
             return existing
         return CartItem.objects.create(
@@ -103,7 +104,7 @@ class CartService(BaseService):
             cart=cart,
             variant=variant,
             quantity=quantity,
-            unit_price=variant.price,
+            unit_price=unit_price,
         )
 
     @atomic
@@ -114,7 +115,10 @@ class CartService(BaseService):
         if _available_for(item.variant) < quantity:
             raise BusinessRuleError("Insufficient stock available.", code="insufficient_stock")
         item.quantity = quantity
-        item.save(update_fields=["quantity", "updated_at"])
+        item.unit_price = self._resolve_price(
+            store=item.store, variant=item.variant, user=item.cart.user, quantity=quantity
+        )
+        item.save(update_fields=["quantity", "unit_price", "updated_at"])
         return item
 
     def remove_item(self, *, item: CartItem) -> None:
@@ -122,6 +126,16 @@ class CartService(BaseService):
 
     def clear(self, *, cart: Cart) -> None:
         cart.items.all().delete()
+
+    @staticmethod
+    def _resolve_price(*, store, variant, user, quantity: int):
+        # Effective price from the pricing engine (group/tier/dynamic rules).
+        # Falls back to the variant's base price when no rule applies.
+        from apps.pricing.services import PricingService
+
+        return PricingService().resolve_price(
+            store=store, variant=variant, user=user, quantity=quantity
+        )
 
     def apply_coupon(self, *, store, user, code: str) -> Cart:
         from apps.promotions.services import PromotionService
