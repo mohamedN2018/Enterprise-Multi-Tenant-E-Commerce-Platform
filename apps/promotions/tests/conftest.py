@@ -13,7 +13,8 @@ from apps.catalog.models import ProductStatus
 from apps.catalog.services import CatalogService
 from apps.inventory.models import Warehouse
 from apps.inventory.services import InventoryService
-from apps.promotions.models import Coupon, DiscountType
+from apps.promotions.models import Campaign, CampaignProduct, Coupon, DiscountType
+from apps.shipping.services import ShippingService
 from apps.stores.models import StoreMembership, StoreRole
 from apps.stores.services import StoreService
 
@@ -108,9 +109,43 @@ def buyer_setup(store_client, make_user):
     return _setup
 
 
+@pytest.fixture
+def make_campaign(db):
+    def _make(store, *, campaign_type, products=(), **extra):
+        defaults = {"name": "Campaign"}
+        campaign = Campaign.objects.create(
+            store=store, campaign_type=campaign_type, **{**defaults, **extra}
+        )
+        for product in products:
+            CampaignProduct.objects.create(store=store, campaign=campaign, product=product)
+        return campaign
+
+    return _make
+
+
+@pytest.fixture
+def shipping_method(db):
+    def _make(store, *, price="10.00", countries=("DE",)):
+        zone = ShippingService().create_zone(
+            store=store, data={"name": "Zone", "countries": list(countries)}
+        )
+        return ShippingService().add_method(
+            store=store, zone=zone, data={"name": "Standard", "price": Decimal(price)}
+        )
+
+    return _make
+
+
 def add_to_cart(client, variant, qty):
     return client.post(
         reverse("v1:cart:item-add"),
         {"variant_id": str(variant.id), "quantity": qty},
         format="json",
     )
+
+
+def checkout(client, *, method=None, country="DE"):
+    body = {}
+    if method is not None:
+        body = {"shipping_method_id": str(method.id), "country": country}
+    return client.post(reverse("v1:cart:checkout"), body, format="json")

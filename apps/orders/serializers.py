@@ -46,21 +46,26 @@ class CartSerializer(serializers.ModelSerializer):
         return sum(item.quantity for item in obj.items.all())
 
     def _discount_for(self, obj) -> Decimal:
-        # Best-effort discount for display; the authoritative figure is computed
-        # (and re-validated) at checkout.
-        if not obj.coupon_code:
-            return Decimal("0.00")
+        # Best-effort discount for display (coupon + automatic campaigns); the
+        # authoritative figure is recomputed and re-validated at checkout.
         from apps.core import tenancy
-        from apps.promotions.services import PromotionService
 
         store = tenancy.get_current_store()
         if store is None:
             return Decimal("0.00")
-        service = PromotionService()
-        coupon = service.find_active(store=store, code=obj.coupon_code)
-        if coupon is None or not coupon.is_within_window():
-            return Decimal("0.00")
-        return service.compute_discount(coupon=coupon, subtotal=obj.subtotal)
+        subtotal = obj.subtotal
+        coupon_discount = Decimal("0.00")
+        if obj.coupon_code:
+            from apps.promotions.services import PromotionService
+
+            service = PromotionService()
+            coupon = service.find_active(store=store, code=obj.coupon_code)
+            if coupon is not None and coupon.is_within_window():
+                coupon_discount = service.compute_discount(coupon=coupon, subtotal=subtotal)
+        from apps.promotions.engine import PromotionEngine
+
+        auto = PromotionEngine().evaluate(store=store, items=obj.items.all(), subtotal=subtotal)
+        return min(coupon_discount + auto.discount, subtotal)
 
     def get_discount(self, obj) -> str:
         return str(self._discount_for(obj))

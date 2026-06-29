@@ -170,9 +170,13 @@ class CheckoutService(BaseService):
             raise ValidationError("Your cart is empty.", code="empty_cart")
 
         subtotal = _money(sum((i.line_total for i in items), Decimal("0.00")))
-        coupon, discount = self._resolve_discount(
+        coupon, coupon_discount = self._resolve_discount(
             store=store, user=user, code=cart.coupon_code, subtotal=subtotal
         )
+        # Automatic campaigns (flash sales, BXGY, order discounts, free shipping).
+        # With no live campaigns this is a zero result, leaving totals unchanged.
+        promo = self._auto_promotions(store=store, items=items, subtotal=subtotal)
+        discount = _money(min(coupon_discount + promo.discount, subtotal))
         taxable = subtotal - discount
         tax_total, taxed_total = self._totals(store=store, amount=taxable)
         weight = sum(
@@ -186,6 +190,8 @@ class CheckoutService(BaseService):
             subtotal=subtotal,
             weight=weight,
         )
+        if promo.free_shipping:
+            shipping_total = Decimal("0.00")
         total = _money(taxed_total + shipping_total)
 
         order = Order.objects.create(
@@ -222,7 +228,7 @@ class CheckoutService(BaseService):
             from apps.promotions.services import PromotionService
 
             PromotionService().redeem(
-                store=store, coupon=coupon, user=user, order=order, amount=discount
+                store=store, coupon=coupon, user=user, order=order, amount=coupon_discount
             )
 
         cart.status = CartStatus.CHECKED_OUT
@@ -278,6 +284,13 @@ class CheckoutService(BaseService):
         from apps.finance.services import TaxService
 
         return TaxService().resolve_rate(store=store, country=store.country or None)
+
+    @staticmethod
+    def _auto_promotions(*, store, items, subtotal):
+        # Evaluate automatic campaigns. Lazy import avoids an orders<->promotions cycle.
+        from apps.promotions.engine import PromotionEngine
+
+        return PromotionEngine().evaluate(store=store, items=items, subtotal=subtotal)
 
     @staticmethod
     def _shipping(*, store, method_id, country, subtotal, weight):

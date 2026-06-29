@@ -6,9 +6,20 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from django.db.models import F
 
-from apps.core.exceptions import BusinessRuleError, ConflictError, ValidationError
+from apps.core.exceptions import (
+    BusinessRuleError,
+    ConflictError,
+    NotFoundError,
+    ValidationError,
+)
 from apps.core.services import BaseService, atomic
-from apps.promotions.models import Coupon, CouponRedemption, DiscountType
+from apps.promotions.models import (
+    Campaign,
+    CampaignProduct,
+    Coupon,
+    CouponRedemption,
+    DiscountType,
+)
 from apps.promotions.repositories import CouponRepository
 
 _CENTS = Decimal("0.01")
@@ -97,3 +108,47 @@ class PromotionService(BaseService):
         return CouponRedemption.objects.create(
             store=store, coupon=coupon, user=user, order=order, amount=amount
         )
+
+
+class CampaignService(BaseService):
+    """Staff management of automatic campaigns and their targeted products.
+
+    The actual checkout-time evaluation lives in
+    :class:`apps.promotions.engine.PromotionEngine`; this service only handles CRUD.
+    """
+
+    @atomic
+    def create_campaign(self, *, store, data: dict) -> Campaign:
+        return Campaign.objects.create(store=store, **data)
+
+    @atomic
+    def update_campaign(self, *, instance: Campaign, data: dict) -> Campaign:
+        for field_name, value in data.items():
+            setattr(instance, field_name, value)
+        instance.save()
+        return instance
+
+    def active_campaigns(self, *, store):
+        from apps.promotions.engine import live_campaigns_qs
+
+        return live_campaigns_qs(store)
+
+    # --- Targeted products ---
+    def get_campaign(self, *, store, campaign_id) -> Campaign:
+        campaign = Campaign.objects.filter(store=store, id=campaign_id).first()
+        if campaign is None:
+            raise NotFoundError("Campaign not found.")
+        return campaign
+
+    @atomic
+    def add_product(self, *, store, campaign: Campaign, product) -> CampaignProduct:
+        if CampaignProduct.all_objects.filter(
+            campaign=campaign, product=product, is_deleted=False
+        ).exists():
+            raise ConflictError(
+                "This product is already targeted by the campaign.", code="product_already_added"
+            )
+        return CampaignProduct.objects.create(store=store, campaign=campaign, product=product)
+
+    def list_products(self, *, campaign: Campaign):
+        return campaign.products.select_related("product")
