@@ -7,6 +7,8 @@ belong to the active store — cross-store references are rejected automatically
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from apps.catalog.models import (
@@ -278,3 +280,12 @@ class AddProductAttributeSerializer(serializers.Serializer):
 
 class SetVariantOptionsSerializer(serializers.Serializer):
     attribute_value_ids = serializers.ListField(child=serializers.UUIDField(), allow_empty=True)
+
+
+class GenerateVariantsSerializer(serializers.Serializer):
+    base_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"))
+    sku_prefix = serializers.CharField(max_length=40, required=False, allow_blank=True, default="")
+    # Optional {attribute_id: [value_id, ...]} to restrict the values combined.
+    selections = serializers.DictField(
+        child=serializers.ListField(child=serializers.UUIDField()), required=False
+    )

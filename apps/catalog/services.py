@@ -7,7 +7,9 @@ default variant per product).
 
 from __future__ import annotations
 
+import itertools
 from datetime import timedelta
+from decimal import Decimal
 
 from django.utils import timezone
 from django.utils.text import slugify
@@ -444,3 +446,96 @@ class ConfigurableProductService(BaseService):
             ]
         )
         return variant.option_values.select_related("attribute", "attribute_value").all()
+
+    @atomic
+    def generate_variant_matrix(
+        self, *, store, product: Product, base_price, sku_prefix=None, selections=None
+    ) -> list[ProductVariant]:
+        """Create the Cartesian product of the product's declared attribute values.
+
+        One variant per combination not already present (so it can be re-run after
+        adding a value), each with its option coordinates and an auto-generated SKU.
+        ``selections`` optionally restricts the values used per attribute id.
+        """
+        if product.kind != ProductKind.CONFIGURABLE:
+            raise BusinessRuleError(
+                "Only configurable products can generate a variant matrix.",
+                code="not_configurable",
+            )
+        declared = list(
+            product.product_attributes.select_related("attribute").order_by("sort_order")
+        )
+        if not declared:
+            raise ValidationError(
+                "Declare at least one attribute before generating variants.", code="no_attributes"
+            )
+        axes = []
+        for product_attribute in declared:
+            values = self._axis_values(product_attribute, selections)
+            if not values:
+                raise ValidationError(
+                    f"Attribute '{product_attribute.attribute.name}' has no values to combine.",
+                    code="no_values",
+                )
+            axes.append((product_attribute.attribute, values))
+
+        existing = {
+            frozenset(option.attribute_value_id for option in variant.option_values.all())
+            for variant in product.variants.prefetch_related("option_values")
+        }
+        existing.discard(frozenset())
+
+        prefix = (sku_prefix or product.slug or "var").strip()
+        price = Decimal(str(base_price))
+        taken = set(
+            ProductVariant.all_objects.filter(store=store, is_deleted=False).values_list(
+                "sku", flat=True
+            )
+        )
+        has_default = product.variants.filter(is_default=True).exists()
+        created: list[ProductVariant] = []
+        for combo in itertools.product(*[values for _, values in axes]):
+            signature = frozenset(value.id for value in combo)
+            if signature in existing:
+                continue
+            sku = self._matrix_sku(prefix, combo, taken)
+            taken.add(sku)
+            variant = ProductVariant.objects.create(
+                store=store,
+                product=product,
+                sku=sku,
+                price=price,
+                is_default=(not has_default and not created),
+            )
+            VariantOption.objects.bulk_create(
+                [
+                    VariantOption(
+                        store=store, variant=variant, attribute=attribute, attribute_value=value
+                    )
+                    for (attribute, _values), value in zip(axes, combo, strict=False)
+                ]
+            )
+            existing.add(signature)
+            created.append(variant)
+        return created
+
+    @staticmethod
+    def _axis_values(product_attribute, selections):
+        values = list(product_attribute.attribute.values.all())
+        if selections:
+            wanted = selections.get(str(product_attribute.attribute_id))
+            if wanted:
+                wanted_ids = {str(value_id) for value_id in wanted}
+                values = [value for value in values if str(value.id) in wanted_ids]
+        return values
+
+    @staticmethod
+    def _matrix_sku(prefix, combo, taken) -> str:
+        parts = [slugify(value.value or value.label or str(value.id))[:12] for value in combo]
+        base = "-".join([prefix, *parts]).upper()
+        sku = base
+        index = 1
+        while sku in taken:
+            index += 1
+            sku = f"{base}-{index}"
+        return sku

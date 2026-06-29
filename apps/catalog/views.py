@@ -24,6 +24,7 @@ from apps.catalog.serializers import (
     CategorySerializer,
     DigitalAssetSerializer,
     DownloadGrantSerializer,
+    GenerateVariantsSerializer,
     LicenseKeySerializer,
     ProductAttributeSerializer,
     ProductSerializer,
@@ -458,3 +459,38 @@ class VariantOptionsView(StoreContextMixin, BaseAPIView):
             attribute_value_ids=serializer.validated_data["attribute_value_ids"],
         )
         return APIResponse.success(message="Variant options updated.")
+
+
+class GenerateVariantMatrixView(StoreContextMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def _product(self, product_id) -> Product:
+        product = Product.objects.filter(id=product_id).first()
+        if product is None:
+            raise NotFoundError("Product not found.")
+        return product
+
+    def post(self, request, product_id):
+        self.require_write()
+        product = self._product(product_id)
+        serializer = GenerateVariantsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        selections = None
+        if data.get("selections"):
+            selections = {
+                str(key): [str(value) for value in values]
+                for key, values in data["selections"].items()
+            }
+        variants = ConfigurableProductService().generate_variant_matrix(
+            store=self.store,
+            product=product,
+            base_price=data["base_price"],
+            sku_prefix=data.get("sku_prefix") or None,
+            selections=selections,
+        )
+        return APIResponse.success(
+            ProductVariantSerializer(variants, many=True).data,
+            message=f"{len(variants)} variant(s) generated.",
+            status_code=201,
+        )

@@ -77,4 +77,9 @@ urlpatterns = [
         views.VariantOptionsView.as_view(),
         name="variant-options",
     ),
+    path(
+        "products/<uuid:product_id>/generate-variants/",
+        views.GenerateVariantMatrixView.as_view(),
+        name="generate-variants",
+    ),
 ]
