@@ -10,6 +10,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from celery.schedules import crontab
 
 # --- Paths -----------------------------------------------------------------
 # base.py -> settings/ -> config/ -> <project root>
@@ -64,6 +65,7 @@ LOCAL_APPS = [
     "apps.analytics",
     "apps.fraud",
     "apps.procurement",
+    "apps.search",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -272,6 +274,31 @@ CELERY_TASK_TIME_LIMIT = 30 * 60
 CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_RESULT_EXTENDED = True
+
+# Periodic background jobs.
+CELERY_BEAT_SCHEDULE = {
+    # Free stock held by abandoned carts whose reservations have expired.
+    "expire-stale-reservations": {
+        "task": "inventory.expire_stale_reservations",
+        "schedule": 300.0,  # every 5 minutes
+    },
+    # Surface lots nearing expiry as analytics events for store operators.
+    "scan-expiring-batches": {
+        "task": "procurement.scan_expiring_batches",
+        "schedule": crontab(hour=6, minute=0),  # daily at 06:00
+    },
+}
+
+# --- Search ----------------------------------------------------------------
+# Pluggable product-search backend. The default is a portable database backend;
+# point BACKEND at an Elasticsearch/OpenSearch implementation to swap engines
+# without touching callers. Results are cached (Redis in production) and
+# invalidated per store on catalog writes.
+SEARCH = {
+    "BACKEND": env("SEARCH_BACKEND", default="apps.search.backends.DatabaseSearchBackend"),
+    "CACHE_TTL": env.int("SEARCH_CACHE_TTL", default=300),
+    "MAX_RESULTS": env.int("SEARCH_MAX_RESULTS", default=20),
+}
 
 # --- Security headers (hardened further in production.py) -------------------
 SESSION_COOKIE_HTTPONLY = True
