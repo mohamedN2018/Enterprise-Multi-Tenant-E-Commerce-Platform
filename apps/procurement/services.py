@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from decimal import ROUND_HALF_UP, Decimal
 
+from django.db.models import F
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -160,6 +161,29 @@ class ProcurementService(BaseService):
         return StockBatch.objects.filter(
             store=store, quantity__gt=0, expiry_date__isnull=False, expiry_date__lte=before_date
         )
+
+    @atomic
+    def consume_batches_fefo(self, *, store, variant, warehouse, quantity: int) -> int:
+        """Deplete lots first-expiry-first as stock leaves a warehouse.
+
+        Best-effort traceability layered on the aggregate ``StockItem`` (which
+        remains the source of truth): variants stocked without batches are a
+        no-op. Returns the quantity actually attributed to batches.
+        """
+        remaining = quantity
+        batches = (
+            StockBatch.objects.select_for_update()
+            .filter(store=store, variant=variant, warehouse=warehouse, quantity__gt=0)
+            .order_by(F("expiry_date").asc(nulls_last=True), "created_at")
+        )
+        for batch in batches:
+            if remaining <= 0:
+                break
+            take = min(batch.quantity, remaining)
+            batch.quantity -= take
+            batch.save(update_fields=["quantity", "updated_at"])
+            remaining -= take
+        return quantity - remaining
 
     def _record_batch(self, *, po: PurchaseOrder, line: PurchaseOrderLine, quantity: int) -> None:
         batch_number = line.batch_number or po.number

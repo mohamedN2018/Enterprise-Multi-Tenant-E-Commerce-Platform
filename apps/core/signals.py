@@ -17,3 +17,7 @@ import django.dispatch
 order_placed = django.dispatch.Signal()
 order_confirmed = django.dispatch.Signal()
 order_cancelled = django.dispatch.Signal()
+
+# Stock left a warehouse for good (a sale commit or a production issue).
+# kwargs: store, variant, warehouse, quantity, reference
+stock_committed = django.dispatch.Signal()

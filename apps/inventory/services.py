@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from apps.core.exceptions import BusinessRuleError, ConflictError, NotFoundError, ValidationError
 from apps.core.services import BaseService, atomic
+from apps.core.signals import stock_committed
 from apps.inventory.models import (
     ReservationStatus,
     StockItem,
@@ -222,6 +223,46 @@ class InventoryService(BaseService):
             reserved_change=-qty,
             reference=reservation.reference,
         )
+        stock_committed.send(
+            sender=self.__class__,
+            store=reservation.store,
+            variant=reservation.variant,
+            warehouse=reservation.warehouse,
+            quantity=qty,
+            reference=reservation.reference,
+        )
+
+    @atomic
+    def issue(
+        self, *, store, variant, warehouse, quantity: int, reference: str = "", note: str = ""
+    ) -> StockItem:
+        """Deduct on-hand stock for a non-sale reason (e.g. production consumption)."""
+        if quantity <= 0:
+            raise ValidationError("Quantity to issue must be positive.")
+        item = self._locked_item(store=store, variant=variant, warehouse=warehouse, create=False)
+        if item.available_quantity < quantity:
+            raise BusinessRuleError(
+                "Insufficient available stock to issue.", code="insufficient_stock"
+            )
+        item.quantity -= quantity
+        item.save(update_fields=["quantity", "updated_at"])
+        self._log(
+            store=store,
+            item=item,
+            movement_type=StockMovementType.ADJUSTMENT,
+            quantity_change=-quantity,
+            reference=reference,
+            note=note,
+        )
+        stock_committed.send(
+            sender=self.__class__,
+            store=store,
+            variant=variant,
+            warehouse=warehouse,
+            quantity=quantity,
+            reference=reference,
+        )
+        return item
 
     # --- Warehouse helper ---
     @staticmethod
