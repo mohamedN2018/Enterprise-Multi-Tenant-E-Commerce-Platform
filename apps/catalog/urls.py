@@ -50,4 +50,31 @@ urlpatterns = [
         views.LicenseKeyListCreateView.as_view(),
         name="variant-license-keys",
     ),
+    # Attributes & configurable products
+    path("attributes/", views.AttributeListCreateView.as_view(), name="attribute-list"),
+    path(
+        "attributes/<uuid:attribute_id>/",
+        views.AttributeDetailView.as_view(),
+        name="attribute-detail",
+    ),
+    path(
+        "attributes/<uuid:attribute_id>/values/",
+        views.AttributeValueListCreateView.as_view(),
+        name="attribute-values",
+    ),
+    path(
+        "products/<uuid:product_id>/attributes/",
+        views.ProductAttributeListCreateView.as_view(),
+        name="product-attribute-list",
+    ),
+    path(
+        "products/<uuid:product_id>/attributes/<uuid:product_attribute_id>/",
+        views.ProductAttributeDetailView.as_view(),
+        name="product-attribute-detail",
+    ),
+    path(
+        "products/<uuid:product_id>/variants/<uuid:variant_id>/options/",
+        views.VariantOptionsView.as_view(),
+        name="variant-options",
+    ),
 ]

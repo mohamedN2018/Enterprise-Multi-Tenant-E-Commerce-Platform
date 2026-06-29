@@ -12,9 +12,12 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
 from apps.catalog.access import StoreContextMixin
-from apps.catalog.models import Brand, Category, DownloadGrant, Product, ProductVariant
+from apps.catalog.models import Attribute, Brand, Category, DownloadGrant, Product, ProductVariant
 from apps.catalog.serializers import (
     AddLicenseKeysSerializer,
+    AddProductAttributeSerializer,
+    AttributeSerializer,
+    AttributeValueSerializer,
     BrandSerializer,
     BundleComponentCreateSerializer,
     BundleComponentSerializer,
@@ -22,12 +25,16 @@ from apps.catalog.serializers import (
     DigitalAssetSerializer,
     DownloadGrantSerializer,
     LicenseKeySerializer,
+    ProductAttributeSerializer,
     ProductSerializer,
     ProductVariantSerializer,
+    SetVariantOptionsSerializer,
 )
 from apps.catalog.services import (
+    AttributeService,
     BundleService,
     CatalogService,
+    ConfigurableProductService,
     DigitalProductService,
     DownloadService,
 )
@@ -120,9 +127,12 @@ class ProductListCreateView(StoreContextMixin, BaseGenericAPIView, generics.List
     ordering_fields = ("created_at", "name")
 
     def get_queryset(self):
-        return (
-            Product.objects.select_related("category", "brand").prefetch_related("variants").all()
-        )
+        qs = Product.objects.select_related("category", "brand").prefetch_related("variants").all()
+        # Optional faceted filter: products having a variant with this option value.
+        attribute_value = self.request.query_params.get("attribute_value")
+        if attribute_value:
+            qs = qs.filter(variants__option_values__attribute_value_id=attribute_value).distinct()
+        return qs
 
     def perform_create(self, serializer):
         self.require_write()
@@ -306,3 +316,145 @@ class DownloadView(RequireStoreMixin, BaseAPIView):
             },
             message="Download authorized.",
         )
+
+
+# --- Attributes & configurable products (staff) ----------------------------
+class AttributeListCreateView(StoreContextMixin, BaseGenericAPIView, generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = AttributeSerializer
+    search_fields = ("name", "code")
+
+    def get_queryset(self):
+        return Attribute.objects.all()
+
+    def perform_create(self, serializer):
+        self.require_write()
+        serializer.instance = AttributeService().create_attribute(
+            store=self.store, data=serializer.validated_data
+        )
+
+
+class AttributeDetailView(
+    StoreContextMixin, BaseGenericAPIView, generics.RetrieveUpdateDestroyAPIView
+):
+    permission_classes = [IsAuthenticated]
+    serializer_class = AttributeSerializer
+    lookup_url_kwarg = "attribute_id"
+
+    def get_queryset(self):
+        return Attribute.objects.all()
+
+    def perform_update(self, serializer):
+        self.require_write()
+        serializer.instance = AttributeService().update_attribute(
+            instance=serializer.instance, data=serializer.validated_data
+        )
+
+    def perform_destroy(self, instance):
+        self.require_write()
+        instance.delete()
+
+
+class AttributeValueListCreateView(StoreContextMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, attribute_id):
+        service = AttributeService()
+        attribute = service.get_attribute(attribute_id=attribute_id)
+        return APIResponse.success(
+            AttributeValueSerializer(service.list_values(attribute), many=True).data
+        )
+
+    def post(self, request, attribute_id):
+        self.require_write()
+        service = AttributeService()
+        attribute = service.get_attribute(attribute_id=attribute_id)
+        serializer = AttributeValueSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        value = service.add_value(
+            store=self.store, attribute=attribute, data=serializer.validated_data
+        )
+        return APIResponse.success(
+            AttributeValueSerializer(value).data, message="Value added.", status_code=201
+        )
+
+
+class ProductAttributeListCreateView(StoreContextMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def _product(self, product_id) -> Product:
+        product = Product.objects.filter(id=product_id).first()
+        if product is None:
+            raise NotFoundError("Product not found.")
+        return product
+
+    def get(self, request, product_id):
+        product = self._product(product_id)
+        links = ConfigurableProductService().list_product_attributes(product)
+        return APIResponse.success(ProductAttributeSerializer(links, many=True).data)
+
+    def post(self, request, product_id):
+        self.require_write()
+        product = self._product(product_id)
+        serializer = AddProductAttributeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        link = ConfigurableProductService().add_product_attribute(
+            store=self.store,
+            product=product,
+            attribute_id=serializer.validated_data["attribute_id"],
+        )
+        return APIResponse.success(
+            ProductAttributeSerializer(link).data, message="Attribute declared.", status_code=201
+        )
+
+
+class ProductAttributeDetailView(StoreContextMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, product_id, product_attribute_id):
+        self.require_write()
+        product = Product.objects.filter(id=product_id).first()
+        if product is None:
+            raise NotFoundError("Product not found.")
+        ConfigurableProductService().remove_product_attribute(
+            product=product, product_attribute_id=product_attribute_id
+        )
+        return APIResponse.success(message="Attribute removed from product.")
+
+
+class VariantOptionsView(StoreContextMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def _variant(self, product_id, variant_id) -> ProductVariant:
+        variant = (
+            ProductVariant.objects.filter(id=variant_id, product_id=product_id)
+            .select_related("product")
+            .first()
+        )
+        if variant is None:
+            raise NotFoundError("Variant not found.")
+        return variant
+
+    def get(self, request, product_id, variant_id):
+        variant = self._variant(product_id, variant_id)
+        options = variant.option_values.select_related("attribute", "attribute_value").all()
+        data = [
+            {
+                "attribute": option.attribute.name,
+                "value": option.attribute_value.label or option.attribute_value.value,
+            }
+            for option in options
+        ]
+        return APIResponse.success(data)
+
+    def put(self, request, product_id, variant_id):
+        self.require_write()
+        variant = self._variant(product_id, variant_id)
+        serializer = SetVariantOptionsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        ConfigurableProductService().set_variant_options(
+            store=self.store,
+            variant=variant,
+            attribute_value_ids=serializer.validated_data["attribute_value_ids"],
+        )
+        return APIResponse.success(message="Variant options updated.")

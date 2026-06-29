@@ -10,6 +10,8 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from apps.catalog.models import (
+    Attribute,
+    AttributeValue,
     Brand,
     BundleComponent,
     Category,
@@ -17,6 +19,7 @@ from apps.catalog.models import (
     DownloadGrant,
     LicenseKey,
     Product,
+    ProductAttribute,
     ProductVariant,
 )
 
@@ -60,6 +63,8 @@ class BrandSerializer(serializers.ModelSerializer):
 
 
 class ProductVariantSerializer(serializers.ModelSerializer):
+    option_values = serializers.SerializerMethodField()
+
     class Meta:
         model = ProductVariant
         fields = (
@@ -75,6 +80,7 @@ class ProductVariantSerializer(serializers.ModelSerializer):
             "track_inventory",
             "weight",
             "options",
+            "option_values",
             "is_default",
             "position",
             "is_active",
@@ -82,6 +88,15 @@ class ProductVariantSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("id", "product", "created_at", "updated_at")
+
+    def get_option_values(self, obj) -> list:
+        return [
+            {
+                "attribute": option.attribute.name,
+                "value": option.attribute_value.label or option.attribute_value.value,
+            }
+            for option in obj.option_values.all()
+        ]
 
 
 class BundleComponentSerializer(serializers.ModelSerializer):
@@ -110,6 +125,7 @@ class BundleComponentCreateSerializer(serializers.Serializer):
 class ProductSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
     components = BundleComponentSerializer(many=True, read_only=True)
+    product_attributes = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -130,6 +146,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "meta_keywords",
             "variants",
             "components",
+            "product_attributes",
             "created_at",
             "updated_at",
         )
@@ -139,9 +156,16 @@ class ProductSerializer(serializers.ModelSerializer):
             "published_at",
             "variants",
             "components",
+            "product_attributes",
             "created_at",
             "updated_at",
         )
+
+    def get_product_attributes(self, obj) -> list:
+        return [
+            {"id": str(pa.id), "attribute": pa.attribute.name, "code": pa.attribute.code}
+            for pa in obj.product_attributes.all()
+        ]
 
 
 class DigitalAssetSerializer(serializers.ModelSerializer):
@@ -220,3 +244,37 @@ class DownloadGrantSerializer(serializers.ModelSerializer):
                 status=LicenseKeyStatus.ASSIGNED,
             ).values_list("key", flat=True)
         )
+
+
+# --- Configurable products & attributes ------------------------------------
+class AttributeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Attribute
+        fields = ("id", "name", "code", "is_variant", "sort_order", "created_at")
+        read_only_fields = ("id", "created_at")
+        extra_kwargs = {"code": {"required": False}}
+
+
+class AttributeValueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AttributeValue
+        fields = ("id", "value", "label", "sort_order", "created_at")
+        read_only_fields = ("id", "created_at")
+
+
+class ProductAttributeSerializer(serializers.ModelSerializer):
+    attribute_name = serializers.CharField(source="attribute.name", read_only=True)
+    attribute_code = serializers.CharField(source="attribute.code", read_only=True)
+
+    class Meta:
+        model = ProductAttribute
+        fields = ("id", "attribute", "attribute_name", "attribute_code", "sort_order")
+        read_only_fields = fields
+
+
+class AddProductAttributeSerializer(serializers.Serializer):
+    attribute_id = serializers.UUIDField()
+
+
+class SetVariantOptionsSerializer(serializers.Serializer):
+    attribute_value_ids = serializers.ListField(child=serializers.UUIDField(), allow_empty=True)

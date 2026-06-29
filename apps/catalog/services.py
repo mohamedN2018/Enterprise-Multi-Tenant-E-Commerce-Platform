@@ -10,9 +10,12 @@ from __future__ import annotations
 from datetime import timedelta
 
 from django.utils import timezone
+from django.utils.text import slugify
 
 from apps.catalog.models import (
     COMPOSITE_KINDS,
+    Attribute,
+    AttributeValue,
     Brand,
     BundleComponent,
     Category,
@@ -21,8 +24,11 @@ from apps.catalog.models import (
     LicenseKey,
     LicenseKeyStatus,
     Product,
+    ProductAttribute,
+    ProductKind,
     ProductStatus,
     ProductVariant,
+    VariantOption,
 )
 from apps.catalog.repositories import ProductVariantRepository
 from apps.catalog.slugs import unique_slug
@@ -322,3 +328,119 @@ class DownloadService(BaseService):
         locked.save(update_fields=["download_count", "updated_at"])
         asset = locked.digital_asset
         return asset.download_url if asset else ""
+
+
+class AttributeService(BaseService):
+    """Manage attributes (variant axes) and their values."""
+
+    @atomic
+    def create_attribute(self, *, store, data: dict) -> Attribute:
+        code = data.get("code")
+        if code:
+            if Attribute.all_objects.filter(store=store, code=code, is_deleted=False).exists():
+                raise ConflictError(
+                    "An attribute with this code already exists.", code="code_taken"
+                )
+        else:
+            code = self._unique_code(store=store, name=data["name"])
+        payload = {k: v for k, v in data.items() if k != "code"}
+        return Attribute.objects.create(store=store, code=code, **payload)
+
+    @atomic
+    def update_attribute(self, *, instance: Attribute, data: dict) -> Attribute:
+        for field, value in data.items():
+            setattr(instance, field, value)
+        instance.save()
+        return instance
+
+    def get_attribute(self, *, attribute_id) -> Attribute:
+        attribute = Attribute.objects.filter(id=attribute_id).first()
+        if attribute is None:
+            raise NotFoundError("Attribute not found.")
+        return attribute
+
+    def list_values(self, attribute: Attribute):
+        return attribute.values.all()
+
+    @atomic
+    def add_value(self, *, store, attribute: Attribute, data: dict) -> AttributeValue:
+        if attribute.values.filter(value=data["value"]).exists():
+            raise ConflictError("This value already exists for the attribute.", code="value_exists")
+        return AttributeValue.objects.create(store=store, attribute=attribute, **data)
+
+    def _unique_code(self, *, store, name: str) -> str:
+        base = slugify(name)[:110] or "attr"
+        code = base
+        suffix = 1
+        while Attribute.all_objects.filter(store=store, code=code, is_deleted=False).exists():
+            suffix += 1
+            code = f"{base}-{suffix}"
+        return code
+
+
+class ConfigurableProductService(BaseService):
+    """Declare attribute axes on configurable products and set variant options."""
+
+    def list_product_attributes(self, product: Product):
+        return product.product_attributes.select_related("attribute").all()
+
+    @atomic
+    def add_product_attribute(self, *, store, product: Product, attribute_id) -> ProductAttribute:
+        if product.kind != ProductKind.CONFIGURABLE:
+            raise BusinessRuleError(
+                "Only configurable products can declare attributes.", code="not_configurable"
+            )
+        attribute = Attribute.objects.filter(id=attribute_id).first()
+        if attribute is None:
+            raise ValidationError(
+                "Attribute not found in this store.",
+                code="attribute_not_found",
+                errors={"attribute_id": ["Not found in this store."]},
+            )
+        if product.product_attributes.filter(attribute=attribute).exists():
+            raise ConflictError(
+                "This attribute is already declared on the product.", code="attribute_declared"
+            )
+        return ProductAttribute.objects.create(store=store, product=product, attribute=attribute)
+
+    @atomic
+    def remove_product_attribute(self, *, product: Product, product_attribute_id) -> None:
+        link = product.product_attributes.filter(id=product_attribute_id).first()
+        if link is None:
+            raise NotFoundError("Product attribute not found.")
+        link.delete()
+
+    @atomic
+    def set_variant_options(self, *, store, variant: ProductVariant, attribute_value_ids: list):
+        declared = set(variant.product.product_attributes.values_list("attribute_id", flat=True))
+        values = list(
+            AttributeValue.objects.filter(id__in=attribute_value_ids).select_related("attribute")
+        )
+        if len(values) != len(set(attribute_value_ids)):
+            raise ValidationError(
+                "One or more attribute values were not found.", code="value_not_found"
+            )
+        seen_attributes = set()
+        for value in values:
+            if value.attribute_id not in declared:
+                raise ValidationError(
+                    f"Attribute '{value.attribute.name}' is not declared on this product.",
+                    code="attribute_not_declared",
+                )
+            if value.attribute_id in seen_attributes:
+                raise ValidationError(
+                    f"Multiple values supplied for attribute '{value.attribute.name}'.",
+                    code="duplicate_attribute",
+                )
+            seen_attributes.add(value.attribute_id)
+
+        variant.option_values.all().delete()
+        VariantOption.objects.bulk_create(
+            [
+                VariantOption(
+                    store=store, variant=variant, attribute=value.attribute, attribute_value=value
+                )
+                for value in values
+            ]
+        )
+        return variant.option_values.select_related("attribute", "attribute_value").all()

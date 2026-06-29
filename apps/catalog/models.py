@@ -363,3 +363,100 @@ class DownloadGrant(TenantOwnedModel):
         if self.is_expired:
             return False
         return self.download_limit is None or self.download_count < self.download_limit
+
+
+# --- Configurable products & attributes ------------------------------------
+class Attribute(TenantOwnedModel):
+    """A variant axis, e.g. Color or Size."""
+
+    name = models.CharField(max_length=120)
+    code = models.SlugField(max_length=120)
+    is_variant = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta(TenantOwnedModel.Meta):
+        verbose_name = "Attribute"
+        verbose_name_plural = "Attributes"
+        ordering = ("sort_order", "name")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["store", "code"],
+                condition=Q(is_deleted=False),
+                name="uniq_attribute_store_code",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class AttributeValue(TenantOwnedModel):
+    attribute = models.ForeignKey(Attribute, on_delete=models.CASCADE, related_name="values")
+    value = models.CharField(max_length=120)
+    label = models.CharField(max_length=120, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta(TenantOwnedModel.Meta):
+        verbose_name = "Attribute value"
+        verbose_name_plural = "Attribute values"
+        ordering = ("sort_order", "value")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["attribute", "value"],
+                condition=Q(is_deleted=False),
+                name="uniq_attribute_value",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return self.label or self.value
+
+
+class ProductAttribute(TenantOwnedModel):
+    """Declares an attribute as one of a configurable product's variant axes."""
+
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="product_attributes"
+    )
+    attribute = models.ForeignKey(Attribute, on_delete=models.PROTECT, related_name="+")
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta(TenantOwnedModel.Meta):
+        verbose_name = "Product attribute"
+        verbose_name_plural = "Product attributes"
+        ordering = ("sort_order",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["product", "attribute"],
+                condition=Q(is_deleted=False),
+                name="uniq_product_attribute",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.product_id}:{self.attribute_id}"
+
+
+class VariantOption(TenantOwnedModel):
+    """A variant's chosen value on one attribute axis (its coordinate)."""
+
+    variant = models.ForeignKey(
+        ProductVariant, on_delete=models.CASCADE, related_name="option_values"
+    )
+    attribute = models.ForeignKey(Attribute, on_delete=models.PROTECT, related_name="+")
+    attribute_value = models.ForeignKey(AttributeValue, on_delete=models.PROTECT, related_name="+")
+
+    class Meta(TenantOwnedModel.Meta):
+        verbose_name = "Variant option"
+        verbose_name_plural = "Variant options"
+        ordering = ("attribute__sort_order",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["variant", "attribute"],
+                condition=Q(is_deleted=False),
+                name="uniq_variant_attribute_option",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.variant_id}:{self.attribute_value_id}"

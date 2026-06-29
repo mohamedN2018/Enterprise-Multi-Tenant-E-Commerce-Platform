@@ -5,6 +5,8 @@ from __future__ import annotations
 from django.contrib import admin
 
 from apps.catalog.models import (
+    Attribute,
+    AttributeValue,
     Brand,
     BundleComponent,
     Category,
@@ -12,7 +14,9 @@ from apps.catalog.models import (
     DownloadGrant,
     LicenseKey,
     Product,
+    ProductAttribute,
     ProductVariant,
+    VariantOption,
 )
 
 
@@ -86,3 +90,29 @@ class DownloadGrantAdmin(admin.ModelAdmin):
     )
     search_fields = ("token", "variant__sku", "user__email", "order__number")
     readonly_fields = ("token", "download_count")
+
+
+class AttributeValueInline(admin.TabularInline):
+    model = AttributeValue
+    extra = 0
+    fields = ("value", "label", "sort_order")
+
+
+@admin.register(Attribute)
+class AttributeAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "store", "is_variant", "sort_order")
+    list_filter = ("is_variant",)
+    search_fields = ("name", "code", "store__name")
+    inlines = (AttributeValueInline,)
+
+
+@admin.register(ProductAttribute)
+class ProductAttributeAdmin(admin.ModelAdmin):
+    list_display = ("product", "attribute", "store", "sort_order")
+    search_fields = ("product__name", "attribute__name")
+
+
+@admin.register(VariantOption)
+class VariantOptionAdmin(admin.ModelAdmin):
+    list_display = ("variant", "attribute", "attribute_value", "store")
+    search_fields = ("variant__sku", "attribute__name")
