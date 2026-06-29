@@ -23,6 +23,7 @@ from apps.orders.serializers import (
     UpdateCartItemSerializer,
 )
 from apps.orders.services import CartService, CheckoutService
+from apps.promotions.serializers import ApplyCouponSerializer
 from apps.stores.context import RequireStoreMixin
 
 
@@ -86,6 +87,22 @@ class CartItemDetailView(RequireStoreMixin, BaseAPIView):
         item = self._get_item(request, item_id)
         CartService().remove_item(item=item)
         return APIResponse.success(message="Item removed from cart.")
+
+
+class CartCouponView(RequireStoreMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request) -> Response:
+        serializer = ApplyCouponSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        cart = CartService().apply_coupon(
+            store=self.store, user=request.user, code=serializer.validated_data["code"]
+        )
+        return APIResponse.success(CartSerializer(cart).data, message="Coupon applied.")
+
+    def delete(self, request: Request) -> Response:
+        cart = CartService().remove_coupon(store=self.store, user=request.user)
+        return APIResponse.success(CartSerializer(cart).data, message="Coupon removed.")
 
 
 class CheckoutView(RequireStoreMixin, BaseAPIView):

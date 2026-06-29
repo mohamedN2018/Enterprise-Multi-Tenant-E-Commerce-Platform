@@ -101,6 +101,22 @@ class CartService(BaseService):
     def clear(self, *, cart: Cart) -> None:
         cart.items.all().delete()
 
+    def apply_coupon(self, *, store, user, code: str) -> Cart:
+        from apps.promotions.services import PromotionService
+
+        cart = self.get_active_cart(store=store, user=user)
+        # Validate against the current subtotal (raises if not applicable).
+        PromotionService().validate(store=store, code=code, user=user, subtotal=cart.subtotal)
+        cart.coupon_code = code.strip().upper()
+        cart.save(update_fields=["coupon_code", "updated_at"])
+        return cart
+
+    def remove_coupon(self, *, store, user) -> Cart:
+        cart = self.get_active_cart(store=store, user=user)
+        cart.coupon_code = ""
+        cart.save(update_fields=["coupon_code", "updated_at"])
+        return cart
+
 
 class CheckoutService(BaseService):
     def __init__(self, inventory: InventoryService | None = None) -> None:
@@ -118,7 +134,11 @@ class CheckoutService(BaseService):
             raise ValidationError("Your cart is empty.", code="empty_cart")
 
         subtotal = _money(sum((i.line_total for i in items), Decimal("0.00")))
-        tax_total, total = self._totals(store=store, subtotal=subtotal)
+        coupon, discount = self._resolve_discount(
+            store=store, user=user, code=cart.coupon_code, subtotal=subtotal
+        )
+        taxable = subtotal - discount
+        tax_total, total = self._totals(store=store, amount=taxable)
 
         order = Order.objects.create(
             store=store,
@@ -126,8 +146,10 @@ class CheckoutService(BaseService):
             number=self._generate_number(store),
             currency=store.currency,
             subtotal=subtotal,
+            discount_total=discount,
             tax_total=tax_total,
             total=total,
+            coupon_code=coupon.code if coupon else "",
             status=OrderStatus.PENDING,
         )
         reference = f"order:{order.id}"
@@ -144,6 +166,13 @@ class CheckoutService(BaseService):
             )
             self._reserve(
                 store=store, variant=item.variant, quantity=item.quantity, reference=reference
+            )
+
+        if coupon is not None:
+            from apps.promotions.services import PromotionService
+
+            PromotionService().redeem(
+                store=store, coupon=coupon, user=user, order=order, amount=discount
             )
 
         cart.status = CartStatus.CHECKED_OUT
@@ -173,14 +202,25 @@ class CheckoutService(BaseService):
         return order
 
     # --- Helpers ---
-    def _totals(self, *, store, subtotal: Decimal) -> tuple[Decimal, Decimal]:
+    def _resolve_discount(self, *, store, user, code: str, subtotal: Decimal):
+        """Re-validate the cart's coupon at checkout; return (coupon|None, discount)."""
+        if not code:
+            return None, Decimal("0.00")
+        from apps.promotions.services import PromotionService
+
+        service = PromotionService()
+        coupon = service.validate(store=store, code=code, user=user, subtotal=subtotal)
+        return coupon, service.compute_discount(coupon=coupon, subtotal=subtotal)
+
+    def _totals(self, *, store, amount: Decimal) -> tuple[Decimal, Decimal]:
+        """Return (tax_total, total) for a taxable ``amount`` (subtotal - discount)."""
         rate = store.settings.default_tax_rate or Decimal("0")
         if store.settings.tax_inclusive_pricing:
             divisor = Decimal("1") + rate / Decimal("100")
-            net = subtotal / divisor if divisor else subtotal
-            return _money(subtotal - net), _money(subtotal)
-        tax = subtotal * rate / Decimal("100")
-        return _money(tax), _money(subtotal + tax)
+            net = amount / divisor if divisor else amount
+            return _money(amount - net), _money(amount)
+        tax = amount * rate / Decimal("100")
+        return _money(tax), _money(amount + tax)
 
     def _reserve(self, *, store, variant, quantity: int, reference: str) -> None:
         needed = quantity

@@ -35,6 +35,9 @@ class Cart(TenantOwnedModel):
     status = models.CharField(
         max_length=16, choices=CartStatus.choices, default=CartStatus.ACTIVE, db_index=True
     )
+    # Applied coupon code (validated on apply and re-validated at checkout). Kept
+    # as a plain string to avoid coupling the ordering domain to promotions.
+    coupon_code = models.CharField(max_length=64, blank=True)
 
     class Meta(TenantOwnedModel.Meta):
         verbose_name = "Cart"
@@ -100,8 +103,10 @@ class Order(TenantOwnedModel):
     )
     currency = models.CharField(max_length=3, default="USD")
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    discount_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     tax_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    coupon_code = models.CharField(max_length=64, blank=True)
     placed_at = models.DateTimeField(default=timezone.now, editable=False)
 
     class Meta(TenantOwnedModel.Meta):

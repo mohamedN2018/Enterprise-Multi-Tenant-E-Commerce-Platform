@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local Docker overrides (machine-specific, e.g. host-port conflicts)
+docker-compose.override.yml
+docker-compose.verify.yml
