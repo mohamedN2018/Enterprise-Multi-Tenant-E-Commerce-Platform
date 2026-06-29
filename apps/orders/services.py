@@ -13,6 +13,7 @@ from apps.core.exceptions import (
     ValidationError,
 )
 from apps.core.services import BaseService, atomic
+from apps.core.signals import order_cancelled, order_confirmed, order_placed
 from apps.inventory.models import ReservationStatus, StockItem, StockReservation
 from apps.inventory.services import InventoryService
 from apps.orders.models import (
@@ -233,6 +234,7 @@ class CheckoutService(BaseService):
 
         cart.status = CartStatus.CHECKED_OUT
         cart.save(update_fields=["status", "updated_at"])
+        order_placed.send(sender=self.__class__, order=order)
         return order
 
     @atomic
@@ -252,6 +254,7 @@ class CheckoutService(BaseService):
         from apps.rewards.services import LoyaltyService
 
         LoyaltyService().earn_for_order(order=order)
+        order_confirmed.send(sender=self.__class__, order=order)
         return order
 
     @atomic
@@ -264,6 +267,7 @@ class CheckoutService(BaseService):
             self.inventory.release(reservation=reservation)
         order.status = OrderStatus.CANCELLED
         order.save(update_fields=["status", "updated_at"])
+        order_cancelled.send(sender=self.__class__, order=order)
         return order
 
     # --- Helpers ---
