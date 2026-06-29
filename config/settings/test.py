@@ -24,3 +24,6 @@ CELERY_TASK_EAGER_PROPAGATES = True
 DATABASES = {"default": env.db("TEST_DATABASE_URL", default="sqlite://:memory:")}
 
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+
+# Expose the Stripe stub alongside manual so its unconfigured path is testable.
+PAYMENT_ENABLED_GATEWAYS = ["manual", "stripe"]

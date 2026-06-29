@@ -53,6 +53,7 @@ LOCAL_APPS = [
     "apps.catalog",
     "apps.inventory",
     "apps.orders",
+    "apps.payments",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -280,6 +281,11 @@ FRONTEND_EMAIL_VERIFICATION_PATH = env(
     "FRONTEND_EMAIL_VERIFICATION_PATH", default="/auth/verify-email"
 )
 FRONTEND_PASSWORD_RESET_PATH = env("FRONTEND_PASSWORD_RESET_PATH", default="/auth/reset-password")
+
+# --- Payments --------------------------------------------------------------
+# Allow-list of payment gateway codes exposed by the API (must be registered).
+PAYMENT_ENABLED_GATEWAYS = env.list("PAYMENT_ENABLED_GATEWAYS", default=["manual"])
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
 
 AUTH_SETTINGS = {
     # Block login until the email address is verified.
