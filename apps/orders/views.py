@@ -19,6 +19,7 @@ from apps.orders.serializers import (
     AddCartItemSerializer,
     CartItemSerializer,
     CartSerializer,
+    CheckoutSerializer,
     OrderSerializer,
     UpdateCartItemSerializer,
 )
@@ -109,7 +110,14 @@ class CheckoutView(RequireStoreMixin, BaseAPIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request) -> Response:
-        order = CheckoutService().checkout(store=self.store, user=request.user)
+        serializer = CheckoutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        order = CheckoutService().checkout(
+            store=self.store,
+            user=request.user,
+            shipping_method_id=serializer.validated_data.get("shipping_method_id"),
+            country=serializer.validated_data.get("country") or "",
+        )
         return APIResponse.success(
             OrderSerializer(order).data, message="Order placed.", status_code=201
         )

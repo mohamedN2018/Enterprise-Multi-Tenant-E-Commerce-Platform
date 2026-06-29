@@ -105,8 +105,11 @@ class Order(TenantOwnedModel):
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     discount_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     tax_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    shipping_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     coupon_code = models.CharField(max_length=64, blank=True)
+    shipping_method = models.CharField(max_length=120, blank=True)
+    tracking_number = models.CharField(max_length=120, blank=True)
     placed_at = models.DateTimeField(default=timezone.now, editable=False)
 
     class Meta(TenantOwnedModel.Meta):

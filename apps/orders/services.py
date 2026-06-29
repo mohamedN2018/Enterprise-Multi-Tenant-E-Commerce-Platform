@@ -159,7 +159,7 @@ class CheckoutService(BaseService):
         self.inventory = inventory or InventoryService()
 
     @atomic
-    def checkout(self, *, store, user) -> Order:
+    def checkout(self, *, store, user, shipping_method_id=None, country=None) -> Order:
         cart = (
             Cart.objects.filter(store=store, user=user, status=CartStatus.ACTIVE)
             .prefetch_related("items__variant__product")
@@ -174,7 +174,19 @@ class CheckoutService(BaseService):
             store=store, user=user, code=cart.coupon_code, subtotal=subtotal
         )
         taxable = subtotal - discount
-        tax_total, total = self._totals(store=store, amount=taxable)
+        tax_total, taxed_total = self._totals(store=store, amount=taxable)
+        weight = sum(
+            (Decimal(str(item.variant.weight or 0)) * item.quantity for item in items),
+            Decimal("0"),
+        )
+        method, shipping_total = self._shipping(
+            store=store,
+            method_id=shipping_method_id,
+            country=country,
+            subtotal=subtotal,
+            weight=weight,
+        )
+        total = _money(taxed_total + shipping_total)
 
         order = Order.objects.create(
             store=store,
@@ -184,8 +196,10 @@ class CheckoutService(BaseService):
             subtotal=subtotal,
             discount_total=discount,
             tax_total=tax_total,
+            shipping_total=shipping_total,
             total=total,
             coupon_code=coupon.code if coupon else "",
+            shipping_method=method.name if method else "",
             status=OrderStatus.PENDING,
         )
         reference = f"order:{order.id}"
@@ -264,6 +278,21 @@ class CheckoutService(BaseService):
         from apps.finance.services import TaxService
 
         return TaxService().resolve_rate(store=store, country=store.country or None)
+
+    @staticmethod
+    def _shipping(*, store, method_id, country, subtotal, weight):
+        # Returns (method|None, shipping_total). No method selected -> free/0.
+        if not method_id:
+            return None, Decimal("0.00")
+        from apps.shipping.services import ShippingService
+
+        return ShippingService().compute(
+            store=store,
+            method_id=method_id,
+            country=country or store.country or None,
+            subtotal=subtotal,
+            weight=weight,
+        )
 
     def _totals(self, *, store, amount: Decimal) -> tuple[Decimal, Decimal]:
         """Return (tax_total, total) for a taxable ``amount`` (subtotal - discount)."""

@@ -31,6 +31,7 @@ api_v1_patterns = [
     path("finance/", include("apps.finance.urls")),
     path("rewards/", include("apps.rewards.urls")),
     path("returns/", include("apps.returns.urls")),
+    path("shipping/", include("apps.shipping.urls")),
 ]
 
 urlpatterns = [

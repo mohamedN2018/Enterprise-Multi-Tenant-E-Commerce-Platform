@@ -98,10 +98,18 @@ class OrderSerializer(serializers.ModelSerializer):
             "subtotal",
             "discount_total",
             "tax_total",
+            "shipping_total",
             "total",
             "coupon_code",
+            "shipping_method",
+            "tracking_number",
             "placed_at",
             "items",
             "created_at",
         )
         read_only_fields = fields
+
+
+class CheckoutSerializer(serializers.Serializer):
+    shipping_method_id = serializers.UUIDField(required=False, allow_null=True)
+    country = serializers.CharField(required=False, allow_blank=True, default="")
