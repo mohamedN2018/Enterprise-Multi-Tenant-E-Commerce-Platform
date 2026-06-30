@@ -66,9 +66,7 @@ api.interceptors.response.use(
     if (response && response.status === 401 && !config._retried && tokenStore.refresh) {
       config._retried = true;
       try {
-        refreshing =
-          refreshing ||
-          axios.post(`${BASE_URL}/auth/token/refresh/`, { refresh: tokenStore.refresh });
+        refreshing = refreshing || axios.post(`${BASE_URL}/auth/token/refresh/`, { refresh: tokenStore.refresh });
         const refreshResp = await refreshing;
         refreshing = null;
         const newAccess = refreshResp.data?.data?.access || refreshResp.data?.access;
@@ -77,7 +75,7 @@ api.interceptors.response.use(
           config.headers.Authorization = `Bearer ${newAccess}`;
           return api(config);
         }
-      } catch (e) {
+      } catch {
         refreshing = null;
       }
       tokenStore.clear();
@@ -96,9 +94,6 @@ export const apiDelete = (url) => api.delete(url).then((r) => r.data);
 
 // Error message extractor for the standard envelope.
 export const errorMessage = (err) =>
-  err?.response?.data?.message ||
-  err?.response?.data?.errors?.detail ||
-  err?.message ||
-  'Something went wrong.';
+  err?.response?.data?.message || err?.response?.data?.errors?.detail || err?.message || 'Something went wrong.';
 
 export default api;

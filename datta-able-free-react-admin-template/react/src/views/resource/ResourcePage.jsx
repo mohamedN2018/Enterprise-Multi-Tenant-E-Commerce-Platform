@@ -14,18 +14,14 @@ export default function ResourcePage() {
     return <Alert variant="warning">Unknown resource: {key}</Alert>;
   }
 
+  if (!activeStore) {
+    return <Alert variant="info">Select a store from the top bar to view {resource.label}.</Alert>;
+  }
+
   return (
     <Row>
       <Col sm={12}>
-        <div className="d-flex align-items-center justify-content-between mb-3">
-          <h5 className="mb-0">{resource.label}</h5>
-          {activeStore && <span className="badge bg-light-primary">{activeStore.name}</span>}
-        </div>
-        {!activeStore ? (
-          <Alert variant="info">Select a store from the top bar to view {resource.label}.</Alert>
-        ) : (
-          <ResourceTable endpoint={resource.endpoint} columns={resource.columns} />
-        )}
+        <ResourceTable resource={resource} />
       </Col>
     </Row>
   );

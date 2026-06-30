@@ -8,6 +8,7 @@ import ProtectedRoute from 'components/ProtectedRoute';
 
 const Overview = lazy(() => import('views/dashboard/Overview'));
 const ResourcePage = lazy(() => import('views/resource/ResourcePage'));
+const ResourceDetail = lazy(() => import('views/resource/ResourceDetail'));
 const Login = lazy(() => import('views/auth/login'));
 const Register = lazy(() => import('views/auth/register'));
 
@@ -23,7 +24,8 @@ const router = createBrowserRouter(
           element: <AdminLayout />,
           children: [
             { index: true, element: <Overview /> },
-            { path: 'r/:key', element: <ResourcePage /> }
+            { path: 'r/:key', element: <ResourcePage /> },
+            { path: 'r/:key/:id', element: <ResourceDetail /> }
           ]
         }
       ]

@@ -1,26 +1,30 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
+import { Link, useNavigate } from 'react-router-dom';
 import { Badge, Button, Card, Spinner, Table } from 'react-bootstrap';
+import FeatherIcon from 'feather-icons-react';
 
-import api, { errorMessage } from 'api/client';
+import api, { apiDelete, errorMessage } from 'api/client';
 import { useStore } from 'contexts/StoreContext';
+import ResourceForm from 'components/ResourceForm';
 
 const PAGE_SIZE = 20;
 
-const titleize = (key) =>
-  key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+const titleize = (key) => key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 const BADGE_MAP = {
   active: 'success',
   approved: 'success',
   confirmed: 'success',
   paid: 'success',
+  captured: 'success',
   received: 'success',
   completed: 'success',
   published: 'success',
   cleared: 'success',
   rewarded: 'success',
   pending: 'warning',
+  partial: 'warning',
   draft: 'secondary',
   submitted: 'info',
   review: 'warning',
@@ -44,13 +48,20 @@ CellBadge.propTypes = { value: PropTypes.any };
 
 const isScalar = (v) => v == null || ['string', 'number', 'boolean'].includes(typeof v);
 
-export default function ResourceTable({ endpoint, columns }) {
+export default function ResourceTable({ resource }) {
+  const { endpoint, columns, fields, detail, key: resourceKey } = resource;
   const { activeId } = useStore();
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [formShow, setFormShow] = useState(false);
+  const [editRecord, setEditRecord] = useState(null);
+
+  const canWrite = Boolean(fields?.length);
+  const hasRowActions = canWrite || detail;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -84,10 +95,43 @@ export default function ResourceTable({ endpoint, columns }) {
       .map((k) => ({ key: k, label: titleize(k) }));
   }, [columns, rows]);
 
+  const openCreate = () => {
+    setEditRecord(null);
+    setFormShow(true);
+  };
+  const openEdit = (row) => {
+    setEditRecord(row);
+    setFormShow(true);
+  };
+  const remove = async (row) => {
+    if (!window.confirm('Delete this record? This cannot be undone.')) return;
+    try {
+      await apiDelete(`${endpoint}${row.id}/`);
+      load();
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  };
+
   const totalPages = meta?.total_pages || 1;
+  const colCount = resolvedColumns.length + (hasRowActions ? 1 : 0);
 
   return (
     <Card>
+      <Card.Header className="d-flex align-items-center justify-content-between">
+        <h5 className="mb-0">{resource.label}</h5>
+        <div className="d-flex gap-2">
+          <Button size="sm" variant="outline-secondary" onClick={load} title="Refresh">
+            <FeatherIcon icon="refresh-cw" size={16} />
+          </Button>
+          {canWrite && (
+            <Button size="sm" variant="primary" onClick={openCreate}>
+              <FeatherIcon icon="plus" size={16} className="me-1" />
+              New
+            </Button>
+          )}
+        </div>
+      </Card.Header>
       <Card.Body>
         {error && <div className="alert alert-danger mb-3">{error}</div>}
         {loading ? (
@@ -102,12 +146,13 @@ export default function ResourceTable({ endpoint, columns }) {
                   {resolvedColumns.map((c) => (
                     <th key={c.key}>{c.label}</th>
                   ))}
+                  {hasRowActions && <th className="text-end">Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={resolvedColumns.length} className="text-center text-muted py-4">
+                    <td colSpan={colCount} className="text-center text-muted py-4">
                       No records.
                     </td>
                   </tr>
@@ -117,18 +162,51 @@ export default function ResourceTable({ endpoint, columns }) {
                     {resolvedColumns.map((c) => {
                       const raw = row[c.key];
                       const value = c.format ? c.format(raw, row) : raw;
+                      const cell =
+                        c.badge && value != null && value !== '—' ? (
+                          <CellBadge value={value} />
+                        ) : value == null || value === '' ? (
+                          '—'
+                        ) : (
+                          String(value)
+                        );
                       return (
                         <td key={c.key}>
-                          {c.badge && value != null && value !== '—' ? (
-                            <CellBadge value={value} />
-                          ) : value == null || value === '' ? (
-                            '—'
+                          {detail && c === resolvedColumns[0] ? (
+                            <Link to={`/r/${resourceKey}/${row.id}`} state={{ record: row }}>
+                              {cell}
+                            </Link>
                           ) : (
-                            String(value)
+                            cell
                           )}
                         </td>
                       );
                     })}
+                    {hasRowActions && (
+                      <td className="text-end text-nowrap">
+                        {detail && (
+                          <Button
+                            size="sm"
+                            variant="link"
+                            className="p-0 me-3"
+                            onClick={() => navigate(`/r/${resourceKey}/${row.id}`, { state: { record: row } })}
+                            title="View"
+                          >
+                            <FeatherIcon icon="eye" size={16} />
+                          </Button>
+                        )}
+                        {canWrite && (
+                          <>
+                            <Button size="sm" variant="link" className="p-0 me-3" onClick={() => openEdit(row)} title="Edit">
+                              <FeatherIcon icon="edit-2" size={16} />
+                            </Button>
+                            <Button size="sm" variant="link" className="p-0 text-danger" onClick={() => remove(row)} title="Delete">
+                              <FeatherIcon icon="trash-2" size={16} />
+                            </Button>
+                          </>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -148,12 +226,7 @@ export default function ResourceTable({ endpoint, columns }) {
                   >
                     Previous
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline-secondary"
-                    disabled={!meta.next}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
+                  <Button size="sm" variant="outline-secondary" disabled={!meta.next} onClick={() => setPage((p) => p + 1)}>
                     Next
                   </Button>
                 </div>
@@ -162,11 +235,14 @@ export default function ResourceTable({ endpoint, columns }) {
           </>
         )}
       </Card.Body>
+
+      {canWrite && (
+        <ResourceForm show={formShow} onHide={() => setFormShow(false)} resource={resource} record={editRecord} onSaved={load} />
+      )}
     </Card>
   );
 }
 
 ResourceTable.propTypes = {
-  endpoint: PropTypes.string.isRequired,
-  columns: PropTypes.array
+  resource: PropTypes.object.isRequired
 };

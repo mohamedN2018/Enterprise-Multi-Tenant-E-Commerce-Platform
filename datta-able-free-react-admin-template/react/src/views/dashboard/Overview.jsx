@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, Card, Col, Row, Spinner, Table } from 'react-bootstrap';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Card, Col, Row, Spinner } from 'react-bootstrap';
+import Chart from 'react-apexcharts';
+import FeatherIcon from 'feather-icons-react';
 
 import { apiGet, errorMessage } from 'api/client';
 import { useStore } from 'contexts/StoreContext';
 
 const STAT_CARDS = [
-  { key: 'revenue', label: 'Revenue (confirmed)', icon: 'payments', color: 'success' },
-  { key: 'count', label: 'Orders', icon: 'receipt_long', color: 'primary' },
-  { key: 'confirmed', label: 'Confirmed orders', icon: 'task_alt', color: 'info' },
-  { key: 'events', label: 'Tracked events', icon: 'insights', color: 'warning' }
+  { key: 'revenue', label: 'Revenue (confirmed)', icon: 'dollar-sign', color: 'success' },
+  { key: 'count', label: 'Orders', icon: 'shopping-bag', color: 'primary' },
+  { key: 'confirmed', label: 'Confirmed orders', icon: 'check-circle', color: 'info' },
+  { key: 'events', label: 'Tracked events', icon: 'activity', color: 'warning' }
 ];
 
 export default function Overview() {
@@ -38,11 +40,45 @@ export default function Overview() {
   }, [load]);
 
   const values = {
-    revenue: summary ? `${summary.orders?.revenue ?? '0.00'} ${activeStore?.currency || ''}` : '—',
+    revenue: summary ? `${summary.orders?.revenue ?? '0.00'} ${activeStore?.currency || ''}`.trim() : '—',
     count: summary?.orders?.count ?? '—',
     confirmed: summary?.orders?.confirmed ?? '—',
     events: summary?.total_events ?? '—'
   };
+
+  const events = summary?.events || {};
+  const eventNames = Object.keys(events);
+
+  const eventsChart = useMemo(
+    () => ({
+      options: {
+        chart: { type: 'bar', toolbar: { show: false } },
+        plotOptions: { bar: { borderRadius: 4, horizontal: true, distributed: true } },
+        legend: { show: false },
+        dataLabels: { enabled: false },
+        xaxis: { categories: eventNames.map((n) => n.replace(/_/g, ' ')) },
+        grid: { borderColor: '#f0f0f0' }
+      },
+      series: [{ name: 'Events', data: eventNames.map((n) => events[n]) }]
+    }),
+    [summary] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  const ordersCount = summary?.orders?.count || 0;
+  const ordersConfirmed = summary?.orders?.confirmed || 0;
+  const ordersChart = useMemo(
+    () => ({
+      options: {
+        chart: { type: 'donut' },
+        labels: ['Confirmed', 'Unconfirmed'],
+        legend: { position: 'bottom' },
+        colors: ['#2ca87f', '#e58a00'],
+        dataLabels: { enabled: true }
+      },
+      series: [ordersConfirmed, Math.max(0, ordersCount - ordersConfirmed)]
+    }),
+    [summary] // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   if (!activeStore) {
     return <Alert variant="info">Select a store from the top bar to see its dashboard.</Alert>;
@@ -69,10 +105,8 @@ export default function Overview() {
                 <Card>
                   <Card.Body>
                     <div className="d-flex align-items-center">
-                      <div className={`flex-shrink-0 me-3 text-${c.color}`}>
-                        <i className="material-icons-two-tone" style={{ fontSize: 40 }}>
-                          {c.icon}
-                        </i>
+                      <div className={`flex-shrink-0 me-3 d-flex align-items-center justify-content-center rounded bg-light-${c.color} text-${c.color}`} style={{ width: 52, height: 52 }}>
+                        <FeatherIcon icon={c.icon} size={26} />
                       </div>
                       <div className="flex-grow-1">
                         <h6 className="mb-1 text-muted">{c.label}</h6>
@@ -86,35 +120,31 @@ export default function Overview() {
           </Row>
 
           <Row>
-            <Col md={12}>
+            <Col xl={8}>
               <Card>
                 <Card.Header>
                   <h5>Events by type</h5>
                 </Card.Header>
                 <Card.Body>
-                  <Table responsive hover className="mb-0">
-                    <thead>
-                      <tr>
-                        <th>Event</th>
-                        <th className="text-end">Count</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(summary?.events || {}).length === 0 && (
-                        <tr>
-                          <td colSpan={2} className="text-center text-muted py-4">
-                            No events recorded yet.
-                          </td>
-                        </tr>
-                      )}
-                      {Object.entries(summary?.events || {}).map(([name, n]) => (
-                        <tr key={name}>
-                          <td>{name}</td>
-                          <td className="text-end">{n}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
+                  {eventNames.length === 0 ? (
+                    <p className="text-center text-muted py-5 mb-0">No events recorded yet.</p>
+                  ) : (
+                    <Chart options={eventsChart.options} series={eventsChart.series} type="bar" height={Math.max(220, eventNames.length * 38)} />
+                  )}
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col xl={4}>
+              <Card>
+                <Card.Header>
+                  <h5>Order conversion</h5>
+                </Card.Header>
+                <Card.Body>
+                  {ordersCount === 0 ? (
+                    <p className="text-center text-muted py-5 mb-0">No orders yet.</p>
+                  ) : (
+                    <Chart options={ordersChart.options} series={ordersChart.series} type="donut" height={300} />
+                  )}
                 </Card.Body>
               </Card>
             </Col>

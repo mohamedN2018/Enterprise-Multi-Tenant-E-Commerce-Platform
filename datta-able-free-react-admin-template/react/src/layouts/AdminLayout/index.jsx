@@ -10,7 +10,6 @@ import useWindowSize from 'hooks/useWindowSize';
 import { ConfigContext } from 'contexts/ConfigContext';
 import * as actionType from 'store/actions';
 import Loader from 'components/Loader/Loader';
-import TopActions from 'components/TopActions';
 
 // -----------------------|| ADMIN LAYOUT ||-----------------------//
 
@@ -43,20 +42,11 @@ export default function AdminLayout() {
         <div className="pcoded-content">
           <>
             <Breadcrumb />
-            <TopActions />
             <Suspense fallback={<Loader />}>
               <Outlet />
             </Suspense>
           </>
         </div>
-        <a
-          href="https://codedthemes.com/item/dashboardkit-react-admin-template/"
-          target="_blank"
-          className="btn btn-primary position-fixed bottom-0 end-0 mb-5 me-3 z-1"
-          rel="noreferrer"
-        >
-          Buy Now
-        </a>
       </div>
     </>
   );

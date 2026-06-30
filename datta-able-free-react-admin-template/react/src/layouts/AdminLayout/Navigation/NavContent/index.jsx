@@ -3,7 +3,7 @@ import { useContext } from 'react';
 import { Link } from 'react-router-dom';
 
 // react-bootstrap
-import { Card, ListGroup } from 'react-bootstrap';
+import { ListGroup } from 'react-bootstrap';
 
 // project imports
 import NavGroup from './NavGroup';
@@ -11,9 +11,7 @@ import { ConfigContext } from 'contexts/ConfigContext';
 
 // third party
 import SimpleBar from 'simplebar-react';
-
-// assets
-import logo from 'assets/images/logo.svg';
+import FeatherIcon from 'feather-icons-react';
 
 // -----------------------|| NAV CONTENT ||-----------------------//
 
@@ -46,15 +44,6 @@ export default function NavContent({ navigation, activeNav }) {
       <ListGroup variant="flush" as="ul" bsPrefix=" " className="pc-navbar">
         {navItems}
       </ListGroup>
-      <Card className="nav-action-card m-3">
-        <Card.Body>
-          <h5 className="text-white">Upgrade To Pro</h5>
-          <p className="text-white text-opacity-75">To get more features and components</p>
-          <a href="https://codedthemes.com/item/dashboardkit-react-admin-template/" target="_blank" className="btn btn-primary">
-            Buy Now
-          </a>
-        </Card.Body>
-      </Card>
     </SimpleBar>
   );
 
@@ -68,8 +57,11 @@ export default function NavContent({ navigation, activeNav }) {
 
   const mHeader = (
     <div className="m-header">
-      <Link to="/dashboard/sales" className="b-brand">
-        <img src={logo} alt="" className="logo logo-lg" />
+      <Link to="/" className="b-brand d-flex align-items-center gap-2 text-white">
+        <span className="d-flex align-items-center justify-content-center bg-primary rounded" style={{ width: 34, height: 34 }}>
+          <FeatherIcon icon="shopping-bag" size={18} />
+        </span>
+        <span className="f-w-600 fs-5">Marketplace</span>
       </Link>
     </div>
   );
