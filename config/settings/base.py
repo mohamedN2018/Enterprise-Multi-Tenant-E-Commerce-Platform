@@ -76,6 +76,8 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 # --- Middleware ------------------------------------------------------------
 MIDDLEWARE = [
+    # First, so every request/response (incl. CORS preflight) carries a request id.
+    "apps.core.observability.RequestIDMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -176,6 +178,39 @@ else:
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     }
+
+# --- Security headers (HTTPS-specific hardening lives in production.py) -----
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+
+# --- Logging ---------------------------------------------------------------
+# Structured, request-id-tagged logs to stdout (captured by the container/orchestrator).
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {"request_id": {"()": "apps.core.observability.RequestIDFilter"}},
+    "formatters": {
+        "standard": {
+            "format": "%(asctime)s %(levelname)s [%(request_id)s] %(name)s: %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "filters": ["request_id"],
+            "formatter": "standard",
+        },
+    },
+    "root": {"handlers": ["console"], "level": env("LOG_LEVEL", default="INFO")},
+    "loggers": {
+        "django.request": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+        "apps": {
+            "handlers": ["console"],
+            "level": env("APP_LOG_LEVEL", default="INFO"),
+            "propagate": False,
+        },
+    },
+}
 
 # --- Cache -----------------------------------------------------------------
 CACHES = {
