@@ -345,6 +345,8 @@ X_FRAME_OPTIONS = "DENY"
 # Callable(request) -> Store|None used by CurrentRequestMiddleware to resolve the
 # active tenant from request headers / subdomain.
 TENANT_RESOLVER = env("TENANT_RESOLVER", default="apps.stores.tenancy.resolve_store")
+# Seconds to cache a resolved store (invalidated on store/settings change).
+TENANT_CACHE_TTL = env.int("TENANT_CACHE_TTL", default=60)
 
 # --- Authentication flows --------------------------------------------------
 # Frontend base URL used to build verification / password-reset links in emails.

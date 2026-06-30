@@ -35,7 +35,7 @@ class CartView(RequireStoreMixin, BaseAPIView):
 
     @extend_schema(responses=CartSerializer)
     def get(self, request: Request) -> Response:
-        cart = CartService().get_active_cart(store=self.store, user=request.user)
+        cart = CartService().read_cart(store=self.store, user=request.user)
         return APIResponse.success(CartSerializer(cart).data)
 
     @extend_schema(responses=OpenApiResponse(description="Cart cleared."))

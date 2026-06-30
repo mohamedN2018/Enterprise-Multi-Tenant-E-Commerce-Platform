@@ -66,6 +66,11 @@ class CartService(BaseService):
         cart, _ = Cart.objects.get_or_create(store=store, user=user, status=CartStatus.ACTIVE)
         return cart
 
+    def read_cart(self, *, store, user) -> Cart:
+        """The active cart with items prefetched for serialization (avoids N+1)."""
+        cart = self.get_active_cart(store=store, user=user)
+        return Cart.objects.prefetch_related("items__variant__product").filter(pk=cart.pk).first()
+
     def _purchasable_variant(self, variant_id) -> ProductVariant:
         variant = (
             ProductVariant.objects.filter(id=variant_id, is_active=True)
