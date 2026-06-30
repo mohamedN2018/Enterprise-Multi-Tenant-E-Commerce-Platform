@@ -1,0 +1,16 @@
+node_modules
+dist
+.yarn
+.pnp
+.pnp.js
+.git
+.gitignore
+.env.local
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+.vscode
+.DS_Store
+README.md

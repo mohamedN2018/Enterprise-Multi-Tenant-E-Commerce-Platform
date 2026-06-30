@@ -1,68 +1,94 @@
 # Enterprise Multi-Tenant E-Commerce Platform
 
-A production-grade, **Shopify-style multi-tenant** e-commerce backend: a single
-central system hosting many independent storefronts. Built with Django 5, DRF,
-Channels, Celery, PostgreSQL, Redis and MinIO.
+A production-grade, **Shopify-style multi-tenant** e-commerce platform: a Django/DRF
+JWT API hosting many isolated storefronts, plus a React admin console. Built with
+Django 5, DRF, Channels, Celery, PostgreSQL and Redis.
+
+## Repository layout
+
+```
+backend/            Django/DRF API (the whole server)
+  config/           Project: split settings, urls, asgi/wsgi, celery
+  apps/             Domain apps (catalog, orders, payments, inventory, …)
+  requirements/     base · development · production
+  Dockerfile        python:3.13-slim → Gunicorn/Uvicorn
+  entrypoint.sh     wait-for-db → migrate → collectstatic → run
+frontend/           React admin (Vite + react-bootstrap + ApexCharts)
+  src/              App code (api client, contexts, generic resource pages)
+  Dockerfile        node build → nginx (serves SPA + reverse-proxies the API)
+  nginx.conf        single-origin proxy to the backend
+docker-compose.yml      Production / Dokploy stack
+docker-compose.dev.yml  Local dev stack (hot-reload)
+.env.example            Environment template
+```
 
 ## Architecture at a glance
 
 - **Topology:** Isolated stores. Each `Store` is a hard tenant boundary — its own
-  customers, catalog, carts, checkout and orders. No cross-store shopping.
-- **Tenant isolation:** Row-level on a shared schema. Every tenant-owned row
-  carries a `store` FK, enforced by a tenant-resolution middleware, scoped
-  managers, and DB constraints. Chosen for scale (thousands of tenants).
-- **Layered / Clean Architecture:** `models → repositories → services → views`,
-  with a reusable **core shared kernel** (base models, managers, repository &
-  service bases, exception/response envelope, pagination, permissions, tenancy).
-- **Cross-cutting model contract** (`apps.core.models.BaseModel`): UUID primary
-  keys, `created_at`/`updated_at`, soft-delete, and audit (`created_by`/`updated_by`,
-  auto-stamped from the request actor).
+  customers, catalog, carts, checkout and orders.
+- **Tenant isolation:** Row-level on a shared schema. Every tenant-owned row carries
+  a `store` FK, enforced by tenant-resolution middleware (`X-Store-Id` header),
+  scoped managers, and DB constraints.
+- **Layered / Clean Architecture:** `models → repositories → services → views`, over a
+  reusable core kernel (base models, exceptions, response envelope, pagination,
+  permissions, tenancy).
+- **Model contract** (`apps.core.models.BaseModel`): UUID PKs, timestamps, soft-delete,
+  audit stamps.
+- **Single-origin frontend:** the React SPA and the API are served behind one domain —
+  nginx serves the SPA and reverse-proxies `/api`, `/admin`, `/static`, `/media`, `/ws`
+  to the backend (no CORS).
 
-```
-config/            Django project (split settings, urls, asgi/wsgi, celery)
-apps/
-  core/            Shared kernel: base models, managers, repo/service, exceptions,
-                   response envelope, pagination, permissions, tenancy, middleware
-  accounts/        Custom email-login User (UUID PK)
-requirements/      base · development · production
-docker/            Dockerfile (python:3.13-slim) · entrypoint
-docker-compose.yml web · worker · beat · postgres · redis · minio
-```
-
-## Quickstart (Docker — recommended)
+## Quickstart — production stack (Docker)
 
 ```bash
-cp .env.example .env          # adjust secrets
-docker compose up --build     # starts web, worker, beat, postgres, redis, minio
+cp .env.example .env          # set DJANGO_SECRET_KEY, passwords, your domain
+docker compose up --build -d  # db, redis, backend, worker, beat, frontend
+docker compose exec backend python manage.py seed_demo   # optional demo data
 ```
 
-- API base: `http://localhost:8000/api/v1/`
-- Swagger UI: `http://localhost:8000/api/docs/`
-- ReDoc: `http://localhost:8000/api/redoc/`
-- Health: `http://localhost:8000/health/`
-- Admin: `http://localhost:8000/admin/`
+Then open `http://localhost:8080` (the frontend; change with `FRONTEND_PORT`).
+Demo login after `seed_demo`: `owner@demo.com` / `Demo12345!`.
 
-Create an admin user: `docker compose exec web python manage.py createsuperuser`
+Backend routes (proxied through the frontend, or reachable internally):
+`/api/v1/` · `/api/docs/` (Swagger) · `/health/` · `/admin/`.
 
-## Local (without Docker)
-
-Requires a running PostgreSQL + Redis (or set `DATABASE_URL` to SQLite for quick
-checks). Python 3.13 recommended (3.11+ supported).
+## Local development (hot-reload)
 
 ```bash
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements/development.txt
-python manage.py migrate
-python manage.py runserver
+cp .env.example .env          # for dev you may set DJANGO_SETTINGS_MODULE=config.settings.development
+docker compose -f docker-compose.dev.yml up --build
+# backend → http://localhost:8000   frontend (Vite) → http://localhost:3000
 ```
 
-## Testing & quality
+Without Docker: run the backend from `backend/` (`pip install -r requirements/development.txt`,
+`python manage.py migrate runserver`) and the frontend from `frontend/` (`npm install && npm run start`).
+
+## Deploy on Dokploy
+
+1. **Create → Compose** in Dokploy, pointing at this repository. It uses
+   `docker-compose.yml` (the default).
+2. **Environment:** paste the variables from `.env.example`. At minimum set a strong
+   `DJANGO_SECRET_KEY`, `POSTGRES_PASSWORD` (and the matching `DATABASE_URL`), and add
+   your domain to `DJANGO_ALLOWED_HOSTS`. Keep `DJANGO_SECURE_SSL_REDIRECT=False`
+   (Dokploy/Traefik terminates TLS and proxies HTTP internally).
+3. **Domain:** attach your domain to the **`frontend`** service, container port **80**.
+   The frontend nginx proxies API/admin traffic to the backend, so this single domain
+   serves the whole app.
+4. Deploy. The backend entrypoint waits for Postgres, runs migrations and
+   `collectstatic` automatically. Seed demo data (optional) from the Dokploy terminal:
+   `python manage.py seed_demo`.
+
+> Split-domain alternative: give the backend its own domain, set
+> `VITE_API_URL=https://api.yourdomain` and `CORS_ALLOWED_ORIGINS=https://app.yourdomain`,
+> and rebuild the frontend.
+
+## Testing & quality (backend)
 
 ```bash
-pytest                 # test suite (config/settings/test.py)
-ruff check .           # lint
-ruff format .          # format
-mypy .                 # static typing
+cd backend
+pytest apps                 # full suite (config/settings/test.py)
+ruff check apps config      # lint
+ruff format --check apps config
 ```
 
 ## Response envelope
@@ -70,16 +96,8 @@ mypy .                 # static typing
 Every JSON response shares one shape:
 
 ```json
-{ "success": true, "message": "OK", "data": { }, "errors": null }
+{ "success": true, "message": "OK", "data": { }, "errors": null, "meta": { } }
 ```
 
-Errors set `success: false` with `errors` and an `error_code`; paginated lists
-add `meta.pagination`.
-
-## Build status
-
-**Feature 0 — Foundation + Custom User: complete and verified.**
-`manage.py check` passes for development/production/test; migrations apply; the
-custom User (UUID PK, Argon2, soft-delete) is verified end-to-end.
-
-See the per-feature roadmap in the project notes; Authentication is next.
+Errors set `success: false` with `errors` + an `error_code`; paginated lists put the
+array in `data` and pagination info in `meta.pagination`.

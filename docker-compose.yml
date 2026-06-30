@@ -1,23 +1,43 @@
-# Local development stack. Production deployment uses the same image with the
-# default (Gunicorn/Uvicorn) command and externally managed services.
+# ===========================================================================
+# Production stack (Dokploy-ready).
+#
+#   frontend  ─ nginx: serves the React SPA + reverse-proxies /api,/admin,
+#               /static,/media,/ws to the backend (single origin, no CORS).
+#               This is the ONLY service with a host port — attach your
+#               Dokploy domain to it (service "frontend", port 80).
+#   backend   ─ Django/DRF under Gunicorn+Uvicorn (internal only).
+#   worker    ─ Celery worker.      beat ─ Celery beat scheduler.
+#   db        ─ PostgreSQL 16.      redis ─ cache / broker / channels.
+#
+# Configure via .env (see .env.example). For local dev with hot-reload use
+# docker-compose.dev.yml instead.
+# ===========================================================================
 name: marketplace
 
-x-django-env: &django-env
+x-backend: &backend
+  build:
+    context: ./backend
+  image: marketplace-backend:latest
   env_file: .env
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
 
 services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: marketplace
-      POSTGRES_USER: marketplace
-      POSTGRES_PASSWORD: marketplace
+      POSTGRES_DB: ${POSTGRES_DB:-marketplace}
+      POSTGRES_USER: ${POSTGRES_USER:-marketplace}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-marketplace}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U marketplace"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-marketplace}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -27,84 +47,52 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redisdata:/data
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
 
-  minio:
-    image: minio/minio:latest
-    command: ["server", "/data", "--console-address", ":9001"]
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+  backend:
+    <<: *backend
+    # entrypoint waits for the DB, migrates, collectstatic; CMD = Gunicorn (from Dockerfile)
     volumes:
-      - miniodata:/data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+      - media:/app/media
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health/"]
+      interval: 15s
       timeout: 5s
-      retries: 5
-
-  web:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-      args:
-        REQUIREMENTS: requirements/development.txt
-    <<: *django-env
-    command: ["uvicorn", "config.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-    volumes:
-      - .:/app
-    ports:
-      - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      retries: 10
+      start_period: 40s
 
   worker:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-      args:
-        REQUIREMENTS: requirements/development.txt
-    <<: *django-env
+    <<: *backend
     entrypoint: []
     command: ["celery", "-A", "config", "worker", "--loglevel=info"]
     volumes:
-      - .:/app
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - media:/app/media
 
   beat:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-      args:
-        REQUIREMENTS: requirements/development.txt
-    <<: *django-env
+    <<: *backend
     entrypoint: []
     command: ["celery", "-A", "config", "beat", "--loglevel=info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
-    volumes:
-      - .:/app
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Relative API base → SPA calls the same origin; nginx proxies to backend.
+        VITE_API_URL: ${VITE_API_URL:-/api/v1}
+    image: marketplace-frontend:latest
+    restart: unless-stopped
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      backend:
+        condition: service_started
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
 
 volumes:
   pgdata:
   redisdata:
-  miniodata:
+  media:

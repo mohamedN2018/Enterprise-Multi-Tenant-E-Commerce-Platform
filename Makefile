@@ -1,6 +1,7 @@
-# Developer convenience targets. Use inside the container or a POSIX shell.
+# Developer convenience targets (local dev stack). For production use
+# `docker compose up` against docker-compose.yml instead.
 .DEFAULT_GOAL := help
-COMPOSE := docker compose
+COMPOSE := docker compose -f docker-compose.dev.yml
 
 .PHONY: help build up down logs shell migrate makemigrations superuser test lint format check
 
