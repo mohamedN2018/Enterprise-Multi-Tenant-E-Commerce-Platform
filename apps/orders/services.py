@@ -161,7 +161,14 @@ class CheckoutService(BaseService):
 
     @atomic
     def checkout(
-        self, *, store, user, shipping_method_id=None, country=None, currency=None
+        self,
+        *,
+        store,
+        user,
+        shipping_method_id=None,
+        country=None,
+        currency=None,
+        address_id=None,
     ) -> Order:
         cart = (
             Cart.objects.filter(store=store, user=user, status=CartStatus.ACTIVE)
@@ -171,6 +178,13 @@ class CheckoutService(BaseService):
         items = list(cart.items.select_related("variant__product")) if cart else []
         if not items:
             raise ValidationError("Your cart is empty.", code="empty_cart")
+
+        # Optional shipping address: snapshot it and let it drive the destination
+        # country (overriding the explicit country arg). No address -> unchanged.
+        shipping_address, address_country = self._resolve_address(
+            store=store, user=user, address_id=address_id
+        )
+        country = address_country or country
 
         subtotal = _money(sum((i.line_total for i in items), Decimal("0.00")))
         coupon, coupon_discount = self._resolve_discount(
@@ -217,6 +231,7 @@ class CheckoutService(BaseService):
             total=fx(total),
             coupon_code=coupon.code if coupon else "",
             shipping_method=method.name if method else "",
+            shipping_address=shipping_address,
             status=OrderStatus.PENDING,
         )
         reference = f"order:{order.id}"
@@ -331,6 +346,16 @@ class CheckoutService(BaseService):
             raise BusinessRuleError(
                 "This order is on hold pending fraud review.", code="order_on_hold"
             )
+
+    @staticmethod
+    def _resolve_address(*, store, user, address_id):
+        """Return (snapshot_dict, country) for a chosen address, else ({}, None)."""
+        if not address_id:
+            return {}, None
+        from apps.addresses.services import AddressService
+
+        address = AddressService().get_for_user(store=store, user=user, address_id=address_id)
+        return address.snapshot(), address.country or None
 
     @staticmethod
     def _auto_promotions(*, store, items, subtotal):

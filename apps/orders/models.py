@@ -110,6 +110,8 @@ class Order(TenantOwnedModel):
     coupon_code = models.CharField(max_length=64, blank=True)
     shipping_method = models.CharField(max_length=120, blank=True)
     tracking_number = models.CharField(max_length=120, blank=True)
+    # Snapshot of the chosen address book entry (so later edits don't alter history).
+    shipping_address = models.JSONField(default=dict, blank=True)
     placed_at = models.DateTimeField(default=timezone.now, editable=False)
 
     class Meta(TenantOwnedModel.Meta):

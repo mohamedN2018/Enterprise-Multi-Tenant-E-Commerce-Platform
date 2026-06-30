@@ -108,6 +108,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "coupon_code",
             "shipping_method",
             "tracking_number",
+            "shipping_address",
             "placed_at",
             "items",
             "created_at",
@@ -119,3 +120,4 @@ class CheckoutSerializer(serializers.Serializer):
     shipping_method_id = serializers.UUIDField(required=False, allow_null=True)
     country = serializers.CharField(required=False, allow_blank=True, default="")
     currency = serializers.CharField(required=False, allow_blank=True, default="", max_length=3)
+    address_id = serializers.UUIDField(required=False, allow_null=True)

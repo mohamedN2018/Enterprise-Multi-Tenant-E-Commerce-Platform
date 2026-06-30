@@ -38,6 +38,7 @@ api_v1_patterns = [
     path("procurement/", include("apps.procurement.urls")),
     path("search/", include("apps.search.urls")),
     path("reviews/", include("apps.reviews.urls")),
+    path("addresses/", include("apps.addresses.urls")),
 ]
 
 urlpatterns = [
