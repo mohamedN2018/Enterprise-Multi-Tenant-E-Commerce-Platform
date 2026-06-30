@@ -39,6 +39,7 @@ api_v1_patterns = [
     path("search/", include("apps.search.urls")),
     path("reviews/", include("apps.reviews.urls")),
     path("addresses/", include("apps.addresses.urls")),
+    path("wishlist/", include("apps.wishlist.urls")),
 ]
 
 urlpatterns = [
