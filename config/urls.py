@@ -37,6 +37,7 @@ api_v1_patterns = [
     path("fraud/", include("apps.fraud.urls")),
     path("procurement/", include("apps.procurement.urls")),
     path("search/", include("apps.search.urls")),
+    path("reviews/", include("apps.reviews.urls")),
 ]
 
 urlpatterns = [
