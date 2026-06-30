@@ -257,9 +257,26 @@ SPECTACULAR_SETTINGS = {
     "SORT_OPERATIONS": False,
 }
 
-# --- CORS ------------------------------------------------------------------
+# --- CORS / CSRF -----------------------------------------------------------
+# The backend is a standalone API; the frontend is a separate app on its own
+# origin. List its origin(s) in CORS_ALLOWED_ORIGINS (e.g. https://app.example.com).
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 CORS_ALLOW_CREDENTIALS = True
+# Expose the standard auth + tenant headers to browser clients.
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "authorization",
+    "content-type",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    "x-store-id",
+    "x-store-slug",
+]
+# Trust the frontend (and any reverse proxy) origins for CSRF-protected views
+# (Django admin / browsable API); JWT API calls are unaffected.
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=CORS_ALLOWED_ORIGINS)
 
 # --- Channels --------------------------------------------------------------
 CHANNEL_LAYERS = {
