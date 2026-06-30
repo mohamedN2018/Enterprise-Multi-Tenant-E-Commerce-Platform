@@ -226,7 +226,7 @@ class DownloadGrantSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
-    def get_remaining_downloads(self, obj):
+    def get_remaining_downloads(self, obj) -> int:
         return obj.remaining_downloads
 
     def get_can_download(self, obj) -> bool:

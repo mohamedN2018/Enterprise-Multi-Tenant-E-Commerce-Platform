@@ -249,12 +249,26 @@ SIMPLE_JWT = {
 # --- drf-spectacular (OpenAPI) ---------------------------------------------
 SPECTACULAR_SETTINGS = {
     "TITLE": "Marketplace API",
-    "DESCRIPTION": "Enterprise multi-tenant (Shopify-style) e-commerce backend.",
+    "DESCRIPTION": (
+        "Enterprise multi-tenant (Shopify-style) e-commerce backend.\n\n"
+        "**Authentication:** Bearer JWT (obtain a token at `/api/v1/auth/login/`).\n\n"
+        "**Multi-tenancy:** store-scoped endpoints require the active store via the "
+        "`X-Store-Id` (UUID) or `X-Store-Slug` request header."
+    ),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": r"/api/v[0-9]+",
     "COMPONENT_SPLIT_REQUEST": True,
     "SORT_OPERATIONS": False,
+    "CONTACT": {
+        "name": "API support",
+        "email": env("API_CONTACT_EMAIL", default="api@marketplace.local"),
+    },
+    "LICENSE": {"name": "Proprietary"},
+    "POSTPROCESSING_HOOKS": [
+        "drf_spectacular.hooks.postprocess_schema_enums",
+        "apps.core.schema.add_tenant_header",
+    ],
 }
 
 # --- CORS / CSRF -----------------------------------------------------------

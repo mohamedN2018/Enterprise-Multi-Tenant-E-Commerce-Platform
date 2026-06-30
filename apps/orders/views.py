@@ -6,6 +6,7 @@ NOT store membership — buyers are not staff. The acting buyer is ``request.use
 
 from __future__ import annotations
 
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -28,22 +29,27 @@ from apps.promotions.serializers import ApplyCouponSerializer
 from apps.stores.context import RequireStoreMixin
 
 
+@extend_schema(tags=["Cart"])
 class CartView(RequireStoreMixin, BaseAPIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=CartSerializer)
     def get(self, request: Request) -> Response:
         cart = CartService().get_active_cart(store=self.store, user=request.user)
         return APIResponse.success(CartSerializer(cart).data)
 
+    @extend_schema(responses=OpenApiResponse(description="Cart cleared."))
     def delete(self, request: Request) -> Response:
         cart = CartService().get_active_cart(store=self.store, user=request.user)
         CartService().clear(cart=cart)
         return APIResponse.success(message="Cart cleared.")
 
 
+@extend_schema(tags=["Cart"])
 class CartItemCreateView(RequireStoreMixin, BaseAPIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=AddCartItemSerializer, responses=CartItemSerializer)
     def post(self, request: Request) -> Response:
         serializer = AddCartItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -58,6 +64,7 @@ class CartItemCreateView(RequireStoreMixin, BaseAPIView):
         )
 
 
+@extend_schema(tags=["Cart"])
 class CartItemDetailView(RequireStoreMixin, BaseAPIView):
     permission_classes = [IsAuthenticated]
 
@@ -73,6 +80,7 @@ class CartItemDetailView(RequireStoreMixin, BaseAPIView):
             raise NotFoundError("Cart item not found.")
         return item
 
+    @extend_schema(request=UpdateCartItemSerializer, responses=CartItemSerializer)
     def patch(self, request: Request, item_id) -> Response:
         serializer = UpdateCartItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -84,15 +92,18 @@ class CartItemDetailView(RequireStoreMixin, BaseAPIView):
             return APIResponse.success(message="Item removed from cart.")
         return APIResponse.success(CartItemSerializer(updated).data, message="Cart updated.")
 
+    @extend_schema(responses=OpenApiResponse(description="Item removed from cart."))
     def delete(self, request: Request, item_id) -> Response:
         item = self._get_item(request, item_id)
         CartService().remove_item(item=item)
         return APIResponse.success(message="Item removed from cart.")
 
 
+@extend_schema(tags=["Cart"])
 class CartCouponView(RequireStoreMixin, BaseAPIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=ApplyCouponSerializer, responses=CartSerializer)
     def post(self, request: Request) -> Response:
         serializer = ApplyCouponSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -101,14 +112,17 @@ class CartCouponView(RequireStoreMixin, BaseAPIView):
         )
         return APIResponse.success(CartSerializer(cart).data, message="Coupon applied.")
 
+    @extend_schema(responses=CartSerializer)
     def delete(self, request: Request) -> Response:
         cart = CartService().remove_coupon(store=self.store, user=request.user)
         return APIResponse.success(CartSerializer(cart).data, message="Coupon removed.")
 
 
+@extend_schema(tags=["Orders"])
 class CheckoutView(RequireStoreMixin, BaseAPIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=CheckoutSerializer, responses=OrderSerializer)
     def post(self, request: Request) -> Response:
         serializer = CheckoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -125,15 +139,19 @@ class CheckoutView(RequireStoreMixin, BaseAPIView):
         )
 
 
+@extend_schema(tags=["Orders"])
 class OrderListView(RequireStoreMixin, BaseGenericAPIView, generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = OrderSerializer
     filterset_fields = ("status",)
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Order.objects.none()
         return Order.objects.filter(user=self.request.user).prefetch_related("items")
 
 
+@extend_schema(tags=["Orders"])
 class OrderDetailView(RequireStoreMixin, BaseAPIView):
     permission_classes = [IsAuthenticated]
 
@@ -145,19 +163,24 @@ class OrderDetailView(RequireStoreMixin, BaseAPIView):
             raise NotFoundError("Order not found.")
         return order
 
+    @extend_schema(responses=OrderSerializer)
     def get(self, request: Request, order_id) -> Response:
         order = self._get_order(request, order_id)
         return APIResponse.success(OrderSerializer(order).data)
 
 
+@extend_schema(tags=["Orders"])
 class OrderConfirmView(OrderDetailView):
+    @extend_schema(request=None, responses=OrderSerializer)
     def post(self, request: Request, order_id) -> Response:
         order = self._get_order(request, order_id)
         order = CheckoutService().confirm_order(order=order)
         return APIResponse.success(OrderSerializer(order).data, message="Order confirmed.")
 
 
+@extend_schema(tags=["Orders"])
 class OrderCancelView(OrderDetailView):
+    @extend_schema(request=None, responses=OrderSerializer)
     def post(self, request: Request, order_id) -> Response:
         order = self._get_order(request, order_id)
         order = CheckoutService().cancel_order(order=order)
