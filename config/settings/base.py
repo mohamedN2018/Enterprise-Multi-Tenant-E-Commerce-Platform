@@ -69,6 +69,7 @@ LOCAL_APPS = [
     "apps.reviews",
     "apps.addresses",
     "apps.wishlist",
+    "apps.payouts",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -358,6 +359,13 @@ FRAUD = {
     # New-account rule (account younger than N minutes).
     "NEW_ACCOUNT_MINUTES": env.int("FRAUD_NEW_ACCOUNT_MINUTES", default=0),
     "NEW_ACCOUNT_SCORE": env.int("FRAUD_NEW_ACCOUNT_SCORE", default=30),
+}
+
+# --- Seller payouts --------------------------------------------------------
+# Platform commission taken from each confirmed order before crediting the
+# seller's account. Default 0 (the seller earns the full order total).
+PAYOUTS = {
+    "DEFAULT_COMMISSION_RATE": env("PAYOUT_DEFAULT_COMMISSION_RATE", default="0"),
 }
 
 AUTH_SETTINGS = {
