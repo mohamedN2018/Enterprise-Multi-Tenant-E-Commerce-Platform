@@ -34,6 +34,9 @@ PY
 echo "==> Applying migrations..."
 python manage.py migrate --noinput
 
+echo "==> Ensuring superuser (from DJANGO_SUPERUSER_EMAIL/PASSWORD, if set)..."
+python manage.py ensure_superuser || true
+
 echo "==> Collecting static files..."
 python manage.py collectstatic --noinput || true
 
