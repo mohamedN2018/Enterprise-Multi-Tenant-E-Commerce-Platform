@@ -78,6 +78,7 @@ class StorefrontProductSerializer(serializers.ModelSerializer):
     """List representation: the product plus its cheapest sellable price."""
 
     price = serializers.SerializerMethodField()
+    compare_at_price = serializers.SerializerMethodField()
     currency = serializers.CharField(source="store.currency", read_only=True)
     store = serializers.UUIDField(source="store_id", read_only=True)
     store_slug = serializers.CharField(source="store.slug", read_only=True)
@@ -93,6 +94,7 @@ class StorefrontProductSerializer(serializers.ModelSerializer):
             "description",
             "product_type",
             "price",
+            "compare_at_price",
             "currency",
             "store",
             "store_slug",
@@ -100,6 +102,14 @@ class StorefrontProductSerializer(serializers.ModelSerializer):
             "review_count",
         )
         read_only_fields = fields
+
+    def get_compare_at_price(self, obj):
+        variant = self._default_variant(obj)
+        cap = getattr(variant, "compare_at_price", None) if variant else None
+        # Only a genuine discount (was-price above the current price).
+        if cap and variant and cap > variant.price:
+            return str(cap)
+        return None
 
     def get_rating(self, obj):
         # Populated by the view's annotation; defaults to 0 when not annotated.

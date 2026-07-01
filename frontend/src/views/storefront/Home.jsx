@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, Button, Card, Col, Row, Spinner } from 'react-bootstrap';
+import { Alert, Button, Card, Carousel, Col, Row, Spinner } from 'react-bootstrap';
 import FeatherIcon from 'feather-icons-react';
 
 import { apiGet, errorMessage } from 'api/client';
@@ -9,9 +9,34 @@ import { heroImage, onImgError, productImage, storeBanner, storeLogo } from 'uti
 
 const asList = (d) => (Array.isArray(d) ? d : d?.results || []);
 
+const SLIDES = [
+  {
+    bg: heroImage(1600, 520),
+    title: 'Everything you need, from independent stores.',
+    text: 'Thousands of products across curated shops — browse, add to cart and checkout in seconds.',
+    cta: 'Shop all products',
+    to: '/products'
+  },
+  {
+    bg: 'https://picsum.photos/seed/marketplace-deals/1600/520',
+    title: 'Mega deals — up to 30% off.',
+    text: 'Limited-time offers across electronics, home, fashion and more.',
+    cta: "See today's deals",
+    to: '/products?on_sale=1'
+  },
+  {
+    bg: 'https://picsum.photos/seed/marketplace-new/1600/520',
+    title: 'Ten shops. One cart. Free shipping over $100.',
+    text: 'Discover independent sellers and their latest arrivals.',
+    cta: 'Browse stores',
+    to: '/products'
+  }
+];
+
 export default function Home() {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
+  const [deals, setDeals] = useState([]);
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -20,11 +45,13 @@ export default function Home() {
     Promise.all([
       apiGet('/storefront/categories/'),
       apiGet('/storefront/products/?page_size=8'),
+      apiGet('/storefront/products/?on_sale=1&page_size=8'),
       apiGet('/storefront/stores/')
     ])
-      .then(([cats, prods, sts]) => {
+      .then(([cats, prods, dls, sts]) => {
         setCategories(asList(cats));
         setProducts(asList(prods));
+        setDeals(asList(dls));
         setStores(asList(sts));
       })
       .catch((e) => setError(errorMessage(e)))
@@ -33,23 +60,22 @@ export default function Home() {
 
   return (
     <>
-      {/* Hero */}
-      <div className="sf-hero mb-5" style={{ backgroundImage: `url(${heroImage()})` }}>
-        <div className="p-4 p-md-5">
-          <h1 className="fw-bold display-6 mb-2">Everything you need, from independent stores.</h1>
-          <p className="lead mb-4 opacity-75" style={{ maxWidth: 560 }}>
-            Thousands of products across curated shops — browse by category, add to cart and checkout in seconds.
-          </p>
-          <div className="d-flex gap-2">
-            <Button as={Link} to="/products" variant="light" size="lg" className="fw-semibold">
-              Shop all products <FeatherIcon icon="arrow-right" size={18} />
-            </Button>
-            <Button href="#categories" variant="outline-light" size="lg">
-              Browse categories
-            </Button>
-          </div>
-        </div>
-      </div>
+      {/* Hero carousel */}
+      <Carousel className="mb-5 sf-hero-carousel" fade interval={5000}>
+        {SLIDES.map((s, i) => (
+          <Carousel.Item key={i}>
+            <div className="sf-slide" style={{ backgroundImage: `url(${s.bg})` }}>
+              <div className="p-4 p-md-5" style={{ maxWidth: 640 }}>
+                <h1 className="fw-bold display-6 mb-2">{s.title}</h1>
+                <p className="lead mb-4 opacity-75">{s.text}</p>
+                <Button as={Link} to={s.to} variant="light" size="lg" className="fw-semibold">
+                  {s.cta} <FeatherIcon icon="arrow-right" size={18} />
+                </Button>
+              </div>
+            </div>
+          </Carousel.Item>
+        ))}
+      </Carousel>
 
       {error && <Alert variant="danger">{error}</Alert>}
 
@@ -81,6 +107,28 @@ export default function Home() {
               </Col>
             ))}
           </Row>
+
+          {/* Today's deals */}
+          {deals.length > 0 && (
+            <>
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <h4 className="sf-section-title mb-0 text-danger">
+                  <FeatherIcon icon="zap" size={18} className="me-1" />
+                  Today&apos;s deals
+                </h4>
+                <Link to="/products?on_sale=1" className="text-decoration-none small">
+                  All deals →
+                </Link>
+              </div>
+              <Row className="g-4 mb-5">
+                {deals.slice(0, 4).map((p) => (
+                  <Col key={p.id} xs={6} md={4} lg={3}>
+                    <ProductCard product={p} />
+                  </Col>
+                ))}
+              </Row>
+            </>
+          )}
 
           {/* Featured products */}
           <div className="d-flex align-items-center justify-content-between mb-3">

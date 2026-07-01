@@ -35,7 +35,7 @@ docker-compose.dev.yml  Local dev stack (hot-reload)
 - **Model contract** (`apps.core.models.BaseModel`): UUID PKs, timestamps, soft-delete,
   audit stamps.
 - **Single-origin frontend:** the React SPA and the API are served behind one domain —
-  nginx serves the SPA and reverse-proxies `/api`, `/admin`, `/static`, `/media`, `/ws`
+  nginx serves the SPA and reverse-proxies `/api`, `/django-admin`, `/static`, `/media`, `/ws`
   to the backend (no CORS).
 
 ## Quickstart — production stack (Docker)
@@ -50,7 +50,8 @@ Then open `http://localhost:8080` (the frontend; change with `FRONTEND_PORT`).
 Demo login after `seed_demo`: `owner@demo.com` / `Demo12345!`.
 
 Backend routes (proxied through the frontend, or reachable internally):
-`/api/v1/` · `/api/docs/` (Swagger) · `/health/` · `/admin/`.
+`/api/v1/` · `/api/docs/` (Swagger) · `/health/` · `/django-admin/` (Django admin;
+the React seller console is at `/admin`).
 
 ## Local development (hot-reload)
 

@@ -21,6 +21,7 @@ const NotFound = lazy(() => import('views/storefront/NotFound'));
 const Overview = lazy(() => import('views/dashboard/Overview'));
 const ResourcePage = lazy(() => import('views/resource/ResourcePage'));
 const ResourceDetail = lazy(() => import('views/resource/ResourceDetail'));
+const TeamPage = lazy(() => import('views/team/Team'));
 
 // Auth
 const Login = lazy(() => import('views/auth/login'));
@@ -52,6 +53,7 @@ const router = createBrowserRouter(
           element: <AdminLayout />,
           children: [
             { index: true, element: <Overview /> },
+            { path: 'team', element: <TeamPage /> },
             { path: 'r/:key', element: <ResourcePage /> },
             { path: 'r/:key/:id', element: <ResourceDetail /> }
           ]

@@ -20,6 +20,16 @@ export default function StoreLayout() {
 
   return (
     <div className="sf-app d-flex flex-column min-vh-100">
+      <div className="sf-topbar py-1">
+        <Container className="d-flex justify-content-between align-items-center">
+          <span>
+            <FeatherIcon icon="truck" size={13} className="me-1" /> Free shipping over $100 · up to 30% off selected items
+          </span>
+          <span className="d-none d-md-inline">
+            <Link to="/products?on_sale=1">Today&apos;s deals</Link>
+          </span>
+        </Container>
+      </div>
       <Navbar expand="lg" className="sf-navbar sticky-top py-2">
         <Container>
           <Navbar.Brand as={Link} to="/" className="d-flex align-items-center gap-2 fw-bold me-3">

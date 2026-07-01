@@ -45,7 +45,9 @@ api_v1_patterns = [
 ]
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    # Django's own admin lives under /django-admin/ so the React seller console
+    # can own /admin/* in the single-domain (nginx) deployment.
+    path("django-admin/", admin.site.urls),
     path("health/", health_check, name="health-check"),
     # OpenAPI schema & docs
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),

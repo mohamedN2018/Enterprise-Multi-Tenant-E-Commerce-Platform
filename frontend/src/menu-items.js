@@ -16,6 +16,14 @@ const menuItems = {
           icon: 'material-icons-two-tone',
           iconname: 'dashboard',
           url: '/admin'
+        },
+        {
+          id: 'team',
+          title: 'Team',
+          type: 'item',
+          icon: 'material-icons-two-tone',
+          iconname: 'group',
+          url: '/admin/team'
         }
       ]
     },

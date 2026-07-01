@@ -6,7 +6,7 @@ with explicit ``is_deleted=False`` filters instead of the tenant-scoped default.
 
 from __future__ import annotations
 
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, F, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
@@ -128,6 +128,11 @@ class StorefrontAllProductsView(BaseGenericAPIView, generics.ListAPIView):
         if params.get("search"):
             term = params["search"]
             qs = qs.filter(Q(name__icontains=term) | Q(description__icontains=term))
+        if params.get("on_sale"):
+            qs = qs.filter(
+                variants__is_active=True,
+                variants__compare_at_price__gt=F("variants__price"),
+            ).distinct()
         return qs.order_by("-created_at")
 
 

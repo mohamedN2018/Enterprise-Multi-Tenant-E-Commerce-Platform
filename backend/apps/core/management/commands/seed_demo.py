@@ -286,7 +286,8 @@ class Command(BaseCommand):
             ).first()
             if category is None:
                 category = catalog.create_category(store=store, data={"name": cat_name})
-            for name, price, description in CATALOG[cat_name]:
+            for idx, (name, price, description) in enumerate(CATALOG[cat_name]):
+                on_sale = idx % 3 == 0  # ~1/3 of products are on offer
                 product = Product.all_objects.filter(
                     store=store, name=name, is_deleted=False
                 ).first()
@@ -308,9 +309,17 @@ class Command(BaseCommand):
                     inventory.receive(
                         store=store, variant=variant, warehouse=warehouse, quantity=50
                     )
-                elif product.category_id is None:
-                    product.category = category
-                    product.save(update_fields=["category", "updated_at"])
+                else:
+                    if product.category_id is None:
+                        product.category = category
+                        product.save(update_fields=["category", "updated_at"])
+                    variant = product.variants.first()
+                # Mark deals: a "was" price ~30% above the current price.
+                if on_sale and variant and not variant.compare_at_price:
+                    variant.compare_at_price = (Decimal(price) * Decimal("1.30")).quantize(
+                        Decimal("0.01")
+                    )
+                    variant.save(update_fields=["compare_at_price", "updated_at"])
 
     def _seed_orders(self, *, store, buyer) -> dict:
         """Place demo orders so the dashboard/analytics have real data.

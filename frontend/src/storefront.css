@@ -272,6 +272,63 @@
   font-weight: 600;
 }
 
+/* Sale badge on product images */
+.sale-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  background: #e5484d;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Announcement top bar */
+.sf-topbar {
+  background: var(--sf-ink);
+  color: #e2e8f0;
+  font-size: 0.8rem;
+}
+.sf-topbar a {
+  color: #fff;
+  text-decoration: none;
+}
+
+/* Hero carousel slides */
+.sf-slide {
+  position: relative;
+  border-radius: var(--sf-radius);
+  overflow: hidden;
+  min-height: 340px;
+  display: flex;
+  align-items: center;
+  background-size: cover;
+  background-position: center;
+  color: #fff;
+}
+.sf-slide::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.85) 0%, rgba(79, 70, 229, 0.35) 100%);
+}
+.sf-slide > * {
+  position: relative;
+  z-index: 1;
+}
+.sf-app .sf-slide h1,
+.sf-app .sf-slide h2,
+.sf-app .sf-slide p {
+  color: #fff !important;
+}
+.sf-app .carousel-indicators [data-bs-target] {
+  border-radius: 999px;
+}
+
 /* Footer */
 .sf-footer {
   background: #0f172a;
