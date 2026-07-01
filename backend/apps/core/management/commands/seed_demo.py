@@ -38,7 +38,7 @@ class Command(BaseCommand):
         from apps.catalog.services import CatalogService
         from apps.inventory.models import Warehouse
         from apps.inventory.services import InventoryService
-        from apps.stores.models import Store
+        from apps.stores.models import Store, StoreStatus
         from apps.stores.services import StoreService
 
         owner = self._user(User, "owner@demo.com")
@@ -66,6 +66,11 @@ class Command(BaseCommand):
                     data={"sku": name.replace(" ", "-").upper(), "price": Decimal(price)},
                 )
                 inventory.receive(store=store, variant=variant, warehouse=warehouse, quantity=50)
+
+        # Publish the store so it appears in the public storefront.
+        if store.status != StoreStatus.ACTIVE:
+            store.status = StoreStatus.ACTIVE
+            store.save(update_fields=["status", "updated_at"])
 
         orders = self._seed_orders(store=store, buyer=buyer)
 

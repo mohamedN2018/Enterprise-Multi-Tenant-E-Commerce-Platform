@@ -173,7 +173,7 @@ export default function ResourceTable({ resource }) {
                       return (
                         <td key={c.key}>
                           {detail && c === resolvedColumns[0] ? (
-                            <Link to={`/r/${resourceKey}/${row.id}`} state={{ record: row }}>
+                            <Link to={`/admin/r/${resourceKey}/${row.id}`} state={{ record: row }}>
                               {cell}
                             </Link>
                           ) : (
@@ -189,7 +189,7 @@ export default function ResourceTable({ resource }) {
                             size="sm"
                             variant="link"
                             className="p-0 me-3"
-                            onClick={() => navigate(`/r/${resourceKey}/${row.id}`, { state: { record: row } })}
+                            onClick={() => navigate(`/admin/r/${resourceKey}/${row.id}`, { state: { record: row } })}
                             title="View"
                           >
                             <FeatherIcon icon="eye" size={16} />

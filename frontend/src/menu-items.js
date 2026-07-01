@@ -15,7 +15,7 @@ const menuItems = {
           type: 'item',
           icon: 'material-icons-two-tone',
           iconname: 'dashboard',
-          url: '/'
+          url: '/admin'
         }
       ]
     },
@@ -35,7 +35,7 @@ const menuItems = {
           id: resource.key,
           title: resource.label,
           type: 'item',
-          url: `/r/${resource.key}`
+          url: `/admin/r/${resource.key}`
         }))
       }))
     }

@@ -40,8 +40,10 @@ const api = axios.create({ baseURL: BASE_URL, headers: { 'Content-Type': 'applic
 api.interceptors.request.use((config) => {
   const token = tokenStore.access;
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  // Respect an explicit per-call X-Store-Id (storefront targets a specific
+  // store); otherwise fall back to the admin's active store.
   const storeId = storeHeader.id;
-  if (storeId) config.headers['X-Store-Id'] = storeId;
+  if (storeId && !config.headers['X-Store-Id']) config.headers['X-Store-Id'] = storeId;
   return config;
 });
 

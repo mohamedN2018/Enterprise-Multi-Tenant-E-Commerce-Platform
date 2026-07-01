@@ -95,7 +95,7 @@ export default function ResourceDetail() {
     <>
       <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
         <div className="d-flex align-items-center gap-2">
-          <Button as={Link} to={`/r/${key}`} variant="outline-secondary" size="sm">
+          <Button as={Link} to={`/admin/r/${key}`} variant="outline-secondary" size="sm">
             <FeatherIcon icon="arrow-left" size={16} />
           </Button>
           <h5 className="mb-0">

@@ -57,7 +57,7 @@ export default function NavContent({ navigation, activeNav }) {
 
   const mHeader = (
     <div className="m-header">
-      <Link to="/" className="b-brand d-flex align-items-center gap-2 text-white">
+      <Link to="/admin" className="b-brand d-flex align-items-center gap-2 text-white">
         <span className="d-flex align-items-center justify-content-center bg-primary rounded" style={{ width: 34, height: 34 }}>
           <FeatherIcon icon="shopping-bag" size={18} />
         </span>

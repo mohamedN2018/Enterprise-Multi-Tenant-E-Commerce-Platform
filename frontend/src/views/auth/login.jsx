@@ -19,7 +19,7 @@ export default function SignIn1() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState('owner@demo.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -31,7 +31,7 @@ export default function SignIn1() {
     setBusy(true);
     try {
       await login(email, password);
-      navigate('/');
+      navigate(location.state?.from || '/', { replace: true });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -47,7 +47,7 @@ export default function SignIn1() {
             <Col>
               <Card.Body className="card-body">
                 <img src={logoDark} alt="" className="img-fluid mb-4" />
-                <h4 className="mb-3 f-w-400">Marketplace Admin</h4>
+                <h4 className="mb-3 f-w-400">Sign in to Marketplace</h4>
                 {registered && <Alert variant="success">Account created. Please sign in.</Alert>}
                 {error && <Alert variant="danger">{error}</Alert>}
                 <Form onSubmit={onSubmit}>
