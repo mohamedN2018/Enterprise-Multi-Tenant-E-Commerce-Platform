@@ -28,6 +28,13 @@ CATALOG = {
         ("Bluetooth Speaker", "59.00", "Portable waterproof speaker with 12-hour battery."),
         ("Gaming Mouse", "45.00", "16000 DPI ergonomic gaming mouse."),
         ("1080p Webcam", "49.00", "Full-HD webcam with dual microphones."),
+        (
+            "Noise-Cancelling Earbuds",
+            "99.00",
+            "True-wireless earbuds with ANC and a charging case.",
+        ),
+        ("Portable SSD 1TB", "109.00", "USB 3.2 external solid-state drive, 1TB."),
+        ("Smart LED Bulb", "15.00", "Wi-Fi colour smart bulb, app and voice control."),
     ],
     "Home & Kitchen": [
         ("Laptop Stand", "39.50", "Aluminium adjustable laptop stand."),
@@ -35,18 +42,32 @@ CATALOG = {
         ("Coffee Maker", "89.00", "12-cup programmable drip coffee maker."),
         ("Air Fryer 5L", "129.00", "Digital air fryer with a 5-litre capacity."),
         ("Ceramic Mug Set", "24.00", "Set of four stoneware coffee mugs."),
+        ("Non-Stick Frying Pan", "32.00", "28cm non-stick frying pan, induction-ready."),
+        ("Robot Vacuum", "199.00", "Self-charging robot vacuum with app mapping."),
+        ("Electric Kettle", "29.00", "1.7L fast-boil stainless-steel kettle."),
+        ("Knife Block Set", "69.00", "Six-piece stainless-steel knife set with block."),
+        ("Scented Candle", "16.00", "Hand-poured soy candle, 40-hour burn."),
     ],
     "Sports & Outdoors": [
         ("Yoga Mat", "27.00", "Non-slip 6mm yoga mat with a carry strap."),
         ("Adjustable Dumbbell Set", "119.00", "Adjustable dumbbells from 2 to 24 kg."),
         ("Insulated Water Bottle", "22.00", "1L stainless-steel vacuum bottle."),
         ("Resistance Bands", "18.00", "Set of five resistance loop bands."),
+        ("Two-Person Tent", "139.00", "Waterproof lightweight camping tent."),
+        ("Trekking Poles", "45.00", "Adjustable aluminium trekking poles, pair."),
+        ("Jump Rope", "12.00", "Speed jump rope with ball bearings."),
+        ("Foam Roller", "24.00", "High-density muscle recovery foam roller."),
+        ("Cycling Helmet", "49.00", "Lightweight vented cycling helmet."),
     ],
     "Accessories": [
         ("Power Bank 20000mAh", "35.00", "Fast-charge dual-port power bank."),
         ("Smart Watch", "149.00", "Fitness smartwatch with a heart-rate sensor."),
         ("Laptop Backpack", "54.00", "Water-resistant 15-inch laptop backpack."),
         ("Clear Phone Case", "14.00", "Shockproof transparent phone case."),
+        ("Leather Belt", "29.00", "Full-grain leather belt with a matte buckle."),
+        ("Travel Wallet", "34.00", "RFID-blocking passport and card travel wallet."),
+        ("Baseball Cap", "19.00", "Adjustable cotton twill baseball cap."),
+        ("Compact Umbrella", "22.00", "Windproof automatic compact umbrella."),
     ],
     "Fashion": [
         ("Cotton T-Shirt", "19.99", "Organic cotton crew-neck t-shirt."),
@@ -54,59 +75,96 @@ CATALOG = {
         ("Running Shoes", "94.00", "Lightweight breathable running shoes."),
         ("Leather Wallet", "39.00", "Slim RFID-blocking leather wallet."),
         ("Polarized Sunglasses", "29.00", "UV400 polarized sunglasses."),
+        ("Hooded Sweatshirt", "49.00", "Soft fleece-lined pullover hoodie."),
+        ("Chino Trousers", "54.00", "Slim-fit stretch cotton chinos."),
+        ("Wool Scarf", "27.00", "Warm lambswool blend scarf."),
+        ("Ankle Boots", "89.00", "Leather Chelsea ankle boots."),
+        ("Summer Dress", "45.00", "Floral print A-line summer dress."),
     ],
     "Beauty & Care": [
         ("Vitamin C Serum", "25.00", "Brightening facial serum, 30 ml."),
         ("Lip Balm Trio", "12.00", "Pack of three nourishing lip balms."),
         ("Sonic Toothbrush", "49.00", "Rechargeable sonic electric toothbrush."),
+        ("Facial Cleanser", "18.00", "Gentle daily foaming facial cleanser."),
+        ("Ionic Hair Dryer", "59.00", "Fast-dry ionic hair dryer with diffuser."),
+        ("Moisturizing Cream", "22.00", "24-hour hydrating face and neck cream."),
+        ("Eau de Parfum 50ml", "65.00", "Long-lasting signature fragrance."),
+        ("Sheet Mask Pack", "16.00", "Set of ten hydrating sheet masks."),
+    ],
+    "Books & Media": [
+        ("Atomic Habits", "18.00", "Bestselling guide to building good habits."),
+        ("Clean Code", "34.00", "A handbook of agile software craftsmanship."),
+        ("Sapiens", "22.00", "A brief history of humankind."),
+        ("The Alchemist", "14.00", "A classic novel about following your dreams."),
+        ("Deluxe Cookbook", "29.00", "300 recipes for everyday cooking."),
+        ("Vinyl Record Player", "89.00", "Belt-drive turntable with built-in speakers."),
+        ("Hardcover Notebook", "12.00", "A5 dotted hardcover notebook."),
+        ("Fountain Pen", "26.00", "Medium-nib fountain pen with converter."),
+    ],
+    "Toys & Games": [
+        ("Building Blocks Set", "39.00", "500-piece creative building blocks."),
+        ("Remote Control Car", "45.00", "2.4GHz off-road RC car, rechargeable."),
+        ("Classic Board Game", "29.00", "Family strategy board game for 2-6 players."),
+        ("Plush Teddy Bear", "19.00", "Soft cuddly 40cm teddy bear."),
+        ("1000-Piece Puzzle", "16.00", "Scenic landscape jigsaw puzzle."),
+        ("Mini Drone", "59.00", "Beginner quadcopter with altitude hold."),
+        ("Action Figure", "22.00", "Poseable collectible action figure."),
+        ("Art Supplies Kit", "34.00", "150-piece drawing and painting set."),
+    ],
+    "Pet Supplies": [
+        ("Dog Chew Toy", "12.00", "Durable rubber chew toy for medium dogs."),
+        ("Cat Scratching Post", "35.00", "Sisal-wrapped scratching post with perch."),
+        ("Large Pet Bed", "45.00", "Orthopaedic memory-foam pet bed."),
+        ("Automatic Feeder", "59.00", "Programmable automatic pet feeder."),
+        ("Aquarium Starter Kit", "79.00", "20L glass aquarium with filter and light."),
+        ("Dog Leash", "16.00", "Reflective padded-handle dog leash."),
+        ("Bird Cage", "49.00", "Spacious powder-coated bird cage."),
+        ("Pet Grooming Brush", "14.00", "Self-cleaning slicker grooming brush."),
+    ],
+    "Grocery & Gourmet": [
+        ("Organic Coffee Beans", "18.00", "Single-origin whole-bean coffee, 1kg."),
+        ("Matcha Green Tea", "22.00", "Ceremonial-grade matcha powder, 100g."),
+        ("Dark Chocolate Box", "16.00", "Assorted 70% dark chocolate truffles."),
+        ("Extra Virgin Olive Oil", "24.00", "Cold-pressed olive oil, 750ml."),
+        ("Raw Honey Jar", "14.00", "Unfiltered wildflower honey, 500g."),
+        ("Spice Collection", "29.00", "Set of twelve everyday cooking spices."),
+        ("Protein Bars (12)", "19.00", "Box of twelve high-protein snack bars."),
+        ("Pasta Sampler", "21.00", "Artisan Italian pasta variety pack."),
     ],
 }
 
-# Which categories live in which store (marketplace feel: two shops).
+# Many stores (a bigger marketplace). Each carries a few categories; the same
+# product pools reused across stores = multiple sellers, hundreds of listings.
 STORES = [
     ("Demo Store", ["Electronics", "Home & Kitchen", "Sports & Outdoors", "Accessories"]),
     ("Style Studio", ["Fashion", "Beauty & Care"]),
+    ("TechHub", ["Electronics", "Accessories"]),
+    ("Home Haven", ["Home & Kitchen", "Grocery & Gourmet"]),
+    ("Fit & Active", ["Sports & Outdoors", "Accessories"]),
+    ("Glow Beauty", ["Beauty & Care", "Fashion"]),
+    ("Page Turner", ["Books & Media", "Toys & Games"]),
+    ("Playful Kids", ["Toys & Games", "Books & Media"]),
+    ("Paws & Co", ["Pet Supplies", "Home & Kitchen"]),
+    ("Gourmet Market", ["Grocery & Gourmet", "Beauty & Care"]),
 ]
 
-# A few approved reviews (from distinct reviewers — one review per product/user)
-# so product pages show real ratings.  (product, reviewer_email, rating, title, body)
-REVIEWS = [
-    (
-        "Wireless Headphones",
-        "alice@demo.com",
-        5,
-        "Amazing sound",
-        "Fantastic noise cancellation and battery life.",
-    ),
-    (
-        "Wireless Headphones",
-        "bob@demo.com",
-        4,
-        "Very comfortable",
-        "Great for long calls, a little bass-heavy.",
-    ),
-    (
-        "4K Monitor",
-        "alice@demo.com",
-        5,
-        "Crisp and bright",
-        "Colours are gorgeous — perfect for design work.",
-    ),
-    (
-        "Mechanical Keyboard",
-        "carol@demo.com",
-        4,
-        "Satisfying typing",
-        "Love the switches, slightly loud for the office.",
-    ),
-    (
-        "Laptop Stand",
-        "bob@demo.com",
-        5,
-        "Rock solid",
-        "Sturdy aluminium build, great posture helper.",
-    ),
-    ("Air Fryer 5L", "carol@demo.com", 4, "Cooks evenly", "Big capacity and easy to clean."),
+# Reviewer identities + snippets — reviews are generated across each store's
+# catalogue so ratings are spread through the marketplace.
+REVIEWERS = [
+    "alice@demo.com",
+    "bob@demo.com",
+    "carol@demo.com",
+    "dave@demo.com",
+    "erin@demo.com",
+    "frank@demo.com",
+]
+REVIEW_SNIPPETS = [
+    (5, "Love it", "Exceeded my expectations — highly recommend."),
+    (4, "Great value", "Really good quality for the price, would buy again."),
+    (5, "Perfect", "Exactly as described and arrived quickly."),
+    (3, "It's okay", "Does the job, nothing spectacular."),
+    (4, "Solid choice", "Happy with the purchase overall."),
+    (5, "Fantastic", "Can't fault it, works beautifully."),
 ]
 
 
@@ -135,6 +193,7 @@ class Command(BaseCommand):
                 store = StoreService().create_store(owner=owner, data={"name": store_name})
             self._seed_catalog(store=store, category_names=category_names)
             self._seed_shipping(store=store)
+            self._seed_reviews(store=store)
             # Publish the store so it appears in the public storefront.
             if store.status != StoreStatus.ACTIVE:
                 store.status = StoreStatus.ACTIVE
@@ -143,7 +202,6 @@ class Command(BaseCommand):
                 demo_store = store
 
         orders = self._seed_orders(store=demo_store, buyer=buyer)
-        self._seed_reviews(store=demo_store, buyer=buyer)
 
         self.stdout.write(self.style.SUCCESS("Demo data ready."))
         self.stdout.write(
@@ -184,30 +242,32 @@ class Command(BaseCommand):
             store=store, zone=zone, data={"name": "Express", "price": Decimal("12.00")}
         )
 
-    def _seed_reviews(self, *, store, buyer) -> None:
-        """Approved demo reviews so product pages show ratings (idempotent)."""
+    def _seed_reviews(self, *, store) -> None:
+        """Spread approved reviews across a store's catalogue (idempotent)."""
         from apps.accounts.models import User
-        from apps.catalog.models import Product
+        from apps.catalog.models import Product, ProductStatus
         from apps.reviews.models import Review, ReviewStatus
 
-        for name, reviewer_email, rating, title, body in REVIEWS:
-            product = Product.all_objects.filter(store=store, name=name, is_deleted=False).first()
-            if product is None:
-                continue
-            reviewer = self._user(User, reviewer_email)
-            # One review per (store, product, user) — respect the unique constraint.
-            if Review.all_objects.filter(store=store, product=product, user=reviewer).exists():
-                continue
-            Review.objects.create(
-                store=store,
-                product=product,
-                user=reviewer,
-                rating=rating,
-                title=title,
-                body=body,
-                status=ReviewStatus.APPROVED,
-                is_verified_purchase=True,
-            )
+        products = Product.all_objects.filter(
+            store=store, status=ProductStatus.PUBLISHED, is_deleted=False
+        ).order_by("created_at")
+        reviewers = {email: self._user(User, email) for email in REVIEWERS}
+        for i, product in enumerate(products):
+            for j in range(i % 3):  # 0, 1 or 2 reviews per product
+                reviewer = reviewers[REVIEWERS[(i + j) % len(REVIEWERS)]]
+                if Review.all_objects.filter(store=store, product=product, user=reviewer).exists():
+                    continue
+                rating, title, body = REVIEW_SNIPPETS[(i + j * 2) % len(REVIEW_SNIPPETS)]
+                Review.objects.create(
+                    store=store,
+                    product=product,
+                    user=reviewer,
+                    rating=rating,
+                    title=title,
+                    body=body,
+                    status=ReviewStatus.APPROVED,
+                    is_verified_purchase=True,
+                )
 
     def _seed_catalog(self, *, store, category_names) -> None:
         """Create categories + published, stocked products for a store (idempotent)."""

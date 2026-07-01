@@ -68,10 +68,10 @@ export default function Home() {
           </div>
           <Row className="g-3 mb-5">
             {categories.map((c) => (
-              <Col key={c.id} xs={6} md={4} lg={2}>
-                <Link to={`/products?category=${c.id}`} className="text-decoration-none">
+              <Col key={c.name} xs={6} md={4} lg={2}>
+                <Link to={`/products?category=${encodeURIComponent(c.name)}`} className="text-decoration-none">
                   <div className="media-box ratio-1x1 category-tile product-card" style={{ borderRadius: 8 }}>
-                    <img src={productImage(c, 320, 320)} alt={c.name} onError={onImgError(c.slug)} loading="lazy" />
+                    <img src={productImage({ slug: c.name }, 320, 320)} alt={c.name} onError={onImgError(c.name)} loading="lazy" />
                     <div className="cat-label">
                       <div className="fw-semibold px-1">{c.name}</div>
                       <div className="small opacity-75">{c.product_count} items</div>

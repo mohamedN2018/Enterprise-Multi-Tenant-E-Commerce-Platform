@@ -20,7 +20,6 @@ from apps.core.responses import APIResponse
 from apps.stores.models import Store, StoreStatus
 
 from .serializers import (
-    StorefrontCategorySerializer,
     StorefrontProductDetailSerializer,
     StorefrontProductSerializer,
     StorefrontReviewSerializer,
@@ -76,23 +75,21 @@ class StorefrontStoreDetailView(BaseAPIView):
 
 
 @extend_schema(tags=["Storefront"])
-class StorefrontCategoryListView(BaseGenericAPIView, generics.ListAPIView):
-    """Active categories (across active stores) that have published products."""
+class StorefrontCategoryListView(BaseAPIView):
+    """Marketplace categories deduplicated by NAME across active stores, each with
+    the total number of published products carrying that category name."""
 
     permission_classes = [AllowAny]
-    serializer_class = StorefrontCategorySerializer
 
-    def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return Category.all_objects.none()
-        return (
+    def get(self, request: Request) -> Response:
+        rows = (
             Category.all_objects.filter(
                 is_deleted=False,
                 is_active=True,
                 store__status=StoreStatus.ACTIVE,
                 store__is_deleted=False,
             )
-            .select_related("store")
+            .values("name")
             .annotate(
                 product_count=Count(
                     "products",
@@ -102,6 +99,7 @@ class StorefrontCategoryListView(BaseGenericAPIView, generics.ListAPIView):
             .filter(product_count__gt=0)
             .order_by("name")
         )
+        return APIResponse.success(list(rows))
 
 
 @extend_schema(tags=["Storefront"])
@@ -124,7 +122,7 @@ class StorefrontAllProductsView(BaseGenericAPIView, generics.ListAPIView):
         )
         params = self.request.query_params
         if params.get("category"):
-            qs = qs.filter(category_id=params["category"])
+            qs = qs.filter(category__name=params["category"])
         if params.get("store"):
             qs = qs.filter(store__slug=params["store"])
         if params.get("search"):

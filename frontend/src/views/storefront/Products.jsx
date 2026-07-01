@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Alert, Button, Col, Form, InputGroup, Row, Spinner } from 'react-bootstrap';
 import FeatherIcon from 'feather-icons-react';
 
-import { apiGet, errorMessage } from 'api/client';
+import api, { apiGet, errorMessage } from 'api/client';
 import ProductCard from 'components/ProductCard';
 
+const PAGE_SIZE = 24;
 const asList = (d) => (Array.isArray(d) ? d : d?.results || []);
 
 export default function Products() {
@@ -15,7 +16,11 @@ export default function Products() {
 
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [term, setTerm] = useState(search);
 
@@ -25,37 +30,61 @@ export default function Products() {
       .catch(() => {});
   }, []);
 
+  const fetchPage = useCallback(
+    async (pageNum, append) => {
+      const qp = { page: pageNum, page_size: PAGE_SIZE };
+      if (category) qp.category = category;
+      if (search) qp.search = search;
+      const res = await api.get('/storefront/products/', { params: qp });
+      const list = asList(res.data);
+      const meta = res.$meta?.pagination;
+      setTotal(meta?.count ?? list.length);
+      setHasNext(Boolean(meta?.next));
+      setProducts((prev) => (append ? [...prev, ...list] : list));
+    },
+    [category, search]
+  );
+
   useEffect(() => {
     setTerm(search);
     setLoading(true);
     setError('');
-    const qs = new URLSearchParams({ page_size: '60' });
-    if (category) qs.set('category', category);
-    if (search) qs.set('search', search);
-    apiGet(`/storefront/products/?${qs.toString()}`)
-      .then((d) => setProducts(asList(d)))
+    setPage(1);
+    fetchPage(1, false)
       .catch((e) => setError(errorMessage(e)))
       .finally(() => setLoading(false));
-  }, [category, search]);
+  }, [category, search, fetchPage]);
 
   const patch = (mutate) => {
     const p = new URLSearchParams(params);
     mutate(p);
     setParams(p);
   };
-  const pickCategory = (id) =>
-    patch((p) => (id ? p.set('category', id) : p.delete('category')));
+  const pickCategory = (id) => patch((p) => (id ? p.set('category', id) : p.delete('category')));
   const submitSearch = (e) => {
     e.preventDefault();
     patch((p) => (term.trim() ? p.set('search', term.trim()) : p.delete('search')));
   };
 
-  const activeCat = categories.find((c) => c.id === category);
+  const loadMore = async () => {
+    setLoadingMore(true);
+    const next = page + 1;
+    try {
+      await fetchPage(next, true);
+      setPage(next);
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   return (
     <>
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-        <h3 className="fw-bold mb-0">{activeCat ? activeCat.name : search ? `Results for “${search}”` : 'All products'}</h3>
+        <h3 className="sf-section-title mb-0">
+          {category || (search ? `Results for “${search}”` : 'All products')}
+        </h3>
         <Form onSubmit={submitSearch} style={{ maxWidth: 320, width: '100%' }}>
           <InputGroup>
             <InputGroup.Text className="bg-white">
@@ -66,17 +95,16 @@ export default function Products() {
         </Form>
       </div>
 
-      {/* Category filter chips */}
       <div className="d-flex flex-wrap gap-2 mb-4">
         <Button size="sm" variant={category ? 'outline-secondary' : 'primary'} onClick={() => pickCategory('')} className="rounded-pill">
           All
         </Button>
         {categories.map((c) => (
           <Button
-            key={c.id}
+            key={c.name}
             size="sm"
-            variant={category === c.id ? 'primary' : 'outline-secondary'}
-            onClick={() => pickCategory(c.id)}
+            variant={category === c.name ? 'primary' : 'outline-secondary'}
+            onClick={() => pickCategory(c.name)}
             className="rounded-pill"
           >
             {c.name} <span className="opacity-75">({c.product_count})</span>
@@ -94,7 +122,9 @@ export default function Products() {
         <Alert variant="info">No products found.</Alert>
       ) : (
         <>
-          <p className="text-muted small">{products.length} product(s)</p>
+          <p className="text-muted small">
+            Showing {products.length} of {total} product(s)
+          </p>
           <Row className="g-4">
             {products.map((p) => (
               <Col key={p.id} xs={6} md={4} lg={3}>
@@ -102,6 +132,13 @@ export default function Products() {
               </Col>
             ))}
           </Row>
+          {hasNext && (
+            <div className="text-center mt-4">
+              <Button variant="outline-primary" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? <Spinner animation="border" size="sm" /> : 'Load more products'}
+              </Button>
+            </div>
+          )}
         </>
       )}
     </>
