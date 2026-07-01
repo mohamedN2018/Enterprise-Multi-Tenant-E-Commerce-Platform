@@ -81,6 +81,8 @@ class StorefrontProductSerializer(serializers.ModelSerializer):
     currency = serializers.CharField(source="store.currency", read_only=True)
     store = serializers.UUIDField(source="store_id", read_only=True)
     store_slug = serializers.CharField(source="store.slug", read_only=True)
+    rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -94,8 +96,17 @@ class StorefrontProductSerializer(serializers.ModelSerializer):
             "currency",
             "store",
             "store_slug",
+            "rating",
+            "review_count",
         )
         read_only_fields = fields
+
+    def get_rating(self, obj):
+        # Populated by the view's annotation; defaults to 0 when not annotated.
+        return round(float(getattr(obj, "rating_avg", None) or 0), 1)
+
+    def get_review_count(self, obj):
+        return int(getattr(obj, "rating_count", 0) or 0)
 
     @staticmethod
     def _default_variant(obj):

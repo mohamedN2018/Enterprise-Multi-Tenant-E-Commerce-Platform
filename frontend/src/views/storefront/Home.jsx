@@ -61,7 +61,7 @@ export default function Home() {
         <>
           {/* Categories */}
           <div id="categories" className="d-flex align-items-center justify-content-between mb-3">
-            <h4 className="fw-bold mb-0">Shop by category</h4>
+            <h4 className="sf-section-title mb-0">Shop by category</h4>
             <Link to="/products" className="text-decoration-none small">
               View all products →
             </Link>
@@ -69,24 +69,22 @@ export default function Home() {
           <Row className="g-3 mb-5">
             {categories.map((c) => (
               <Col key={c.id} xs={6} md={4} lg={2}>
-                <Card as={Link} to={`/products?category=${c.id}`} className="h-100 text-decoration-none text-reset border-0 shadow-sm product-card">
-                  <div className="media-box ratio-1x1">
-                    <img src={productImage(c, 300, 300)} alt={c.name} onError={onImgError(c.slug)} loading="lazy" />
-                  </div>
-                  <Card.Body className="text-center p-2">
-                    <div className="fw-semibold small text-truncate">{c.name}</div>
-                    <div className="text-muted" style={{ fontSize: 12 }}>
-                      {c.product_count} items
+                <Link to={`/products?category=${c.id}`} className="text-decoration-none">
+                  <div className="media-box ratio-1x1 category-tile product-card" style={{ borderRadius: 8 }}>
+                    <img src={productImage(c, 320, 320)} alt={c.name} onError={onImgError(c.slug)} loading="lazy" />
+                    <div className="cat-label">
+                      <div className="fw-semibold px-1">{c.name}</div>
+                      <div className="small opacity-75">{c.product_count} items</div>
                     </div>
-                  </Card.Body>
-                </Card>
+                  </div>
+                </Link>
               </Col>
             ))}
           </Row>
 
           {/* Featured products */}
           <div className="d-flex align-items-center justify-content-between mb-3">
-            <h4 className="fw-bold mb-0">Featured products</h4>
+            <h4 className="sf-section-title mb-0">Featured products</h4>
             <Link to="/products" className="text-decoration-none small">
               See more →
             </Link>
@@ -100,7 +98,7 @@ export default function Home() {
           </Row>
 
           {/* Stores */}
-          <h4 className="fw-bold mb-3">Our stores</h4>
+          <h4 className="sf-section-title mb-3">Our stores</h4>
           <Row className="g-4">
             {stores.map((s) => (
               <Col key={s.id} sm={6} lg={4}>

@@ -1,11 +1,104 @@
-/* Storefront (customer-facing) styles. */
+/* ===========================================================================
+   Storefront design system (scoped to .sf-app so the admin is untouched).
+   Softer, subtler corners + cohesive tokens.
+   =========================================================================== */
 
+.sf-app {
+  /* Tokens */
+  --sf-primary: #4f46e5;
+  --sf-primary-dark: #4338ca;
+  --sf-ink: #0f172a;
+  --sf-muted: #64748b;
+  --sf-line: #e6e8ee;
+  --sf-bg: #f7f8fa;
+  --sf-radius: 8px; /* reduced rounding */
+  --sf-radius-sm: 6px;
+  --sf-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08);
+  --sf-shadow-hover: 0 10px 28px rgba(15, 23, 42, 0.12);
+
+  /* Tame Bootstrap's default rounding within the storefront */
+  --bs-border-radius: var(--sf-radius);
+  --bs-border-radius-sm: var(--sf-radius-sm);
+  --bs-border-radius-lg: 10px;
+  --bs-border-radius-xl: 12px;
+  --bs-border-radius-pill: 999px;
+  --bs-body-color: var(--sf-ink);
+
+  background: var(--sf-bg);
+  color: var(--sf-ink);
+}
+
+.sf-app .card,
+.sf-app .btn,
+.sf-app .form-control,
+.sf-app .form-select,
+.sf-app .input-group-text,
+.sf-app .badge,
+.sf-app .dropdown-menu,
+.sf-app .modal-content,
+.sf-app .alert {
+  border-radius: var(--sf-radius);
+}
+.sf-app .rounded-3,
+.sf-app .rounded-4 {
+  border-radius: var(--sf-radius) !important;
+}
+.sf-app .btn-sm,
+.sf-app .form-control-sm,
+.sf-app .form-select-sm {
+  border-radius: var(--sf-radius-sm);
+}
+.sf-app .rounded-pill {
+  border-radius: 999px !important;
+}
+
+/* Primary buttons */
+.sf-app .btn-primary {
+  --bs-btn-bg: var(--sf-primary);
+  --bs-btn-border-color: var(--sf-primary);
+  --bs-btn-hover-bg: var(--sf-primary-dark);
+  --bs-btn-hover-border-color: var(--sf-primary-dark);
+  --bs-btn-active-bg: var(--sf-primary-dark);
+}
+.sf-app .btn-outline-primary {
+  --bs-btn-color: var(--sf-primary);
+  --bs-btn-border-color: var(--sf-line);
+  --bs-btn-hover-bg: var(--sf-primary);
+  --bs-btn-hover-border-color: var(--sf-primary);
+}
+.sf-app .text-primary {
+  color: var(--sf-primary) !important;
+}
+
+/* Navbar */
+.sf-navbar {
+  background: #fff;
+  border-bottom: 1px solid var(--sf-line);
+}
+.sf-navbar .nav-link {
+  color: #334155;
+  font-weight: 500;
+}
+.sf-navbar .nav-link.active,
+.sf-navbar .nav-link:hover {
+  color: var(--sf-primary);
+}
+.sf-search .form-control {
+  border-right: 0;
+}
+.sf-search .input-group-text {
+  background: #fff;
+  border-left: 0;
+  color: var(--sf-muted);
+}
+
+/* Hero */
 .sf-hero {
   position: relative;
-  border-radius: 1rem;
+  border-radius: var(--sf-radius);
   overflow: hidden;
   color: #fff;
-  min-height: 300px;
+  min-height: 320px;
   display: flex;
   align-items: center;
   background-size: cover;
@@ -15,36 +108,47 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(17, 24, 39, 0.85) 0%, rgba(79, 70, 229, 0.55) 100%);
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.88) 0%, rgba(79, 70, 229, 0.45) 100%);
 }
-.sf-hero > .container,
 .sf-hero > * {
   position: relative;
   z-index: 1;
 }
-.sf-hero,
-.sf-hero h1,
-.sf-hero p {
+.sf-app .sf-hero,
+.sf-app .sf-hero h1,
+.sf-app .sf-hero p,
+.sf-app .text-white h1,
+.sf-app .text-white h2,
+.sf-app .text-white h3,
+.sf-app .text-white h4,
+.sf-app .text-white h5,
+.sf-app .text-white h6 {
   color: #fff !important;
 }
 
-/* Headings placed on dark image overlays (bootstrap sets a dark heading color
-   that overrides the parent .text-white). */
-.text-white h1,
-.text-white h2,
-.text-white h3,
-.text-white h4,
-.text-white h5,
-.text-white h6 {
-  color: #fff !important;
+/* Section title with an accent bar */
+.sf-section-title {
+  font-weight: 700;
+  position: relative;
+  padding-left: 0.7rem;
+}
+.sf-section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  bottom: 0.15em;
+  width: 4px;
+  border-radius: 4px;
+  background: var(--sf-primary);
 }
 
-/* Fixed-aspect image container: image fills, cropped nicely. */
+/* Media boxes (fixed aspect, cover) */
 .media-box {
   position: relative;
   width: 100%;
   overflow: hidden;
-  background: #f1f3f5;
+  background: #eef0f4;
 }
 .media-box.ratio-4x3 {
   aspect-ratio: 4 / 3;
@@ -62,18 +166,30 @@
   display: block;
 }
 
-/* Card hover lift for stores + products. */
+/* Cards */
+.sf-app .card {
+  border: 1px solid var(--sf-line);
+  box-shadow: var(--sf-shadow);
+}
 .store-card,
 .product-card {
   transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
   overflow: hidden;
 }
 .store-card:hover,
 .product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 0.75rem 1.75rem rgba(17, 24, 39, 0.14) !important;
+  transform: translateY(-3px);
+  box-shadow: var(--sf-shadow-hover) !important;
+}
+.product-card .media-box img,
+.store-card .media-box img {
+  transition: transform 0.35s ease;
+}
+.product-card:hover .media-box img,
+.store-card:hover .media-box img {
+  transform: scale(1.05);
 }
 
 .store-logo {
@@ -85,15 +201,15 @@
 
 .price-tag {
   font-weight: 700;
-  color: #4f46e5;
+  color: var(--sf-primary);
 }
 
 .thumb {
   width: 56px;
   height: 56px;
-  border-radius: 0.5rem;
+  border-radius: var(--sf-radius-sm);
   object-fit: cover;
-  background: #f1f3f5;
+  background: #eef0f4;
 }
 
 .line-clamp-2 {
@@ -103,37 +219,7 @@
   overflow: hidden;
 }
 
-/* Subtle zoom on product/store imagery. */
-.product-card .media-box img,
-.store-card .media-box img {
-  transition: transform 0.35s ease;
-}
-.product-card:hover .media-box img,
-.store-card:hover .media-box img {
-  transform: scale(1.06);
-}
-
-/* Section heading with a small accent bar. */
-.sf-section-title {
-  font-weight: 700;
-  position: relative;
-  padding-left: 0.75rem;
-}
-.sf-section-title::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.15em;
-  bottom: 0.15em;
-  width: 4px;
-  border-radius: 4px;
-  background: #4f46e5;
-}
-
-/* Category chip images on the home grid get a soft overlay + label. */
-.category-tile {
-  position: relative;
-}
+/* Category tile overlay */
 .category-tile .cat-label {
   position: absolute;
   inset: 0;
@@ -143,36 +229,19 @@
   justify-content: center;
   color: #fff;
   text-align: center;
-  background: linear-gradient(0deg, rgba(17, 24, 39, 0.7), rgba(17, 24, 39, 0.25));
+  background: linear-gradient(0deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.2));
+}
+.category-tile:hover .cat-label {
+  background: linear-gradient(0deg, rgba(79, 70, 229, 0.8), rgba(15, 23, 42, 0.25));
 }
 
-/* Account dashboard vertical nav. */
-.account-nav .nav-link {
-  color: #374151;
-  border-radius: 0.5rem;
-  padding: 0.55rem 0.85rem;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-.account-nav .nav-link.active {
-  background: #eef2ff;
-  color: #4f46e5;
-  font-weight: 600;
-}
-
-.badge-rating {
-  background: #fff7ed;
-  color: #b45309;
-  font-weight: 600;
-}
-
+/* Wishlist heart on product cards */
 .wishlist-heart {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 2;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.95);
   border: none;
   border-radius: 50%;
   width: 34px;
@@ -180,5 +249,44 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #ef4444;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  transition: transform 0.12s ease;
+}
+.wishlist-heart:hover {
+  transform: scale(1.1);
+}
+
+/* Account dashboard nav */
+.account-nav .nav-link {
+  color: #334155;
+  border-radius: var(--sf-radius-sm);
+  padding: 0.55rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.account-nav .nav-link.active {
+  background: #eef2ff;
+  color: var(--sf-primary);
+  font-weight: 600;
+}
+
+/* Footer */
+.sf-footer {
+  background: #0f172a;
+  color: #cbd5e1;
+}
+.sf-footer a {
+  color: #cbd5e1;
+  text-decoration: none;
+}
+.sf-footer a:hover {
+  color: #fff;
+}
+.sf-footer h6 {
+  color: #fff;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }

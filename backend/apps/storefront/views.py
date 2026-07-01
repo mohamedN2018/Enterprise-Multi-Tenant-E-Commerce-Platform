@@ -36,6 +36,17 @@ _PUBLIC_PRODUCTS = Q(
 )
 
 
+def _annotate_rating(qs):
+    """Attach approved-review average + count so cards can show star ratings."""
+    from apps.reviews.models import ReviewStatus
+
+    approved = Q(reviews__status=ReviewStatus.APPROVED, reviews__is_deleted=False)
+    return qs.annotate(
+        rating_avg=Avg("reviews__rating", filter=approved),
+        rating_count=Count("reviews", filter=approved),
+    )
+
+
 def _active_store_or_404(slug: str) -> Store:
     store = Store.all_objects.filter(slug=slug, status=StoreStatus.ACTIVE, is_deleted=False).first()
     if store is None:
@@ -106,7 +117,7 @@ class StorefrontAllProductsView(BaseGenericAPIView, generics.ListAPIView):
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return Product.all_objects.none()
-        qs = (
+        qs = _annotate_rating(
             Product.all_objects.filter(_PUBLIC_PRODUCTS)
             .select_related("store")
             .prefetch_related("variants")
@@ -131,14 +142,13 @@ class StorefrontProductListView(BaseGenericAPIView, generics.ListAPIView):
         if getattr(self, "swagger_fake_view", False):
             return Product.all_objects.none()
         store = _active_store_or_404(self.kwargs["slug"])
-        return (
+        return _annotate_rating(
             Product.all_objects.filter(
                 store=store, status=ProductStatus.PUBLISHED, is_deleted=False
             )
             .select_related("store")
             .prefetch_related("variants")
-            .order_by("-created_at")
-        )
+        ).order_by("-created_at")
 
 
 @extend_schema(tags=["Storefront"])
