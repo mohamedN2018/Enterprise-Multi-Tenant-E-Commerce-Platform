@@ -28,7 +28,10 @@ export default function StoreLayout() {
           <Navbar.Collapse id="store-nav">
             <Nav className="me-auto">
               <Nav.Link as={NavLink} to="/" end>
-                Stores
+                Home
+              </Nav.Link>
+              <Nav.Link as={NavLink} to="/products">
+                Products
               </Nav.Link>
             </Nav>
             <Nav className="align-items-md-center gap-md-2">

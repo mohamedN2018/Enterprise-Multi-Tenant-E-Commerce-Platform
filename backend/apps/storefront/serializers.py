@@ -9,7 +9,7 @@ from __future__ import annotations
 from django.db.models import Sum
 from rest_framework import serializers
 
-from apps.catalog.models import Product, ProductVariant
+from apps.catalog.models import Category, Product, ProductVariant
 from apps.inventory.models import StockItem
 from apps.stores.models import Store
 
@@ -18,6 +18,16 @@ class StorefrontStoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Store
         fields = ("id", "name", "slug", "description", "logo", "banner", "currency", "country")
+        read_only_fields = fields
+
+
+class StorefrontCategorySerializer(serializers.ModelSerializer):
+    product_count = serializers.IntegerField(read_only=True)
+    store_slug = serializers.CharField(source="store.slug", read_only=True)
+
+    class Meta:
+        model = Category
+        fields = ("id", "name", "slug", "description", "product_count", "store", "store_slug")
         read_only_fields = fields
 
 

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Alert, Button, Card, Col, Form, InputGroup, Row, Spinner } from 'react-bootstrap';
+import { Alert, Col, Form, InputGroup, Row, Spinner } from 'react-bootstrap';
 import FeatherIcon from 'feather-icons-react';
 
 import { apiGet, errorMessage } from 'api/client';
+import ProductCard from 'components/ProductCard';
 import { useCart } from 'contexts/CartContext';
-import { onImgError, productImage, storeBanner } from 'utils/media';
+import { onImgError, storeBanner } from 'utils/media';
 
 export default function Store() {
   const { slug } = useParams();
@@ -74,22 +75,7 @@ export default function Store() {
         <Row className="g-4">
           {filtered.map((p) => (
             <Col key={p.id} xs={6} md={4} lg={3}>
-              <Card className="h-100 border-0 shadow-sm product-card">
-                <Link to={`/product/${p.id}`} className="text-decoration-none text-reset">
-                  <div className="media-box ratio-4x3">
-                    <img src={productImage(p)} alt={p.name} onError={onImgError(p.id)} loading="lazy" />
-                  </div>
-                  <Card.Body className="pb-2">
-                    <Card.Title className="h6 mb-1 text-truncate">{p.name}</Card.Title>
-                    <div className="price-tag">{p.price ? `${p.price} ${p.currency}` : '—'}</div>
-                  </Card.Body>
-                </Link>
-                <Card.Footer className="bg-white border-0 pt-0">
-                  <Button as={Link} to={`/product/${p.id}`} variant="outline-primary" size="sm" className="w-100">
-                    View product
-                  </Button>
-                </Card.Footer>
-              </Card>
+              <ProductCard product={p} />
             </Col>
           ))}
         </Row>

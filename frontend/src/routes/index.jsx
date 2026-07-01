@@ -9,6 +9,7 @@ import ProtectedRoute from 'components/ProtectedRoute';
 
 // Storefront (public, customer-facing)
 const Home = lazy(() => import('views/storefront/Home'));
+const ProductsPage = lazy(() => import('views/storefront/Products'));
 const StorePage = lazy(() => import('views/storefront/Store'));
 const ProductPage = lazy(() => import('views/storefront/Product'));
 const CartPage = lazy(() => import('views/storefront/Cart'));
@@ -34,6 +35,7 @@ const router = createBrowserRouter(
       element: <StoreLayout />,
       children: [
         { index: true, element: <Home /> },
+        { path: 'products', element: <ProductsPage /> },
         { path: 'store/:slug', element: <StorePage /> },
         { path: 'product/:id', element: <ProductPage /> },
         { path: 'cart', element: <CartPage /> },

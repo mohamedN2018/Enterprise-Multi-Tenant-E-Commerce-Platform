@@ -14,12 +14,58 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-DEMO_PRODUCTS = [
-    ("Wireless Headphones", "79.99", "Over-ear Bluetooth headphones with ANC."),
-    ("Mechanical Keyboard", "119.00", "Hot-swappable RGB mechanical keyboard."),
-    ("USB-C Cable", "9.99", "1m braided USB-C to USB-C charging cable."),
-    ("4K Monitor", "329.00", "27-inch 4K IPS monitor, 60Hz."),
-    ("Laptop Stand", "39.50", "Aluminium adjustable laptop stand."),
+# Rich demo catalog: category -> [(name, price, description), ...].
+CATALOG = {
+    "Electronics": [
+        (
+            "Wireless Headphones",
+            "79.99",
+            "Over-ear Bluetooth headphones with active noise cancellation.",
+        ),
+        ("4K Monitor", "329.00", "27-inch 4K IPS monitor with slim bezels."),
+        ("Mechanical Keyboard", "119.00", "Hot-swappable RGB mechanical keyboard."),
+        ("USB-C Cable", "9.99", "1m braided USB-C to USB-C charging cable."),
+        ("Bluetooth Speaker", "59.00", "Portable waterproof speaker with 12-hour battery."),
+        ("Gaming Mouse", "45.00", "16000 DPI ergonomic gaming mouse."),
+        ("1080p Webcam", "49.00", "Full-HD webcam with dual microphones."),
+    ],
+    "Home & Kitchen": [
+        ("Laptop Stand", "39.50", "Aluminium adjustable laptop stand."),
+        ("LED Desk Lamp", "34.00", "Dimmable LED desk lamp with a USB charging port."),
+        ("Coffee Maker", "89.00", "12-cup programmable drip coffee maker."),
+        ("Air Fryer 5L", "129.00", "Digital air fryer with a 5-litre capacity."),
+        ("Ceramic Mug Set", "24.00", "Set of four stoneware coffee mugs."),
+    ],
+    "Sports & Outdoors": [
+        ("Yoga Mat", "27.00", "Non-slip 6mm yoga mat with a carry strap."),
+        ("Adjustable Dumbbell Set", "119.00", "Adjustable dumbbells from 2 to 24 kg."),
+        ("Insulated Water Bottle", "22.00", "1L stainless-steel vacuum bottle."),
+        ("Resistance Bands", "18.00", "Set of five resistance loop bands."),
+    ],
+    "Accessories": [
+        ("Power Bank 20000mAh", "35.00", "Fast-charge dual-port power bank."),
+        ("Smart Watch", "149.00", "Fitness smartwatch with a heart-rate sensor."),
+        ("Laptop Backpack", "54.00", "Water-resistant 15-inch laptop backpack."),
+        ("Clear Phone Case", "14.00", "Shockproof transparent phone case."),
+    ],
+    "Fashion": [
+        ("Cotton T-Shirt", "19.99", "Organic cotton crew-neck t-shirt."),
+        ("Denim Jacket", "69.00", "Classic washed denim jacket."),
+        ("Running Shoes", "94.00", "Lightweight breathable running shoes."),
+        ("Leather Wallet", "39.00", "Slim RFID-blocking leather wallet."),
+        ("Polarized Sunglasses", "29.00", "UV400 polarized sunglasses."),
+    ],
+    "Beauty & Care": [
+        ("Vitamin C Serum", "25.00", "Brightening facial serum, 30 ml."),
+        ("Lip Balm Trio", "12.00", "Pack of three nourishing lip balms."),
+        ("Sonic Toothbrush", "49.00", "Rechargeable sonic electric toothbrush."),
+    ],
+}
+
+# Which categories live in which store (marketplace feel: two shops).
+STORES = [
+    ("Demo Store", ["Electronics", "Home & Kitchen", "Sports & Outdoors", "Accessories"]),
+    ("Style Studio", ["Fashion", "Beauty & Care"]),
 ]
 
 
@@ -34,48 +80,33 @@ class Command(BaseCommand):
             raise CommandError("Refusing to seed with DEBUG=False (pass --force to override).")
 
         from apps.accounts.models import User
-        from apps.catalog.models import Product, ProductStatus
-        from apps.catalog.services import CatalogService
-        from apps.inventory.models import Warehouse
-        from apps.inventory.services import InventoryService
+        from apps.catalog.models import Category, Product
         from apps.stores.models import Store, StoreStatus
         from apps.stores.services import StoreService
 
         owner = self._user(User, "owner@demo.com")
         buyer = self._user(User, "buyer@demo.com")
 
-        store = Store.all_objects.filter(name="Demo Store").first()
-        if store is None:
-            store = StoreService().create_store(owner=owner, data={"name": "Demo Store"})
-            warehouse, _ = Warehouse.objects.get_or_create(
-                store=store, code="MAIN", defaults={"name": "Main Warehouse"}
-            )
-            catalog, inventory = CatalogService(), InventoryService()
-            for name, price, description in DEMO_PRODUCTS:
-                product = catalog.create_product(
-                    store=store,
-                    data={
-                        "name": name,
-                        "status": ProductStatus.PUBLISHED,
-                        "description": description,
-                    },
-                )
-                variant = catalog.create_variant(
-                    store=store,
-                    product=product,
-                    data={"sku": name.replace(" ", "-").upper(), "price": Decimal(price)},
-                )
-                inventory.receive(store=store, variant=variant, warehouse=warehouse, quantity=50)
+        demo_store = None
+        for store_name, category_names in STORES:
+            store = Store.all_objects.filter(name=store_name).first()
+            if store is None:
+                store = StoreService().create_store(owner=owner, data={"name": store_name})
+            self._seed_catalog(store=store, category_names=category_names)
+            # Publish the store so it appears in the public storefront.
+            if store.status != StoreStatus.ACTIVE:
+                store.status = StoreStatus.ACTIVE
+                store.save(update_fields=["status", "updated_at"])
+            if store_name == "Demo Store":
+                demo_store = store
 
-        # Publish the store so it appears in the public storefront.
-        if store.status != StoreStatus.ACTIVE:
-            store.status = StoreStatus.ACTIVE
-            store.save(update_fields=["status", "updated_at"])
-
-        orders = self._seed_orders(store=store, buyer=buyer)
+        orders = self._seed_orders(store=demo_store, buyer=buyer)
 
         self.stdout.write(self.style.SUCCESS("Demo data ready."))
-        self.stdout.write(f"  Store:        Demo Store  (X-Store-Id: {store.id})")
+        self.stdout.write(
+            f"  Stores:       {Store.all_objects.filter(status=StoreStatus.ACTIVE).count()} active"
+        )
+        self.stdout.write(f"  Categories:   {Category.all_objects.count()} total")
         self.stdout.write(f"  Products:     {Product.all_objects.count()} total")
         self.stdout.write(
             f"  Orders:       {orders['total']} total "
@@ -85,6 +116,49 @@ class Command(BaseCommand):
         self.stdout.write("  Admin:        admin@example.com")
         self.stdout.write("  Store owner:  owner@demo.com / Demo12345!")
         self.stdout.write("  Buyer:        buyer@demo.com / Demo12345!")
+
+    def _seed_catalog(self, *, store, category_names) -> None:
+        """Create categories + published, stocked products for a store (idempotent)."""
+        from apps.catalog.models import Category, Product, ProductStatus
+        from apps.catalog.services import CatalogService
+        from apps.inventory.models import Warehouse
+        from apps.inventory.services import InventoryService
+
+        warehouse, _ = Warehouse.objects.get_or_create(
+            store=store, code="MAIN", defaults={"name": "Main Warehouse"}
+        )
+        catalog, inventory = CatalogService(), InventoryService()
+        for cat_name in category_names:
+            category = Category.all_objects.filter(
+                store=store, name=cat_name, is_deleted=False
+            ).first()
+            if category is None:
+                category = catalog.create_category(store=store, data={"name": cat_name})
+            for name, price, description in CATALOG[cat_name]:
+                product = Product.all_objects.filter(
+                    store=store, name=name, is_deleted=False
+                ).first()
+                if product is None:
+                    product = catalog.create_product(
+                        store=store,
+                        data={
+                            "name": name,
+                            "status": ProductStatus.PUBLISHED,
+                            "description": description,
+                            "category": category,
+                        },
+                    )
+                    variant = catalog.create_variant(
+                        store=store,
+                        product=product,
+                        data={"sku": name.replace(" ", "-").upper(), "price": Decimal(price)},
+                    )
+                    inventory.receive(
+                        store=store, variant=variant, warehouse=warehouse, quantity=50
+                    )
+                elif product.category_id is None:
+                    product.category = category
+                    product.save(update_fields=["category", "updated_at"])
 
     def _seed_orders(self, *, store, buyer) -> dict:
         """Place demo orders so the dashboard/analytics have real data.

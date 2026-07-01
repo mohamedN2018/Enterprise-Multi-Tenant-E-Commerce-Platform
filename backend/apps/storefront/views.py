@@ -6,22 +6,32 @@ with explicit ``is_deleted=False`` filters instead of the tenant-scoped default.
 
 from __future__ import annotations
 
+from django.db.models import Count, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from apps.catalog.models import Product, ProductStatus
+from apps.catalog.models import Category, Product, ProductStatus
 from apps.core.exceptions import NotFoundError
 from apps.core.mixins import BaseAPIView, BaseGenericAPIView
 from apps.core.responses import APIResponse
 from apps.stores.models import Store, StoreStatus
 
 from .serializers import (
+    StorefrontCategorySerializer,
     StorefrontProductDetailSerializer,
     StorefrontProductSerializer,
     StorefrontStoreSerializer,
+)
+
+# Products that are visible in the public storefront.
+_PUBLIC_PRODUCTS = Q(
+    status=ProductStatus.PUBLISHED,
+    is_deleted=False,
+    store__status=StoreStatus.ACTIVE,
+    store__is_deleted=False,
 )
 
 
@@ -51,6 +61,64 @@ class StorefrontStoreDetailView(BaseAPIView):
     def get(self, request: Request, slug: str) -> Response:
         store = _active_store_or_404(slug)
         return APIResponse.success(StorefrontStoreSerializer(store).data)
+
+
+@extend_schema(tags=["Storefront"])
+class StorefrontCategoryListView(BaseGenericAPIView, generics.ListAPIView):
+    """Active categories (across active stores) that have published products."""
+
+    permission_classes = [AllowAny]
+    serializer_class = StorefrontCategorySerializer
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Category.all_objects.none()
+        return (
+            Category.all_objects.filter(
+                is_deleted=False,
+                is_active=True,
+                store__status=StoreStatus.ACTIVE,
+                store__is_deleted=False,
+            )
+            .select_related("store")
+            .annotate(
+                product_count=Count(
+                    "products",
+                    filter=Q(products__status=ProductStatus.PUBLISHED, products__is_deleted=False),
+                )
+            )
+            .filter(product_count__gt=0)
+            .order_by("name")
+        )
+
+
+@extend_schema(tags=["Storefront"])
+class StorefrontAllProductsView(BaseGenericAPIView, generics.ListAPIView):
+    """All published products across the marketplace.
+
+    Optional filters: ``?category=<id>``, ``?store=<slug>``, ``?search=<q>``.
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = StorefrontProductSerializer
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Product.all_objects.none()
+        qs = (
+            Product.all_objects.filter(_PUBLIC_PRODUCTS)
+            .select_related("store")
+            .prefetch_related("variants")
+        )
+        params = self.request.query_params
+        if params.get("category"):
+            qs = qs.filter(category_id=params["category"])
+        if params.get("store"):
+            qs = qs.filter(store__slug=params["store"])
+        if params.get("search"):
+            term = params["search"]
+            qs = qs.filter(Q(name__icontains=term) | Q(description__icontains=term))
+        return qs.order_by("-created_at")
 
 
 @extend_schema(tags=["Storefront"])
