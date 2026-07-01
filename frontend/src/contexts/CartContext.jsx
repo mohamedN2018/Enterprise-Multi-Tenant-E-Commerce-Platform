@@ -85,17 +85,46 @@ export function CartProvider({ children }) {
     [headers, refreshCart]
   );
 
-  const checkout = useCallback(async () => {
-    const res = await api.post('/cart/checkout/', {}, { headers });
+  const applyCoupon = useCallback(
+    async (code) => {
+      await api.post('/cart/coupon/', { code }, { headers });
+      await refreshCart();
+    },
+    [headers, refreshCart]
+  );
+
+  const removeCoupon = useCallback(async () => {
+    await api.delete('/cart/coupon/', { headers });
     await refreshCart();
-    return res.data; // the created order
   }, [headers, refreshCart]);
+
+  const checkout = useCallback(
+    async (options = {}) => {
+      const res = await api.post('/cart/checkout/', options, { headers });
+      await refreshCart();
+      return res.data; // the created order
+    },
+    [headers, refreshCart]
+  );
 
   const count = cart?.item_count || 0;
 
   const value = useMemo(
-    () => ({ shopStore, setShopStore, cart, count, loading, refreshCart, addItem, updateItem, removeItem, checkout }),
-    [shopStore, setShopStore, cart, count, loading, refreshCart, addItem, updateItem, removeItem, checkout]
+    () => ({
+      shopStore,
+      setShopStore,
+      cart,
+      count,
+      loading,
+      refreshCart,
+      addItem,
+      updateItem,
+      removeItem,
+      applyCoupon,
+      removeCoupon,
+      checkout
+    }),
+    [shopStore, setShopStore, cart, count, loading, refreshCart, addItem, updateItem, removeItem, applyCoupon, removeCoupon, checkout]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

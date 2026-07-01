@@ -11,7 +11,23 @@ from rest_framework import serializers
 
 from apps.catalog.models import Category, Product, ProductVariant
 from apps.inventory.models import StockItem
+from apps.reviews.models import Review
 from apps.stores.models import Store
+
+
+class StorefrontReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = (
+            "id",
+            "rating",
+            "title",
+            "body",
+            "is_verified_purchase",
+            "helpful_count",
+            "created_at",
+        )
+        read_only_fields = fields
 
 
 class StorefrontStoreSerializer(serializers.ModelSerializer):

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, Button, Card, Spinner, Table } from 'react-bootstrap';
+import { Alert, Button, Card, Form, InputGroup, Spinner, Table } from 'react-bootstrap';
 import FeatherIcon from 'feather-icons-react';
 
 import { errorMessage } from 'api/client';
@@ -10,11 +10,28 @@ import { onImgError, productImage } from 'utils/media';
 
 export default function Cart() {
   const { isAuthenticated } = useAuth();
-  const { cart, shopStore, loading, updateItem, removeItem } = useCart();
+  const { cart, shopStore, loading, updateItem, removeItem, applyCoupon, removeCoupon } = useCart();
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState('');
+  const [coupon, setCoupon] = useState('');
+  const [couponBusy, setCouponBusy] = useState(false);
 
   const currency = shopStore?.currency || '';
+
+  const onCoupon = async (e) => {
+    e.preventDefault();
+    if (!coupon.trim()) return;
+    setCouponBusy(true);
+    setError('');
+    try {
+      await applyCoupon(coupon.trim());
+      setCoupon('');
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setCouponBusy(false);
+    }
+  };
 
   const act = async (fn) => {
     setError('');
@@ -131,16 +148,39 @@ export default function Cart() {
               </tbody>
             </Table>
 
-            <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-              <Button as={Link} to="/" variant="link" className="text-decoration-none">
-                <FeatherIcon icon="arrow-left" size={16} /> Continue shopping
-              </Button>
-              <div className="text-end">
-                <div className="text-muted small">
+            <div className="row mt-3 pt-3 border-top g-3">
+              <div className="col-md-6">
+                {cart.coupon_code ? (
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="badge bg-success">Coupon: {cart.coupon_code}</span>
+                    <Button size="sm" variant="link" className="text-danger p-0" onClick={removeCoupon}>
+                      remove
+                    </Button>
+                  </div>
+                ) : (
+                  <Form onSubmit={onCoupon} style={{ maxWidth: 320 }}>
+                    <InputGroup size="sm">
+                      <Form.Control placeholder="Coupon code" value={coupon} onChange={(e) => setCoupon(e.target.value)} />
+                      <Button type="submit" variant="outline-primary" disabled={couponBusy}>
+                        {couponBusy ? <Spinner animation="border" size="sm" /> : 'Apply'}
+                      </Button>
+                    </InputGroup>
+                  </Form>
+                )}
+                <Button as={Link} to="/" variant="link" className="text-decoration-none ps-0 mt-2">
+                  <FeatherIcon icon="arrow-left" size={16} /> Continue shopping
+                </Button>
+              </div>
+              <div className="col-md-6 text-md-end">
+                <div className="text-muted">
                   Subtotal: {cart.subtotal} {currency}
-                  {Number(cart.discount) > 0 && ` · Discount: −${cart.discount} ${currency}`}
                 </div>
-                <div className="h5 mb-2">
+                {Number(cart.discount) > 0 && (
+                  <div className="text-success">
+                    Discount: −{cart.discount} {currency}
+                  </div>
+                )}
+                <div className="h5 my-2">
                   Total: {cart.total} {currency}
                 </div>
                 <Button as={Link} to="/checkout" variant="primary">

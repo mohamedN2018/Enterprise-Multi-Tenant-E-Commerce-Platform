@@ -3,10 +3,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Alert, Badge, Button, Card, Col, Form, Row, Spinner } from 'react-bootstrap';
 import FeatherIcon from 'feather-icons-react';
 
-import { apiGet, errorMessage } from 'api/client';
+import api, { apiGet, errorMessage } from 'api/client';
 import { useAuth } from 'contexts/AuthContext';
 import { useCart } from 'contexts/CartContext';
 import { onImgError, productImage } from 'utils/media';
+import ReviewsSection from 'components/ReviewsSection';
 
 export default function Product() {
   const { id } = useParams();
@@ -53,6 +54,21 @@ export default function Product() {
       setError(errorMessage(e));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const onWishlist = async () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: `/product/${id}` } });
+      return;
+    }
+    setError('');
+    setMsg('');
+    try {
+      await api.post('/wishlist/', { variant_id: variantId }, { headers: { 'X-Store-Id': product.store } });
+      setMsg('Saved to your wishlist.');
+    } catch (e) {
+      setError(errorMessage(e));
     }
   };
 
@@ -141,10 +157,15 @@ export default function Product() {
                 </>
               )}
             </Button>
+            <Button variant="outline-danger" size="lg" onClick={onWishlist} title="Add to wishlist">
+              <FeatherIcon icon="heart" size={18} />
+            </Button>
           </div>
           {!isAuthenticated && <div className="small text-muted">You&apos;ll be asked to sign in to add items.</div>}
         </Col>
       </Row>
+
+      <ReviewsSection productId={id} storeId={product.store} />
     </>
   );
 }

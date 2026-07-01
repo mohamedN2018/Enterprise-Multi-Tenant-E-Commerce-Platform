@@ -17,6 +17,11 @@ urlpatterns = [
     path("categories/", views.StorefrontCategoryListView.as_view(), name="categories"),
     path("products/", views.StorefrontAllProductsView.as_view(), name="products"),
     path(
+        "products/<uuid:product_id>/reviews/",
+        views.StorefrontProductReviewsView.as_view(),
+        name="product-reviews",
+    ),
+    path(
         "products/<uuid:product_id>/",
         views.StorefrontProductDetailView.as_view(),
         name="product-detail",

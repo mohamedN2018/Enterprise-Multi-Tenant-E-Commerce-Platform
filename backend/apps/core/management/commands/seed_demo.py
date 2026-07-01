@@ -68,6 +68,47 @@ STORES = [
     ("Style Studio", ["Fashion", "Beauty & Care"]),
 ]
 
+# A few approved reviews (from distinct reviewers — one review per product/user)
+# so product pages show real ratings.  (product, reviewer_email, rating, title, body)
+REVIEWS = [
+    (
+        "Wireless Headphones",
+        "alice@demo.com",
+        5,
+        "Amazing sound",
+        "Fantastic noise cancellation and battery life.",
+    ),
+    (
+        "Wireless Headphones",
+        "bob@demo.com",
+        4,
+        "Very comfortable",
+        "Great for long calls, a little bass-heavy.",
+    ),
+    (
+        "4K Monitor",
+        "alice@demo.com",
+        5,
+        "Crisp and bright",
+        "Colours are gorgeous — perfect for design work.",
+    ),
+    (
+        "Mechanical Keyboard",
+        "carol@demo.com",
+        4,
+        "Satisfying typing",
+        "Love the switches, slightly loud for the office.",
+    ),
+    (
+        "Laptop Stand",
+        "bob@demo.com",
+        5,
+        "Rock solid",
+        "Sturdy aluminium build, great posture helper.",
+    ),
+    ("Air Fryer 5L", "carol@demo.com", 4, "Cooks evenly", "Big capacity and easy to clean."),
+]
+
 
 class Command(BaseCommand):
     help = "Seed a demo store with published, stocked products (development only)."
@@ -93,6 +134,7 @@ class Command(BaseCommand):
             if store is None:
                 store = StoreService().create_store(owner=owner, data={"name": store_name})
             self._seed_catalog(store=store, category_names=category_names)
+            self._seed_shipping(store=store)
             # Publish the store so it appears in the public storefront.
             if store.status != StoreStatus.ACTIVE:
                 store.status = StoreStatus.ACTIVE
@@ -101,6 +143,7 @@ class Command(BaseCommand):
                 demo_store = store
 
         orders = self._seed_orders(store=demo_store, buyer=buyer)
+        self._seed_reviews(store=demo_store, buyer=buyer)
 
         self.stdout.write(self.style.SUCCESS("Demo data ready."))
         self.stdout.write(
@@ -116,6 +159,55 @@ class Command(BaseCommand):
         self.stdout.write("  Admin:        admin@example.com")
         self.stdout.write("  Store owner:  owner@demo.com / Demo12345!")
         self.stdout.write("  Buyer:        buyer@demo.com / Demo12345!")
+
+    def _seed_shipping(self, *, store) -> None:
+        """A default shipping zone + two methods (idempotent)."""
+        from apps.shipping.models import ShippingMethod, ShippingZone
+        from apps.shipping.services import ShippingService
+
+        if ShippingMethod.all_objects.filter(store=store, is_deleted=False).exists():
+            return
+        service = ShippingService()
+        zone = ShippingZone.all_objects.filter(
+            store=store, is_default=True, is_deleted=False
+        ).first()
+        if zone is None:
+            zone = service.create_zone(
+                store=store, data={"name": "Worldwide", "is_default": True, "countries": []}
+            )
+        service.add_method(
+            store=store,
+            zone=zone,
+            data={"name": "Standard", "price": Decimal("5.00"), "free_over": Decimal("100.00")},
+        )
+        service.add_method(
+            store=store, zone=zone, data={"name": "Express", "price": Decimal("12.00")}
+        )
+
+    def _seed_reviews(self, *, store, buyer) -> None:
+        """Approved demo reviews so product pages show ratings (idempotent)."""
+        from apps.accounts.models import User
+        from apps.catalog.models import Product
+        from apps.reviews.models import Review, ReviewStatus
+
+        for name, reviewer_email, rating, title, body in REVIEWS:
+            product = Product.all_objects.filter(store=store, name=name, is_deleted=False).first()
+            if product is None:
+                continue
+            reviewer = self._user(User, reviewer_email)
+            # One review per (store, product, user) — respect the unique constraint.
+            if Review.all_objects.filter(store=store, product=product, user=reviewer).exists():
+                continue
+            Review.objects.create(
+                store=store,
+                product=product,
+                user=reviewer,
+                rating=rating,
+                title=title,
+                body=body,
+                status=ReviewStatus.APPROVED,
+                is_verified_purchase=True,
+            )
 
     def _seed_catalog(self, *, store, category_names) -> None:
         """Create categories + published, stocked products for a store (idempotent)."""

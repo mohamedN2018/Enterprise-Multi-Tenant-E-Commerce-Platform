@@ -6,7 +6,7 @@ with explicit ``is_deleted=False`` filters instead of the tenant-scoped default.
 
 from __future__ import annotations
 
-from django.db.models import Count, Q
+from django.db.models import Avg, Count, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
@@ -23,6 +23,7 @@ from .serializers import (
     StorefrontCategorySerializer,
     StorefrontProductDetailSerializer,
     StorefrontProductSerializer,
+    StorefrontReviewSerializer,
     StorefrontStoreSerializer,
 )
 
@@ -137,6 +138,32 @@ class StorefrontProductListView(BaseGenericAPIView, generics.ListAPIView):
             .select_related("store")
             .prefetch_related("variants")
             .order_by("-created_at")
+        )
+
+
+@extend_schema(tags=["Storefront"])
+class StorefrontProductReviewsView(BaseAPIView):
+    """Public approved reviews + rating summary for a product (no auth)."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request: Request, product_id) -> Response:
+        from apps.reviews.models import Review, ReviewStatus
+
+        qs = Review.all_objects.filter(
+            product_id=product_id, status=ReviewStatus.APPROVED, is_deleted=False
+        ).order_by("-created_at")
+        agg = qs.aggregate(average=Avg("rating"), count=Count("id"))
+        distribution = {str(i): 0 for i in range(1, 6)}
+        for row in qs.values("rating").annotate(c=Count("id")):
+            distribution[str(row["rating"])] = row["c"]
+        summary = {
+            "average_rating": round(float(agg["average"] or 0), 2),
+            "count": agg["count"] or 0,
+            "distribution": distribution,
+        }
+        return APIResponse.success(
+            {"summary": summary, "results": StorefrontReviewSerializer(qs[:50], many=True).data}
         )
 
 
