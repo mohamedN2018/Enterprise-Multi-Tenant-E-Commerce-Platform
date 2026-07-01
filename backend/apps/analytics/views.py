@@ -36,3 +36,12 @@ class AnalyticsSummaryView(StoreContextMixin, BaseAPIView):
             end=query.validated_data.get("end"),
         )
         return APIResponse.success(summary)
+
+
+class AnalyticsDashboardView(StoreContextMixin, BaseAPIView):
+    """Rich store snapshot (KPIs, recent orders, top products, alerts)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request) -> Response:
+        return APIResponse.success(AnalyticsService().dashboard(store=self.store))
