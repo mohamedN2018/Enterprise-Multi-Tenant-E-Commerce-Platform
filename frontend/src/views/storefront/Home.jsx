@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, Card, Col, Row, Spinner } from 'react-bootstrap';
+import { Alert, Button, Card, Col, Row, Spinner } from 'react-bootstrap';
 import FeatherIcon from 'feather-icons-react';
 
 import { apiGet, errorMessage } from 'api/client';
+import { heroImage, onImgError, storeBanner, storeLogo } from 'utils/media';
 
 export default function Home() {
   const [stores, setStores] = useState([]);
@@ -19,9 +20,21 @@ export default function Home() {
 
   return (
     <>
-      <div className="text-center py-4 mb-3">
-        <h2 className="fw-bold mb-2">Shop the marketplace</h2>
-        <p className="text-muted mb-0">Browse independent stores and their catalogs.</p>
+      <div className="sf-hero mb-5" style={{ backgroundImage: `url(${heroImage()})` }}>
+        <div className="p-4 p-md-5">
+          <h1 className="fw-bold display-6 mb-2">Everything you need, from independent stores.</h1>
+          <p className="lead mb-4 opacity-75" style={{ maxWidth: 560 }}>
+            Discover curated shops on one marketplace. Browse catalogs, add to cart and checkout in seconds.
+          </p>
+          <Button href="#stores" variant="light" size="lg" className="fw-semibold">
+            Start shopping <FeatherIcon icon="arrow-right" size={18} />
+          </Button>
+        </div>
+      </div>
+
+      <div id="stores" className="d-flex align-items-center justify-content-between mb-3">
+        <h4 className="fw-bold mb-0">Browse stores</h4>
+        <span className="text-muted small">{stores.length} store(s)</span>
       </div>
 
       {error && <Alert variant="danger">{error}</Alert>}
@@ -36,19 +49,28 @@ export default function Home() {
         <Row className="g-4">
           {stores.map((s) => (
             <Col key={s.id} sm={6} lg={4}>
-              <Card as={Link} to={`/store/${s.slug}`} className="h-100 text-decoration-none text-reset shadow-sm border-0 store-card">
-                <div className="d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary" style={{ height: 120 }}>
-                  <FeatherIcon icon="shopping-bag" size={44} />
+              <Card as={Link} to={`/store/${s.slug}`} className="h-100 text-decoration-none text-reset border-0 shadow-sm store-card">
+                <div className="media-box ratio-16x6">
+                  <img src={storeBanner(s)} alt={s.name} onError={onImgError(s.slug)} loading="lazy" />
                 </div>
-                <Card.Body>
+                <Card.Body className="pt-4 position-relative">
+                  <img
+                    src={storeLogo(s)}
+                    alt=""
+                    onError={onImgError(`${s.slug}-l`)}
+                    className="store-logo position-absolute"
+                    style={{ width: 56, height: 56, top: -28, left: 20 }}
+                  />
                   <Card.Title className="h6 mb-1">{s.name}</Card.Title>
-                  <Card.Text className="text-muted small mb-2" style={{ minHeight: 40 }}>
-                    {s.description || 'Explore this store.'}
+                  <Card.Text className="text-muted small line-clamp-2" style={{ minHeight: 40 }}>
+                    {s.description || 'Explore this store and its products.'}
                   </Card.Text>
-                  <span className="badge bg-light text-dark border">{s.currency}</span>
-                  <span className="text-primary small float-end">
-                    Visit <FeatherIcon icon="arrow-right" size={14} />
-                  </span>
+                  <div className="d-flex align-items-center justify-content-between">
+                    <span className="badge bg-light text-dark border">{s.currency}</span>
+                    <span className="text-primary small fw-semibold">
+                      Visit <FeatherIcon icon="arrow-right" size={14} />
+                    </span>
+                  </div>
                 </Card.Body>
               </Card>
             </Col>

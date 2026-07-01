@@ -14,6 +14,7 @@ const ProductPage = lazy(() => import('views/storefront/Product'));
 const CartPage = lazy(() => import('views/storefront/Cart'));
 const CheckoutPage = lazy(() => import('views/storefront/Checkout'));
 const AccountPage = lazy(() => import('views/storefront/Account'));
+const NotFound = lazy(() => import('views/storefront/NotFound'));
 
 // Admin console (staff)
 const Overview = lazy(() => import('views/dashboard/Overview'));
@@ -37,7 +38,8 @@ const router = createBrowserRouter(
         { path: 'product/:id', element: <ProductPage /> },
         { path: 'cart', element: <CartPage /> },
         { path: 'checkout', element: <CheckoutPage /> },
-        { path: 'account', element: <AccountPage /> }
+        { path: 'account', element: <AccountPage /> },
+        { path: '*', element: <NotFound /> }
       ]
     },
     {

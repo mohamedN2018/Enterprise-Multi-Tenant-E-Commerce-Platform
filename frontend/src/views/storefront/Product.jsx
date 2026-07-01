@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Alert, Button, Card, Col, Form, Row, Spinner } from 'react-bootstrap';
+import { Alert, Badge, Button, Card, Col, Form, Row, Spinner } from 'react-bootstrap';
 import FeatherIcon from 'feather-icons-react';
 
 import { apiGet, errorMessage } from 'api/client';
 import { useAuth } from 'contexts/AuthContext';
 import { useCart } from 'contexts/CartContext';
+import { onImgError, productImage } from 'utils/media';
 
 export default function Product() {
   const { id } = useParams();
@@ -66,6 +67,7 @@ export default function Product() {
   if (!product) return <Alert variant="warning">Product not found.</Alert>;
 
   const outOfStock = selected && selected.in_stock === false;
+  const thumbs = [productImage(product, 300, 220), productImage({ id: `${product.id}-2` }, 300, 220), productImage({ id: `${product.id}-3` }, 300, 220)];
 
   return (
     <>
@@ -75,25 +77,43 @@ export default function Product() {
         </Link>
       )}
       <Row className="g-4 mt-1">
-        <Col md={5}>
+        <Col md={6}>
           <Card className="border-0 shadow-sm">
-            <div className="d-flex align-items-center justify-content-center bg-light text-secondary" style={{ height: 300 }}>
-              <FeatherIcon icon="package" size={80} />
+            <div className="media-box ratio-4x3">
+              <img src={productImage(product, 800, 600)} alt={product.name} onError={onImgError(product.id)} />
             </div>
           </Card>
+          <Row className="g-2 mt-1">
+            {thumbs.map((t, i) => (
+              <Col xs={4} key={i}>
+                <div className="media-box ratio-4x3 rounded shadow-sm">
+                  <img src={t} alt="" onError={onImgError(`${product.id}-${i}`)} loading="lazy" />
+                </div>
+              </Col>
+            ))}
+          </Row>
         </Col>
-        <Col md={7}>
+        <Col md={6}>
           <h3 className="fw-bold mb-2">{product.name}</h3>
-          <div className="h4 text-primary mb-3">
+          <div className="h4 price-tag mb-2">
             {selected ? `${selected.price} ${product.currency}` : product.price ? `${product.price} ${product.currency}` : '—'}
           </div>
+          {selected && (
+            <Badge bg={selected.in_stock === false ? 'danger' : 'success'} className="mb-3">
+              {selected.in_stock === false ? 'Out of stock' : 'In stock'}
+            </Badge>
+          )}
           {product.description && <p className="text-muted">{product.description}</p>}
 
-          {msg && <Alert variant="success">{msg} <Link to="/cart">View cart →</Link></Alert>}
+          {msg && (
+            <Alert variant="success">
+              {msg} <Link to="/cart">View cart →</Link>
+            </Alert>
+          )}
           {error && <Alert variant="danger">{error}</Alert>}
 
           {variants.length > 1 && (
-            <Form.Group className="mb-3" style={{ maxWidth: 320 }}>
+            <Form.Group className="mb-3" style={{ maxWidth: 340 }}>
               <Form.Label>Option</Form.Label>
               <Form.Select value={variantId} onChange={(e) => setVariantId(e.target.value)}>
                 {variants.map((v) => (
@@ -111,10 +131,12 @@ export default function Product() {
               <Form.Label>Qty</Form.Label>
               <Form.Control type="number" min={1} value={qty} onChange={(e) => setQty(e.target.value)} />
             </Form.Group>
-            <Button variant="primary" onClick={onAdd} disabled={busy || !variantId || outOfStock}>
-              {busy ? <Spinner animation="border" size="sm" /> : (
+            <Button variant="primary" size="lg" onClick={onAdd} disabled={busy || !variantId || outOfStock}>
+              {busy ? (
+                <Spinner animation="border" size="sm" />
+              ) : (
                 <>
-                  <FeatherIcon icon="shopping-cart" size={16} className="me-1" />
+                  <FeatherIcon icon="shopping-cart" size={18} className="me-1" />
                   {outOfStock ? 'Out of stock' : 'Add to cart'}
                 </>
               )}

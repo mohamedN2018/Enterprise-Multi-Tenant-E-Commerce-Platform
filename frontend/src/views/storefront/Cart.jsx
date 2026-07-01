@@ -6,6 +6,7 @@ import FeatherIcon from 'feather-icons-react';
 import { errorMessage } from 'api/client';
 import { useAuth } from 'contexts/AuthContext';
 import { useCart } from 'contexts/CartContext';
+import { onImgError, productImage } from 'utils/media';
 
 export default function Cart() {
   const { isAuthenticated } = useAuth();
@@ -66,8 +67,18 @@ export default function Cart() {
                 {items.map((it) => (
                   <tr key={it.id}>
                     <td>
-                      <div className="fw-semibold">{it.product_name}</div>
-                      <div className="small text-muted">{it.sku}</div>
+                      <div className="d-flex align-items-center gap-3">
+                        <img
+                          src={productImage({ id: it.sku, slug: it.sku }, 120, 120)}
+                          alt=""
+                          className="thumb"
+                          onError={onImgError(it.sku)}
+                        />
+                        <div>
+                          <div className="fw-semibold">{it.product_name}</div>
+                          <div className="small text-muted">{it.sku}</div>
+                        </div>
+                      </div>
                     </td>
                     <td>
                       {it.unit_price} {currency}

@@ -11,6 +11,7 @@ import reportWebVitals from './reportWebVitals';
 
 // style + assets
 import './index.scss';
+import './storefront.css';
 
 // -----------------------|| REACT DOM RENDER  ||-----------------------//
 
