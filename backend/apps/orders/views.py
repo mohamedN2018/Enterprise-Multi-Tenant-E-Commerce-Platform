@@ -26,7 +26,7 @@ from apps.orders.serializers import (
 )
 from apps.orders.services import CartService, CheckoutService
 from apps.promotions.serializers import ApplyCouponSerializer
-from apps.stores.context import RequireStoreMixin
+from apps.stores.context import RequireStoreMixin, StoreContextMixin
 
 
 @extend_schema(tags=["Cart"])
@@ -184,4 +184,54 @@ class OrderCancelView(OrderDetailView):
     def post(self, request: Request, order_id) -> Response:
         order = self._get_order(request, order_id)
         order = CheckoutService().cancel_order(order=order)
+        return APIResponse.success(OrderSerializer(order).data, message="Order cancelled.")
+
+
+# --- Staff (store-scoped management) ---------------------------------------
+@extend_schema(tags=["Orders"])
+class OrderManageListView(StoreContextMixin, BaseGenericAPIView, generics.ListAPIView):
+    """All orders for the current store (staff). Buyers use ``OrderListView``."""
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = OrderSerializer
+    filterset_fields = ("status",)
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Order.objects.none()
+        return Order.objects.filter(store=self.store).prefetch_related("items")
+
+
+@extend_schema(tags=["Orders"])
+class OrderManageDetailView(StoreContextMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def _get_order(self, order_id) -> Order:
+        order = (
+            Order.objects.filter(id=order_id, store=self.store).prefetch_related("items").first()
+        )
+        if order is None:
+            raise NotFoundError("Order not found.")
+        return order
+
+    @extend_schema(responses=OrderSerializer)
+    def get(self, request: Request, order_id) -> Response:
+        return APIResponse.success(OrderSerializer(self._get_order(order_id)).data)
+
+
+@extend_schema(tags=["Orders"])
+class OrderManageConfirmView(OrderManageDetailView):
+    @extend_schema(request=None, responses=OrderSerializer)
+    def post(self, request: Request, order_id) -> Response:
+        self.require_write()
+        order = CheckoutService().confirm_order(order=self._get_order(order_id))
+        return APIResponse.success(OrderSerializer(order).data, message="Order confirmed.")
+
+
+@extend_schema(tags=["Orders"])
+class OrderManageCancelView(OrderManageDetailView):
+    @extend_schema(request=None, responses=OrderSerializer)
+    def post(self, request: Request, order_id) -> Response:
+        self.require_write()
+        order = CheckoutService().cancel_order(order=self._get_order(order_id))
         return APIResponse.success(OrderSerializer(order).data, message="Order cancelled.")

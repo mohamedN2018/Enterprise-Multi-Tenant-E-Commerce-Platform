@@ -20,7 +20,7 @@ from apps.payments.serializers import (
     PaymentSerializer,
 )
 from apps.payments.services import PaymentService
-from apps.stores.context import RequireStoreMixin
+from apps.stores.context import RequireStoreMixin, StoreContextMixin
 
 
 @extend_schema(tags=["Payments"])
@@ -87,4 +87,43 @@ class PaymentCaptureView(PaymentDetailView):
     def post(self, request: Request, payment_id) -> Response:
         payment = self._get_payment(request, payment_id)
         payment = PaymentService().capture_payment(payment=payment)
+        return APIResponse.success(PaymentSerializer(payment).data, message="Payment captured.")
+
+
+# --- Staff (store-scoped management) ---------------------------------------
+@extend_schema(tags=["Payments"])
+class PaymentManageListView(StoreContextMixin, BaseGenericAPIView, generics.ListAPIView):
+    """All payments for the current store (staff)."""
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = PaymentSerializer
+    filterset_fields = ("status", "gateway")
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Payment.objects.none()
+        return Payment.objects.filter(store=self.store).select_related("order")
+
+
+@extend_schema(tags=["Payments"])
+class PaymentManageDetailView(StoreContextMixin, BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def _get_payment(self, payment_id) -> Payment:
+        payment = Payment.objects.filter(id=payment_id, store=self.store).first()
+        if payment is None:
+            raise NotFoundError("Payment not found.")
+        return payment
+
+    @extend_schema(responses=PaymentSerializer)
+    def get(self, request: Request, payment_id) -> Response:
+        return APIResponse.success(PaymentSerializer(self._get_payment(payment_id)).data)
+
+
+@extend_schema(tags=["Payments"])
+class PaymentManageCaptureView(PaymentManageDetailView):
+    @extend_schema(request=None, responses=PaymentSerializer)
+    def post(self, request: Request, payment_id) -> Response:
+        self.require_write()
+        payment = PaymentService().capture_payment(payment=self._get_payment(payment_id))
         return APIResponse.success(PaymentSerializer(payment).data, message="Payment captured.")

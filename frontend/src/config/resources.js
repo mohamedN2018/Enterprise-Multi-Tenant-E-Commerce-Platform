@@ -94,9 +94,9 @@ export const RESOURCE_GROUPS = [
         key: 'orders',
         label: 'Orders',
         singular: 'Order',
-        endpoint: '/orders/',
+        endpoint: '/orders/manage/',
         detail: true,
-        itemEndpoint: (id) => `/orders/${id}/`,
+        itemEndpoint: (id) => `/orders/manage/${id}/`,
         columns: [
           { key: 'number', label: 'Number' },
           { key: 'status', label: 'Status', badge: true },
@@ -108,7 +108,7 @@ export const RESOURCE_GROUPS = [
             key: 'confirm',
             label: 'Confirm',
             variant: 'success',
-            path: (row) => `/orders/${row.id}/confirm/`,
+            path: (row) => `/orders/manage/${row.id}/confirm/`,
             confirm: 'Confirm this order?',
             show: (row) => !['confirmed', 'cancelled', 'completed'].includes(row.status)
           },
@@ -116,7 +116,7 @@ export const RESOURCE_GROUPS = [
             key: 'cancel',
             label: 'Cancel',
             variant: 'danger',
-            path: (row) => `/orders/${row.id}/cancel/`,
+            path: (row) => `/orders/manage/${row.id}/cancel/`,
             confirm: 'Cancel this order? This cannot be undone.',
             show: (row) => !['cancelled', 'completed'].includes(row.status)
           }
@@ -126,9 +126,9 @@ export const RESOURCE_GROUPS = [
         key: 'payments',
         label: 'Payments',
         singular: 'Payment',
-        endpoint: '/payments/',
+        endpoint: '/payments/manage/',
         detail: true,
-        itemEndpoint: (id) => `/payments/${id}/`,
+        itemEndpoint: (id) => `/payments/manage/${id}/`,
         columns: [
           { key: 'gateway', label: 'Gateway' },
           { key: 'amount', label: 'Amount', format: money },
@@ -140,7 +140,7 @@ export const RESOURCE_GROUPS = [
             key: 'capture',
             label: 'Capture',
             variant: 'success',
-            path: (row) => `/payments/${row.id}/capture/`,
+            path: (row) => `/payments/manage/${row.id}/capture/`,
             confirm: 'Capture this payment?',
             show: (row) => !['captured', 'refunded', 'failed'].includes(row.status)
           }
@@ -150,7 +150,7 @@ export const RESOURCE_GROUPS = [
         key: 'returns',
         label: 'Returns (RMA)',
         singular: 'Return',
-        endpoint: '/returns/',
+        endpoint: '/returns/manage/',
         detail: true,
         itemEndpoint: (id) => `/returns/${id}/`,
         columns: [
