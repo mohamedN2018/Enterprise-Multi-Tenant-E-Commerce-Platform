@@ -290,7 +290,7 @@ onMounted(async () => {
           <ul class="space-y-2 text-sm">
             <li><RouterLink :to="{ name: 'products' }" class="text-slate-300 hover:text-primary-500 hover:tracking-wide">{{ t('nav.shop') }}</RouterLink></li>
             <li><RouterLink :to="{ name: 'stores' }" class="text-slate-300 hover:text-primary-500 hover:tracking-wide">{{ t('nav.stores') }}</RouterLink></li>
-            <li><RouterLink :to="{ name: 'admin-dashboard' }" class="text-slate-300 hover:text-primary-500 hover:tracking-wide">{{ t('footer.sellOn') }}</RouterLink></li>
+            <li><RouterLink :to="{ name: 'seller-login' }" class="text-slate-300 hover:text-primary-500 hover:tracking-wide">{{ t('footer.sellOn') }}</RouterLink></li>
             <li><RouterLink :to="{ name: 'account' }" class="text-slate-300 hover:text-primary-500 hover:tracking-wide">{{ t('nav.account') }}</RouterLink></li>
           </ul>
         </div>

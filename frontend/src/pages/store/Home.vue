@@ -88,7 +88,7 @@ onMounted(async () => {
           <p class="mt-4 max-w-lg text-lg text-slate-300">{{ $t('home.heroSubtitle') }}</p>
           <div class="mt-8 flex flex-wrap gap-3">
             <RouterLink :to="{ name: 'products' }" class="btn btn-primary btn-lg">{{ $t('home.shopNow') }} <ArrowRight class="h-4 w-4" /></RouterLink>
-            <RouterLink :to="{ name: 'register' }" class="btn btn-light btn-lg"><Rocket class="h-4 w-4" /> {{ $t('home.becomeSeller') }}</RouterLink>
+            <RouterLink :to="{ name: 'seller-login' }" class="btn btn-light btn-lg"><Rocket class="h-4 w-4" /> {{ $t('home.becomeSeller') }}</RouterLink>
           </div>
           <div class="mt-10 flex gap-8">
             <div><p class="font-heading text-2xl font-black">{{ stores.length || '10' }}+</p><p class="text-sm text-slate-400">{{ $t('home.stores') }}</p></div>
@@ -259,7 +259,7 @@ onMounted(async () => {
             <p class="mt-2 text-slate-300">{{ $t('home.sellerCtaText') }}</p>
           </div>
         </div>
-        <RouterLink :to="{ name: 'register' }" class="btn btn-primary btn-lg shrink-0"><Rocket class="h-5 w-5" /> {{ $t('home.becomeSeller') }}</RouterLink>
+        <RouterLink :to="{ name: 'seller-login' }" class="btn btn-primary btn-lg shrink-0"><Rocket class="h-5 w-5" /> {{ $t('home.becomeSeller') }}</RouterLink>
       </div>
     </section>
   </div>

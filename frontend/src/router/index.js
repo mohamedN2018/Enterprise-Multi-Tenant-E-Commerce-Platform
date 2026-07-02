@@ -47,6 +47,7 @@ const routes = [
     meta: { guestOnly: true },
     children: [
       { path: 'login', name: 'login', component: () => import('@/pages/auth/Login.vue') },
+      { path: 'seller', name: 'seller-login', meta: { seller: true }, component: () => import('@/pages/auth/Login.vue') },
       { path: 'register', name: 'register', component: () => import('@/pages/auth/Register.vue') },
       {
         path: 'forgot',
@@ -149,6 +150,7 @@ const TITLES = {
   'order-confirmation': 'Order Confirmation',
   account: 'My Account',
   login: 'Sign in',
+  'seller-login': 'Seller sign in',
   register: 'Register',
   'forgot-password': 'Forgot password',
   'reset-password': 'Reset password',

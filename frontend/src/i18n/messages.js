@@ -131,7 +131,9 @@ export default {
       forgotPassword: 'نسيت كلمة المرور؟', noAccount: 'ليس لديك حساب؟', createOne: 'أنشئ حسابًا',
       createAccount: 'أنشئ حسابك', registerSubtitle: 'ابدأ التسوق في دقائق.', confirmPassword: 'تأكيد كلمة المرور',
       alreadyHave: 'لديك حساب بالفعل؟', welcomeBack: 'أهلاً بعودتك!', accountCreated: 'تم إنشاء الحساب! سجّل الدخول من فضلك.',
-      passwordsNoMatch: 'كلمتا المرور غير متطابقتين.'
+      passwordsNoMatch: 'كلمتا المرور غير متطابقتين.',
+      sellerSignIn: 'دخول البائعين', sellerSubtitle: 'ادخل إلى لوحة تحكم متجرك.',
+      sellerLoginLink: 'هل أنت بائع أو موظف؟ ادخل من هنا', customerLoginLink: 'العودة لدخول العملاء'
     },
     footer: {
       about: 'q-shop — سوقك متعدد البائعين للإلكترونيات والأزياء والمنزل وأكثر، منتقاة من متاجر مستقلة موثوقة.',
@@ -147,6 +149,18 @@ export default {
       draft: 'مسودة', published: 'منشور', archived: 'مؤرشف', requested: 'مطلوب', suspended: 'موقوف'
     },
     roles: { platform: 'مدير المنصة', owner: 'مالك', manager: 'مدير', employee: 'موظف', member: 'عضو' },
+    team: {
+      title: 'الفريق', subtitle: 'تحكّم في من يمكنه الوصول لهذا المتجر.', ownersManageRoles: 'المُلّاك يديرون الأدوار',
+      addMember: 'إضافة عضو', member: 'العضو', role: 'الدور', status: 'الحالة', joined: 'انضم في',
+      noMembers: 'لا يوجد أعضاء', noMembersMsg: 'ادعُ أشخاصًا لمساعدتك في إدارة متجرك.', emailAddress: 'البريد الإلكتروني',
+      memberAdded: 'تمت إضافة العضو.', roleUpdated: 'تم تحديث الدور.', memberRemoved: 'تمت إزالة العضو.',
+      addTeamMember: 'إضافة عضو للفريق', removeMember: 'إزالة عضو', remove: 'إزالة',
+      removeConfirm: 'إزالة {email} من هذا المتجر؟',
+      employees: 'الموظفون', employeeLimit: 'حدّ الموظفين', limitReached: 'تم بلوغ الحدّ الأقصى للموظفين',
+      limitReachedMsg: 'وصلت للحد الأقصى المتفق عليه ({max}). تواصل مع الإدارة لرفع الحد.',
+      editLimit: 'تعديل الحد', maxEmployees: 'الحد الأقصى للموظفين', saveLimit: 'حفظ الحد',
+      limitSaved: 'تم حفظ حدّ الموظفين.', unlimited: 'غير محدود', setByAdmin: 'يحدده مدير المنصة حسب الاتفاق.'
+    },
     admin: {
       overview: 'نظرة عامة', catalog: 'الكتالوج', sales: 'المبيعات', marketing: 'التسويق',
       operations: 'العمليات', finance: 'المالية', store: 'المتجر', dashboard: 'لوحة التحكم',
@@ -296,7 +310,9 @@ export default {
       forgotPassword: 'Forgot password?', noAccount: "Don't have an account?", createOne: 'Create one',
       createAccount: 'Create your account', registerSubtitle: 'Start shopping in minutes.', confirmPassword: 'Confirm password',
       alreadyHave: 'Already have an account?', welcomeBack: 'Welcome back!', accountCreated: 'Account created! Please sign in.',
-      passwordsNoMatch: 'Passwords do not match.'
+      passwordsNoMatch: 'Passwords do not match.',
+      sellerSignIn: 'Seller sign in', sellerSubtitle: 'Access your store dashboard.',
+      sellerLoginLink: 'Are you a seller or staff? Sign in here', customerLoginLink: 'Back to customer sign in'
     },
     footer: {
       about: 'q-shop — your multi-vendor marketplace for electronics, fashion, home and more, curated from verified independent stores.',
@@ -312,6 +328,18 @@ export default {
       draft: 'Draft', published: 'Published', archived: 'Archived', requested: 'Requested', suspended: 'Suspended'
     },
     roles: { platform: 'Platform Admin', owner: 'Owner', manager: 'Manager', employee: 'Employee', member: 'Member' },
+    team: {
+      title: 'Team', subtitle: 'Manage who can access this store.', ownersManageRoles: 'Owners manage roles',
+      addMember: 'Add member', member: 'Member', role: 'Role', status: 'Status', joined: 'Joined',
+      noMembers: 'No team members', noMembersMsg: 'Invite people to help run your store.', emailAddress: 'Email address',
+      memberAdded: 'Member added.', roleUpdated: 'Role updated.', memberRemoved: 'Member removed.',
+      addTeamMember: 'Add team member', removeMember: 'Remove member', remove: 'Remove',
+      removeConfirm: 'Remove {email} from this store?',
+      employees: 'Employees', employeeLimit: 'Employee limit', limitReached: 'Employee limit reached',
+      limitReachedMsg: 'You have reached the agreed maximum ({max}). Contact the admin to raise it.',
+      editLimit: 'Edit limit', maxEmployees: 'Maximum employees', saveLimit: 'Save limit',
+      limitSaved: 'Employee limit saved.', unlimited: 'Unlimited', setByAdmin: 'Set by the platform admin per agreement.'
+    },
     admin: {
       overview: 'Overview', catalog: 'Catalog', sales: 'Sales', marketing: 'Marketing', operations: 'Operations',
       finance: 'Finance', store: 'Store', dashboard: 'Dashboard', analytics: 'Analytics', platform: 'Platform',
