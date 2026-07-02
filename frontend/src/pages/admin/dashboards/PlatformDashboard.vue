@@ -12,7 +12,10 @@ import {
   ExternalLink,
   LayoutGrid,
   Trophy,
-  ArrowRight
+  ArrowRight,
+  RefreshCw,
+  Crown,
+  Coins
 } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import Spinner from '@/components/ui/Spinner.vue';
@@ -39,6 +42,11 @@ const kpis = computed(() => [
 ]);
 
 const leaderboard = computed(() => [...storeStats.value].sort((a, b) => b.revenue - a.revenue).slice(0, 8));
+const bestStore = computed(() => leaderboard.value[0] || null);
+const avgPerStore = computed(() => {
+  const n = tenant.stores.length || 1;
+  return (Number(rollup.value.revenue) / n).toFixed(2);
+});
 
 const chartSeries = computed(() => [{ name: 'Revenue', data: leaderboard.value.map((s) => Number(s.revenue.toFixed(2))) }]);
 const chartOptions = computed(() => ({
@@ -95,6 +103,16 @@ const load = async () => {
   }
 };
 
+const refreshing = ref(false);
+const refresh = async () => {
+  refreshing.value = true;
+  try {
+    await load();
+  } finally {
+    refreshing.value = false;
+  }
+};
+
 onMounted(load);
 </script>
 
@@ -105,6 +123,7 @@ onMounted(load);
     <template v-else>
       <PageHeader title="Platform overview" subtitle="Marketplace-wide performance across all stores.">
         <template #actions>
+          <button class="btn btn-ghost btn-sm" :disabled="refreshing" @click="refresh"><RefreshCw class="h-4 w-4" :class="refreshing ? 'animate-spin' : ''" /> Refresh</button>
           <RouterLink :to="{ name: 'admin-platform' }" class="btn btn-outline btn-sm"><LayoutGrid class="h-4 w-4" /> All stores</RouterLink>
           <a href="/django-admin/" target="_blank" rel="noopener" class="btn btn-outline btn-sm"><ExternalLink class="h-4 w-4" /> Django admin</a>
         </template>
@@ -119,11 +138,30 @@ onMounted(load);
         </div>
       </div>
 
+      <!-- Best store highlight -->
+      <div v-if="bestStore && bestStore.revenue > 0" class="mt-6 flex items-center justify-between overflow-hidden rounded-xl bg-gradient-to-r from-ink to-primary-900 p-5 text-white">
+        <div class="flex items-center gap-4">
+          <span class="grid h-12 w-12 place-items-center rounded-xl bg-white/15"><Crown class="h-6 w-6 text-primary-400" /></span>
+          <div>
+            <p class="text-xs uppercase tracking-wide text-white/60">Top performing store</p>
+            <p class="font-heading text-xl font-black">{{ bestStore.name }}</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="font-heading text-2xl font-black">{{ bestStore.revenue.toFixed(2) }} {{ currency }}</p>
+          <p class="text-sm text-white/70">{{ bestStore.orders }} orders</p>
+        </div>
+      </div>
+
       <!-- Rollup -->
-      <div class="mt-6 grid gap-4 sm:grid-cols-3">
+      <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div class="card flex items-center gap-4 p-5">
           <span class="grid h-12 w-12 place-items-center rounded-lg bg-emerald-50 text-emerald-600"><DollarSign class="h-6 w-6" /></span>
-          <div><p class="font-heading text-2xl font-bold">{{ rollup.revenue }} {{ currency }}</p><p class="text-sm text-muted">Total revenue (my stores)</p></div>
+          <div><p class="font-heading text-2xl font-bold">{{ rollup.revenue }} {{ currency }}</p><p class="text-sm text-muted">Total revenue</p></div>
+        </div>
+        <div class="card flex items-center gap-4 p-5">
+          <span class="grid h-12 w-12 place-items-center rounded-lg bg-primary-50 text-primary-600"><Coins class="h-6 w-6" /></span>
+          <div><p class="font-heading text-2xl font-bold">{{ avgPerStore }} {{ currency }}</p><p class="text-sm text-muted">Avg / store</p></div>
         </div>
         <div class="card flex items-center gap-4 p-5">
           <span class="grid h-12 w-12 place-items-center rounded-lg bg-sky-50 text-sky-600"><ShoppingBag class="h-6 w-6" /></span>

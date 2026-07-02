@@ -24,6 +24,7 @@ const tenant = useTenantStore();
 
 const loading = ref(true);
 const dash = ref(null);
+const lowStock = ref([]);
 
 const metrics = computed(() => {
   if (!dash.value) return [];
@@ -48,6 +49,7 @@ onMounted(async () => {
     await tenant.ensureReady();
     const res = await seller.dashboard();
     dash.value = res.data;
+    seller.lowStock().then((r) => (lowStock.value = (r.data?.results || r.data || []).slice(0, 8))).catch(() => (lowStock.value = []));
   } catch {
     dash.value = null;
   } finally {
@@ -91,30 +93,46 @@ onMounted(async () => {
         </RouterLink>
       </div>
 
-      <!-- Recent orders (read) -->
-      <div class="card mt-8 p-5">
-        <div class="mb-4 flex items-center justify-between">
-          <h3 class="font-heading font-semibold">Recent orders</h3>
-          <RouterLink :to="{ name: 'admin-orders' }" class="text-sm font-medium text-primary-600 hover:underline">
-            Open orders <ArrowRight class="inline h-3.5 w-3.5" />
-          </RouterLink>
-        </div>
-        <ul v-if="dash?.recent_orders?.length" class="divide-y divide-slate-100">
-          <li v-for="o in dash.recent_orders" :key="o.number" class="flex items-center justify-between py-3">
-            <div class="flex items-center gap-3">
-              <span class="grid h-9 w-9 place-items-center rounded-lg bg-slate-100 text-slate-400"><Eye class="h-4 w-4" /></span>
-              <div>
-                <p class="text-sm font-medium">#{{ o.number }}</p>
-                <p class="text-xs text-slate-400">{{ (o.created_at || '').slice(0, 10) }}</p>
+      <!-- Recent orders + Low stock -->
+      <div class="mt-8 grid gap-6 lg:grid-cols-2">
+        <div class="card p-5">
+          <div class="mb-4 flex items-center justify-between">
+            <h3 class="font-heading font-semibold">Recent orders</h3>
+            <RouterLink :to="{ name: 'admin-orders' }" class="text-sm font-medium text-primary-600 hover:underline">
+              Open orders <ArrowRight class="inline h-3.5 w-3.5" />
+            </RouterLink>
+          </div>
+          <ul v-if="dash?.recent_orders?.length" class="divide-y divide-slate-100">
+            <li v-for="o in dash.recent_orders" :key="o.number" class="flex items-center justify-between py-3">
+              <div class="flex items-center gap-3">
+                <span class="grid h-9 w-9 place-items-center rounded-lg bg-slate-100 text-slate-400"><Eye class="h-4 w-4" /></span>
+                <div>
+                  <p class="text-sm font-medium">#{{ o.number }}</p>
+                  <p class="text-xs text-slate-400">{{ (o.created_at || '').slice(0, 10) }}</p>
+                </div>
               </div>
-            </div>
-            <div class="flex items-center gap-3">
-              <StatusBadge :status="o.status" />
-              <span class="text-sm font-semibold">{{ o.total }} {{ o.currency }}</span>
-            </div>
-          </li>
-        </ul>
-        <EmptyState v-else title="No recent orders" message="New orders will appear here for you to review." />
+              <div class="flex items-center gap-3">
+                <StatusBadge :status="o.status" />
+                <span class="text-sm font-semibold">{{ o.total }} {{ o.currency }}</span>
+              </div>
+            </li>
+          </ul>
+          <EmptyState v-else title="No recent orders" message="New orders will appear here for you to review." />
+        </div>
+
+        <div class="card p-5">
+          <div class="mb-4 flex items-center justify-between">
+            <h3 class="font-heading font-semibold">Needs restock</h3>
+            <RouterLink :to="{ name: 'admin-inventory' }" class="text-sm font-medium text-primary-600 hover:underline">Inventory <ArrowRight class="inline h-3.5 w-3.5" /></RouterLink>
+          </div>
+          <ul v-if="lowStock.length" class="space-y-2">
+            <li v-for="s in lowStock" :key="s.id" class="flex items-center justify-between rounded-lg bg-lightbg px-3 py-2 text-sm">
+              <span class="flex items-center gap-2"><AlertTriangle class="h-4 w-4 text-amber-500" /> {{ String(s.variant).slice(0, 8) }}</span>
+              <span class="font-medium" :class="s.is_out_of_stock ? 'text-secondary-500' : 'text-amber-600'">{{ s.available_quantity }} left</span>
+            </li>
+          </ul>
+          <EmptyState v-else title="Stock is healthy" message="No items need restocking right now." />
+        </div>
       </div>
     </template>
   </div>
