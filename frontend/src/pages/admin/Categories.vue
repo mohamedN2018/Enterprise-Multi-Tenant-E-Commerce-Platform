@@ -18,9 +18,9 @@ const tenant = useTenantStore();
 const ui = useUiStore();
 
 const columns = [
-  { key: 'name', label: 'Category' },
-  { key: 'position', label: 'Position', align: 'right' },
-  { key: 'is_active', label: 'Status' },
+  { key: 'name', label: 'Category', sortable: true },
+  { key: 'position', label: 'Position', align: 'right', sortable: true },
+  { key: 'is_active', label: 'Status', sortable: true },
   { key: 'actions', label: '', align: 'right' }
 ];
 

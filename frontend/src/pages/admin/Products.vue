@@ -23,11 +23,11 @@ const statusFilter = ref('');
 const categories = ref([]);
 
 const columns = [
-  { key: 'name', label: 'Product' },
-  { key: 'product_type', label: 'Type' },
+  { key: 'name', label: 'Product', sortable: true },
+  { key: 'product_type', label: 'Type', sortable: true },
   { key: 'variants', label: 'Variants', align: 'right' },
   { key: 'price', label: 'Price', align: 'right' },
-  { key: 'status', label: 'Status' },
+  { key: 'status', label: 'Status', sortable: true },
   { key: 'actions', label: '', align: 'right' }
 ];
 

@@ -21,10 +21,10 @@ const members = ref([]);
 const storeId = ref(null);
 
 const columns = [
-  { key: 'user_email', label: 'Member' },
-  { key: 'role', label: 'Role' },
-  { key: 'is_active', label: 'Status' },
-  { key: 'created_at', label: 'Joined' },
+  { key: 'user_email', label: 'Member', sortable: true },
+  { key: 'role', label: 'Role', sortable: true },
+  { key: 'is_active', label: 'Status', sortable: true },
+  { key: 'created_at', label: 'Joined', sortable: true },
   { key: 'actions', label: '', align: 'right' }
 ];
 

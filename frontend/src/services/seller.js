@@ -48,8 +48,10 @@ export const seller = {
   stock: (params) => http.get('/inventory/stock/', { params }),
   lowStock: () => http.get('/inventory/stock/low/'),
   warehouses: () => http.get('/inventory/warehouses/'),
+  createWarehouse: (payload) => http.post('/inventory/warehouses/', payload),
   receiveStock: (payload) => http.post('/inventory/stock/receive/', payload),
   adjustStock: (payload) => http.post('/inventory/stock/adjust/', payload),
+  transferStock: (payload) => http.post('/inventory/stock/transfer/', payload),
   movements: (params) => http.get('/inventory/movements/', { params }),
 
   // Reviews moderation (view: any member; approve/reject: manager|owner)
