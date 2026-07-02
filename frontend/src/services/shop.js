@@ -39,5 +39,14 @@ export const shop = {
   wallet: (headers) => http.get('/rewards/wallet/', { headers }),
   loyalty: (headers) => http.get('/rewards/loyalty/', { headers }),
   redeemLoyalty: (headers, payload) => http.post('/rewards/loyalty/redeem/', payload, { headers }),
-  redeemGiftCard: (headers, payload) => http.post('/rewards/gift-cards/redeem/', payload, { headers })
+  redeemGiftCard: (headers, payload) => http.post('/rewards/gift-cards/redeem/', payload, { headers }),
+
+  // Notification preferences (buyer, store-scoped)
+  notificationPrefs: (headers) => http.get('/notifications/preferences/', { headers }),
+  updateNotificationPrefs: (headers, payload) => http.put('/notifications/preferences/', payload, { headers }),
+
+  // Devices / sessions (not store-scoped)
+  devices: () => http.get('/auth/devices/'),
+  revokeDevice: (id) => http.delete(`/auth/devices/${id}/`),
+  revokeAllDevices: () => http.post('/auth/devices/revoke-all/')
 };

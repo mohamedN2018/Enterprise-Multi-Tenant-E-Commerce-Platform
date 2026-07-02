@@ -9,7 +9,12 @@ import {
   ShieldCheck,
   LogOut,
   Trash2,
-  Plus
+  Plus,
+  Gift,
+  Undo2,
+  MonitorSmartphone,
+  Wallet,
+  Ticket
 } from 'lucide-vue-next';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
@@ -17,6 +22,7 @@ import Spinner from '@/components/ui/Spinner.vue';
 import PageHero from '@/components/ui/PageHero.vue';
 import Alert from '@/components/ui/Alert.vue';
 import FormField from '@/components/ui/FormField.vue';
+import Modal from '@/components/ui/Modal.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useCartStore } from '@/stores/cart';
 import { useUiStore } from '@/stores/ui';
@@ -32,8 +38,11 @@ const ui = useUiStore();
 const tabs = [
   { key: 'profile', label: 'Profile', icon: User },
   { key: 'orders', label: 'Orders', icon: ShoppingBag },
+  { key: 'returns', label: 'Returns', icon: Undo2 },
   { key: 'addresses', label: 'Addresses', icon: MapPin },
   { key: 'wishlist', label: 'Wishlist', icon: Heart },
+  { key: 'rewards', label: 'Rewards', icon: Gift },
+  { key: 'sessions', label: 'Sessions', icon: MonitorSmartphone },
   { key: 'security', label: 'Security', icon: ShieldCheck }
 ];
 const tab = ref('profile');
@@ -118,6 +127,154 @@ const moveWishToCart = async (id) => {
   }
 };
 
+// --- Rewards --------------------------------------------------------------
+const wallet = ref(null);
+const points = ref(0);
+const rewardsLoading = ref(false);
+const giftCode = ref('');
+const redeemPts = ref(0);
+const rewardBusy = ref(false);
+const loadRewards = async () => {
+  if (!hasStore.value) return;
+  rewardsLoading.value = true;
+  try {
+    const [w, l] = await Promise.all([shop.wallet(cart.headers), shop.loyalty(cart.headers)]);
+    wallet.value = w.data;
+    points.value = l.data?.points || 0;
+  } catch {
+    wallet.value = null;
+  } finally {
+    rewardsLoading.value = false;
+  }
+};
+const redeemGift = async () => {
+  if (!giftCode.value.trim()) return;
+  rewardBusy.value = true;
+  try {
+    const r = await shop.redeemGiftCard(cart.headers, { code: giftCode.value.trim() });
+    ui.success(`Redeemed ${r.data.redeemed} ${currency.value} to your wallet.`);
+    giftCode.value = '';
+    loadRewards();
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    rewardBusy.value = false;
+  }
+};
+const redeemPoints = async () => {
+  if (redeemPts.value < 1) return;
+  rewardBusy.value = true;
+  try {
+    const r = await shop.redeemLoyalty(cart.headers, { points: redeemPts.value });
+    ui.success(`Redeemed ${r.data.points_redeemed} points for ${r.data.wallet_credit} ${currency.value}.`);
+    redeemPts.value = 0;
+    loadRewards();
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    rewardBusy.value = false;
+  }
+};
+
+// --- Returns --------------------------------------------------------------
+const returns = ref([]);
+const returnsLoading = ref(false);
+const loadReturns = async () => {
+  if (!hasStore.value) return;
+  returnsLoading.value = true;
+  try {
+    const res = await shop.returns(cart.headers);
+    returns.value = res.data?.results || res.data || [];
+  } catch {
+    returns.value = [];
+  } finally {
+    returnsLoading.value = false;
+  }
+};
+const returnModal = ref(false);
+const returnOrder = ref(null);
+const returnReason = ref('');
+const returnBusy = ref(false);
+const openReturn = (order) => {
+  returnOrder.value = order;
+  returnReason.value = '';
+  returnModal.value = true;
+};
+const submitReturn = async () => {
+  returnBusy.value = true;
+  try {
+    await shop.createReturn(cart.headers, {
+      order_id: returnOrder.value.id,
+      reason: returnReason.value,
+      resolution: 'refund',
+      items: (returnOrder.value.items || []).map((it) => ({
+        order_item_id: it.id,
+        quantity: it.quantity,
+        reason: returnReason.value
+      }))
+    });
+    ui.success('Return requested.');
+    returnModal.value = false;
+    loadReturns();
+    if (tab.value !== 'returns') selectTab('returns');
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    returnBusy.value = false;
+  }
+};
+
+// --- Sessions & notification preferences ----------------------------------
+const devices = ref([]);
+const devicesLoading = ref(false);
+const prefs = ref(null);
+const loadSessions = async () => {
+  devicesLoading.value = true;
+  try {
+    const res = await shop.devices();
+    devices.value = res.data?.results || res.data || [];
+  } catch {
+    devices.value = [];
+  } finally {
+    devicesLoading.value = false;
+  }
+  if (hasStore.value) {
+    try {
+      const p = await shop.notificationPrefs(cart.headers);
+      prefs.value = p.data;
+    } catch {
+      prefs.value = null;
+    }
+  }
+};
+const revokeDevice = async (id) => {
+  try {
+    await shop.revokeDevice(id);
+    devices.value = devices.value.filter((d) => d.id !== id);
+    ui.success('Session revoked.');
+  } catch (e) {
+    ui.error(errorMessage(e));
+  }
+};
+const revokeAll = async () => {
+  try {
+    await shop.revokeAllDevices();
+    ui.success('All other sessions revoked.');
+    loadSessions();
+  } catch (e) {
+    ui.error(errorMessage(e));
+  }
+};
+const savePrefs = async () => {
+  try {
+    const p = await shop.updateNotificationPrefs(cart.headers, prefs.value);
+    prefs.value = p.data;
+    ui.success('Preferences saved.');
+  } catch (e) {
+    ui.error(errorMessage(e));
+  }
+};
+
 // --- Security -------------------------------------------------------------
 const pwd = ref({ current_password: '', new_password: '', new_password_confirm: '' });
 const pwdBusy = ref(false);
@@ -146,6 +303,9 @@ const selectTab = (key) => {
   if (key === 'orders' && !orders.value.length) loadOrders();
   if (key === 'addresses' && !addresses.value.length) loadAddresses();
   if (key === 'wishlist' && !wishlist.value.length) loadWishlist();
+  if (key === 'returns' && !returns.value.length) loadReturns();
+  if (key === 'rewards' && !wallet.value) loadRewards();
+  if (key === 'sessions' && !devices.value.length) loadSessions();
 };
 
 onMounted(() => {
@@ -188,8 +348,8 @@ onMounted(() => {
 
       <!-- Content -->
       <div>
-        <Alert v-if="!hasStore && tab !== 'profile' && tab !== 'security'" variant="info" class="mb-5">
-          Visit a store to see your store-specific orders, addresses and wishlist.
+        <Alert v-if="!hasStore && !['profile', 'security', 'sessions'].includes(tab)" variant="info" class="mb-5">
+          Visit a store to see your store-specific orders, addresses, wishlist and rewards.
           <RouterLink :to="{ name: 'stores' }" class="font-semibold underline">Browse stores</RouterLink>
         </Alert>
 
@@ -231,6 +391,10 @@ onMounted(() => {
                   <span>{{ it.line_total }} {{ o.currency }}</span>
                 </li>
               </ul>
+              <div class="mt-3 flex justify-end gap-2">
+                <RouterLink :to="{ name: 'order-confirmation', params: { id: o.id } }" class="btn btn-ghost btn-sm">View</RouterLink>
+                <button class="btn btn-outline btn-sm" @click="openReturn(o)"><Undo2 class="h-4 w-4" /> Request return</button>
+              </div>
             </div>
           </div>
           <EmptyState v-else :icon="ShoppingBag" title="No orders yet" message="When you place an order, it will appear here.">
@@ -283,6 +447,98 @@ onMounted(() => {
           <EmptyState v-else :icon="Heart" title="Your wishlist is empty" message="Save products you love to buy them later." />
         </section>
 
+        <!-- Returns -->
+        <section v-else-if="tab === 'returns'">
+          <div v-if="returnsLoading" class="flex min-h-[20vh] items-center justify-center"><Spinner :size="26" label="Loading returns…" /></div>
+          <div v-else-if="returns.length" class="space-y-4">
+            <div v-for="r in returns" :key="r.id" class="card p-5">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="font-semibold capitalize">Return · {{ String(r.resolution).replace(/_/g, ' ') }}</p>
+                  <p class="text-xs text-slate-400">{{ (r.created_at || '').slice(0, 10) }} · {{ r.items?.length || 0 }} items</p>
+                </div>
+                <StatusBadge :status="r.status" />
+              </div>
+              <p v-if="r.reason" class="mt-2 text-sm text-slate-600">{{ r.reason }}</p>
+              <p v-if="Number(r.refund_amount) > 0" class="mt-1 text-sm font-medium text-emerald-600">Refund: {{ r.refund_amount }} {{ currency }}</p>
+            </div>
+          </div>
+          <EmptyState v-else :icon="Undo2" title="No returns" message="Request a return from any order in your Orders tab." />
+        </section>
+
+        <!-- Rewards -->
+        <section v-else-if="tab === 'rewards'">
+          <div v-if="rewardsLoading" class="flex min-h-[20vh] items-center justify-center"><Spinner :size="26" label="Loading rewards…" /></div>
+          <template v-else>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="card flex items-center gap-4 p-5">
+                <span class="grid h-12 w-12 place-items-center rounded-lg bg-emerald-50 text-emerald-600"><Wallet class="h-6 w-6" /></span>
+                <div><p class="font-heading text-2xl font-bold">{{ wallet?.balance || '0.00' }} {{ currency }}</p><p class="text-sm text-muted">Wallet balance</p></div>
+              </div>
+              <div class="card flex items-center gap-4 p-5">
+                <span class="grid h-12 w-12 place-items-center rounded-lg bg-primary-50 text-primary-600"><Gift class="h-6 w-6" /></span>
+                <div><p class="font-heading text-2xl font-bold">{{ points }}</p><p class="text-sm text-muted">Loyalty points</p></div>
+              </div>
+            </div>
+            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+              <div class="card p-5">
+                <h3 class="mb-3 flex items-center gap-2 font-semibold"><Ticket class="h-5 w-5 text-primary-600" /> Redeem gift card</h3>
+                <form class="flex gap-2" @submit.prevent="redeemGift">
+                  <input v-model="giftCode" class="input" placeholder="Gift card code" />
+                  <button class="btn btn-primary btn-sm shrink-0" :disabled="rewardBusy || !giftCode.trim()">Redeem</button>
+                </form>
+              </div>
+              <div class="card p-5">
+                <h3 class="mb-3 flex items-center gap-2 font-semibold"><Gift class="h-5 w-5 text-primary-600" /> Redeem points</h3>
+                <form class="flex gap-2" @submit.prevent="redeemPoints">
+                  <input v-model.number="redeemPts" type="number" min="1" class="input" placeholder="Points" />
+                  <button class="btn btn-primary btn-sm shrink-0" :disabled="rewardBusy || redeemPts < 1">Redeem</button>
+                </form>
+              </div>
+            </div>
+            <div v-if="wallet?.transactions?.length" class="card mt-4 p-5">
+              <h3 class="mb-3 font-semibold">Wallet activity</h3>
+              <ul class="divide-y divide-slate-100 text-sm">
+                <li v-for="t in wallet.transactions" :key="t.id" class="flex items-center justify-between py-2">
+                  <span class="capitalize text-slate-600">{{ String(t.txn_type).replace(/_/g, ' ') }} <span class="text-xs text-slate-400">{{ (t.created_at || '').slice(0, 10) }}</span></span>
+                  <span class="font-medium" :class="Number(t.amount) < 0 ? 'text-secondary-500' : 'text-emerald-600'">{{ Number(t.amount) > 0 ? '+' : '' }}{{ t.amount }} {{ currency }}</span>
+                </li>
+              </ul>
+            </div>
+          </template>
+        </section>
+
+        <!-- Sessions -->
+        <section v-else-if="tab === 'sessions'">
+          <div v-if="devicesLoading" class="flex min-h-[20vh] items-center justify-center"><Spinner :size="26" label="Loading sessions…" /></div>
+          <template v-else>
+            <div class="mb-4 flex items-center justify-between">
+              <h2 class="section-title">Active sessions</h2>
+              <button v-if="devices.length" class="btn btn-outline btn-sm" @click="revokeAll">Sign out all</button>
+            </div>
+            <div v-if="devices.length" class="space-y-3">
+              <div v-for="d in devices" :key="d.id" class="card flex items-center justify-between p-4">
+                <div class="flex items-center gap-3">
+                  <span class="grid h-10 w-10 place-items-center rounded-lg bg-primary-50 text-primary-600"><MonitorSmartphone class="h-5 w-5" /></span>
+                  <div>
+                    <p class="text-sm font-medium">{{ d.device_name || 'Device' }}</p>
+                    <p class="text-xs text-slate-400">{{ d.ip_address }} · {{ (d.last_used_at || d.created_at || '').slice(0, 10) }}</p>
+                  </div>
+                </div>
+                <button class="btn btn-ghost btn-sm text-secondary-500" @click="revokeDevice(d.id)"><Trash2 class="h-4 w-4" /> Revoke</button>
+              </div>
+            </div>
+            <EmptyState v-else :icon="MonitorSmartphone" title="No active sessions" message="Sessions from your sign-ins will appear here." />
+
+            <div v-if="prefs" class="card mt-6 max-w-lg p-6">
+              <h2 class="section-title mb-4">Notification preferences</h2>
+              <label class="flex items-center gap-2 py-1.5 text-sm"><input v-model="prefs.in_app_enabled" type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" /> In-app notifications</label>
+              <label class="flex items-center gap-2 py-1.5 text-sm"><input v-model="prefs.email_enabled" type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" /> Email notifications</label>
+              <button class="btn btn-primary btn-sm mt-3" @click="savePrefs">Save preferences</button>
+            </div>
+          </template>
+        </section>
+
         <!-- Security -->
         <section v-else-if="tab === 'security'" class="card max-w-lg p-6">
           <h2 class="section-title mb-4">Change password</h2>
@@ -295,6 +551,22 @@ onMounted(() => {
             </button>
           </form>
         </section>
+
+        <!-- Request return modal -->
+        <Modal v-model="returnModal" :title="returnOrder ? `Return · Order #${returnOrder.number}` : 'Request return'">
+          <p class="mb-3 text-sm text-muted">Request a return for the items in this order. Our team will review it.</p>
+          <ul class="mb-4 space-y-1 rounded-lg bg-lightbg p-3 text-sm">
+            <li v-for="it in returnOrder?.items || []" :key="it.id" class="flex justify-between"><span>{{ it.product_name }}</span><span class="text-slate-400">× {{ it.quantity }}</span></li>
+          </ul>
+          <label class="label">Reason</label>
+          <textarea v-model="returnReason" rows="3" class="input" placeholder="Why are you returning these items?"></textarea>
+          <template #footer>
+            <div class="flex justify-end gap-2">
+              <button class="btn btn-ghost" @click="returnModal = false">Cancel</button>
+              <button class="btn btn-primary" :disabled="returnBusy" @click="submitReturn"><Spinner v-if="returnBusy" :size="18" /><span v-else>Submit request</span></button>
+            </div>
+          </template>
+        </Modal>
       </div>
     </div>
     </div>
