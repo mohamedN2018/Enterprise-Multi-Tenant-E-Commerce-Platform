@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { Eye, Check, X } from 'lucide-vue-next';
+import { Eye, Check, X, Download } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import Pagination from '@/components/ui/Pagination.vue';
@@ -12,6 +12,7 @@ import { useUiStore } from '@/stores/ui';
 import { usePaginated } from '@/composables/usePaginated';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
+import { downloadCsv } from '@/utils/csv';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -37,6 +38,18 @@ const changePage = (n) => {
 const applyFilter = () => {
   page.value = 1;
   fetch();
+};
+
+const exportCsv = () => {
+  const rows = items.value.map((o) => ({
+    number: o.number,
+    date: (o.placed_at || o.created_at || '').slice(0, 10),
+    status: o.status,
+    items: o.items?.length || 0,
+    total: o.total,
+    currency: o.currency
+  }));
+  downloadCsv(`orders-${new Date().toISOString().slice(0, 10)}.csv`, rows);
 };
 
 const selected = ref(null);
@@ -77,7 +90,11 @@ onMounted(async () => {
 
 <template>
   <div>
-    <PageHeader title="Orders" subtitle="Track and fulfil customer orders." />
+    <PageHeader title="Orders" subtitle="Track and fulfil customer orders.">
+      <template #actions>
+        <button class="btn btn-outline btn-sm" :disabled="!items.length" @click="exportCsv"><Download class="h-4 w-4" /> Export CSV</button>
+      </template>
+    </PageHeader>
 
     <div class="mb-4">
       <select v-model="statusFilter" class="input max-w-[180px]" @change="applyFilter">

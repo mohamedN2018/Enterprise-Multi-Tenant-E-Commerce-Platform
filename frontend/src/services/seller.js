@@ -52,6 +52,17 @@ export const seller = {
   adjustStock: (payload) => http.post('/inventory/stock/adjust/', payload),
   movements: (params) => http.get('/inventory/movements/', { params }),
 
+  // Reviews moderation (view: any member; approve/reject: manager|owner)
+  reviewsModeration: (params) => http.get('/reviews/moderation/', { params }),
+  approveReview: (id) => http.post(`/reviews/${id}/approve/`),
+  rejectReview: (id) => http.post(`/reviews/${id}/reject/`),
+
+  // Notifications (per-user inbox, store-scoped)
+  notifications: (params) => http.get('/notifications/', { params }),
+  notificationsUnread: () => http.get('/notifications/unread-count/'),
+  markNotificationRead: (id) => http.post(`/notifications/${id}/read/`),
+  markAllNotificationsRead: () => http.post('/notifications/read-all/'),
+
   // Promotions
   coupons: (params) => http.get('/promotions/coupons/', { params }),
   createCoupon: (payload) => http.post('/promotions/coupons/', payload),

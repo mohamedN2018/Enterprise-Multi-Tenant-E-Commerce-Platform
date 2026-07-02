@@ -17,10 +17,13 @@ import {
   ExternalLink,
   LogOut,
   ShieldCheck,
-  Globe
+  Globe,
+  Star,
+  Bell
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useTenantStore } from '@/stores/tenant';
+import NotificationBell from '@/components/ui/NotificationBell.vue';
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -36,6 +39,8 @@ const baseLinks = [
   { label: 'Orders', to: { name: 'admin-orders' }, icon: ShoppingBag },
   { label: 'Inventory', to: { name: 'admin-inventory' }, icon: Boxes },
   { label: 'Promotions', to: { name: 'admin-promotions' }, icon: BadgePercent },
+  { label: 'Reviews', to: { name: 'admin-reviews' }, icon: Star },
+  { label: 'Notifications', to: { name: 'admin-notifications' }, icon: Bell },
   { label: 'Team', to: { name: 'admin-team' }, icon: Users, requires: 'members' },
   { label: 'Settings', to: { name: 'admin-settings' }, icon: Settings }
 ];
@@ -165,6 +170,7 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
           <Menu class="h-5 w-5" />
         </button>
         <div class="ml-auto flex items-center gap-3">
+          <NotificationBell />
           <span class="hidden text-sm text-slate-500 sm:inline">{{ auth.user?.email }}</span>
           <span class="grid h-9 w-9 place-items-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
             {{ auth.displayName.charAt(0).toUpperCase() }}

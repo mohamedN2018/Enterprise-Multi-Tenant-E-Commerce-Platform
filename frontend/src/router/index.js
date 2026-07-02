@@ -81,6 +81,12 @@ const routes = [
         name: 'admin-promotions',
         component: () => import('@/pages/admin/Promotions.vue')
       },
+      { path: 'reviews', name: 'admin-reviews', component: () => import('@/pages/admin/Reviews.vue') },
+      {
+        path: 'notifications',
+        name: 'admin-notifications',
+        component: () => import('@/pages/admin/Notifications.vue')
+      },
       { path: 'team', name: 'admin-team', component: () => import('@/pages/admin/Team.vue') },
       {
         path: 'settings',
