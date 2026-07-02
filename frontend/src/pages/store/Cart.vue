@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { Minus, Plus, Trash2, ShoppingBag, Tag, ArrowRight, X } from 'lucide-vue-next';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Spinner from '@/components/ui/Spinner.vue';
+import PageHero from '@/components/ui/PageHero.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useCartStore } from '@/stores/cart';
 import { useUiStore } from '@/stores/ui';
@@ -78,8 +79,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container py-8">
-    <h1 class="mb-6 text-2xl font-bold">Your cart</h1>
+  <div>
+    <PageHero title="Shopping Cart" :items="[{ label: 'Cart' }]" />
+    <div class="container py-10">
 
     <div v-if="cart.loading && !data" class="flex min-h-[30vh] items-center justify-center">
       <Spinner :size="28" label="Loading cart…" />
@@ -172,6 +174,7 @@ onMounted(() => {
           Continue shopping
         </RouterLink>
       </aside>
+    </div>
     </div>
   </div>
 </template>

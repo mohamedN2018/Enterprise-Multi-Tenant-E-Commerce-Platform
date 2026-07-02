@@ -15,7 +15,9 @@ import {
   Menu,
   X,
   ExternalLink,
-  LogOut
+  LogOut,
+  ShieldCheck,
+  Globe
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useTenantStore } from '@/stores/tenant';
@@ -27,16 +29,33 @@ const tenant = useTenantStore();
 const sidebarOpen = ref(false);
 const storeMenu = ref(false);
 
-const links = [
+const baseLinks = [
   { label: 'Dashboard', to: { name: 'admin-dashboard' }, icon: LayoutDashboard },
   { label: 'Products', to: { name: 'admin-products' }, icon: Package },
   { label: 'Categories', to: { name: 'admin-categories' }, icon: Tags },
   { label: 'Orders', to: { name: 'admin-orders' }, icon: ShoppingBag },
   { label: 'Inventory', to: { name: 'admin-inventory' }, icon: Boxes },
   { label: 'Promotions', to: { name: 'admin-promotions' }, icon: BadgePercent },
-  { label: 'Team', to: { name: 'admin-team' }, icon: Users },
+  { label: 'Team', to: { name: 'admin-team' }, icon: Users, requires: 'members' },
   { label: 'Settings', to: { name: 'admin-settings' }, icon: Settings }
 ];
+
+// Nav is role-aware: employees don't see Team (they can't list members);
+// platform admins get a Platform overview link at the top.
+const links = computed(() => {
+  const items = baseLinks.filter((l) => l.requires !== 'members' || tenant.canManageMembers);
+  if (tenant.isPlatform) {
+    return [{ label: 'Platform', to: { name: 'admin-platform' }, icon: Globe }, ...items];
+  }
+  return items;
+});
+
+const roleTone = {
+  platform: 'bg-secondary-100 text-secondary-700',
+  owner: 'bg-primary-100 text-primary-700',
+  manager: 'bg-sky-100 text-sky-700',
+  employee: 'bg-slate-100 text-slate-600'
+};
 
 const activeStore = computed(() => tenant.active);
 
@@ -51,7 +70,7 @@ const logout = async () => {
   router.push({ name: 'login' });
 };
 
-onMounted(() => tenant.refresh());
+onMounted(() => tenant.ensureReady());
 watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false));
 </script>
 
@@ -62,11 +81,11 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
       class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform lg:translate-x-0"
       :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
     >
-      <div class="flex h-16 items-center gap-2 border-b border-slate-100 px-5 font-bold">
+      <div class="flex h-16 items-center gap-2 border-b border-slate-100 px-5 font-heading font-bold">
         <span class="grid h-9 w-9 place-items-center rounded-lg bg-primary-600 text-white">
           <StoreIcon class="h-5 w-5" />
         </span>
-        Seller Center
+        {{ tenant.isPlatform ? 'Admin Center' : 'Seller Center' }}
       </div>
 
       <div class="border-b border-slate-100 p-3">
@@ -99,6 +118,11 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
             </button>
             <p v-if="!tenant.stores.length" class="px-4 py-2 text-sm text-slate-400">No stores yet</p>
           </div>
+        </div>
+        <div v-if="tenant.role" class="mt-2 px-1">
+          <span class="chip border-0" :class="roleTone[tenant.role] || 'bg-slate-100 text-slate-600'">
+            <ShieldCheck class="h-3 w-3" /> {{ tenant.roleLabel }}
+          </span>
         </div>
       </div>
 

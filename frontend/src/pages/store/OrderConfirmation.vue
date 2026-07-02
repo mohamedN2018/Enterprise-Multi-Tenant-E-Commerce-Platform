@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import { CheckCircle2, Package, ArrowRight } from 'lucide-vue-next';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import Spinner from '@/components/ui/Spinner.vue';
+import PageHero from '@/components/ui/PageHero.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import { useCartStore } from '@/stores/cart';
 import { shop } from '@/services/shop';
@@ -30,7 +31,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="container py-10">
+  <div>
+    <PageHero title="Order Confirmation" :items="[{ label: 'Account', to: { name: 'account' } }, { label: 'Order' }]" />
+    <div class="container py-10">
     <div v-if="loading" class="flex min-h-[40vh] items-center justify-center">
       <Spinner :size="28" label="Loading order…" />
     </div>
@@ -70,6 +73,7 @@ onMounted(async () => {
         <RouterLink :to="{ name: 'account' }" class="btn btn-outline">View my orders</RouterLink>
         <RouterLink :to="{ name: 'products' }" class="btn btn-primary">Continue shopping <ArrowRight class="h-4 w-4" /></RouterLink>
       </div>
+    </div>
     </div>
   </div>
 </template>

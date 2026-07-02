@@ -7,7 +7,10 @@
     -webkit-font-smoothing: antialiased;
   }
   body {
-    @apply bg-slate-50 text-ink font-sans;
+    @apply bg-white text-ink font-sans;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading font-bold;
   }
   a {
     @apply text-primary-600;
@@ -15,32 +18,35 @@
 }
 
 @layer components {
-  /* Buttons */
+  /* Buttons — Roboto, Electro pill styling; primary hovers to secondary red */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg font-medium transition
+    @apply inline-flex items-center justify-center gap-2 rounded-full font-heading font-medium transition
            focus:outline-none focus:ring-2 focus:ring-primary-500/40 disabled:opacity-60 disabled:pointer-events-none
-           px-4 py-2 text-sm;
+           px-5 py-2.5 text-sm;
   }
   .btn-primary {
-    @apply btn bg-primary-600 text-white hover:bg-primary-700 shadow-sm;
+    @apply btn bg-primary-600 text-white hover:bg-secondary-500;
+  }
+  .btn-secondary {
+    @apply btn bg-secondary-500 text-white hover:bg-primary-600;
   }
   .btn-outline {
-    @apply btn border border-slate-200 bg-white text-slate-700 hover:border-primary-400 hover:text-primary-700;
+    @apply btn border border-slate-200 bg-white text-ink hover:border-primary-500 hover:text-primary-600;
   }
   .btn-ghost {
-    @apply btn text-slate-600 hover:bg-slate-100;
+    @apply btn text-muted hover:bg-lightbg hover:text-ink;
   }
   .btn-danger {
-    @apply btn bg-rose-600 text-white hover:bg-rose-700;
+    @apply btn bg-secondary-500 text-white hover:bg-secondary-700;
   }
   .btn-light {
-    @apply btn bg-white text-slate-800 hover:bg-slate-100 shadow-sm;
+    @apply btn bg-white text-ink hover:bg-lightbg border border-slate-200;
   }
   .btn-sm {
-    @apply px-3 py-1.5 text-xs;
+    @apply px-3.5 py-1.5 text-xs;
   }
   .btn-lg {
-    @apply px-5 py-2.5 text-base;
+    @apply px-7 py-3 text-base;
   }
 
   /* Form controls */
@@ -49,7 +55,7 @@
            placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none;
   }
   .label {
-    @apply mb-1 block text-sm font-medium text-slate-700;
+    @apply mb-1 block text-sm font-medium text-ink;
   }
 
   /* Surfaces */
@@ -57,25 +63,61 @@
     @apply rounded-xl border border-slate-200 bg-white shadow-card;
   }
 
-  /* Badges */
+  /* Badges & chips */
   .badge {
     @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium;
   }
-
-  /* Chips */
   .chip {
     @apply inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition;
   }
 
   /* Dropdown / menu items */
   .dropdown-item {
-    @apply flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100;
+    @apply flex items-center gap-2 px-4 py-2 text-sm text-ink transition hover:bg-primary-600 hover:text-white;
   }
 
   /* Section heading */
   .section-title {
-    @apply text-lg font-semibold text-ink;
+    @apply font-heading text-2xl font-bold text-ink;
   }
+
+  /* Electro circular corner badges on product media */
+  .corner-badge {
+    @apply absolute right-3 top-3 grid h-12 w-12 place-items-center rounded-full text-xs font-semibold uppercase text-white shadow;
+  }
+
+  /* Electro inner-page header: fixed image + dark overlay + breadcrumb */
+  .page-hero {
+    @apply relative bg-cover bg-fixed bg-center py-16;
+  }
+  .page-hero::before {
+    content: '';
+    @apply absolute inset-0 bg-ink/60;
+  }
+}
+
+/* Product card hover: media zooms, action bar slides up (Electro signature) */
+.product-media img {
+  transition: transform 0.5s ease;
+}
+.product-card:hover .product-media img {
+  transform: scale(1.1);
+}
+.product-eye {
+  transition: opacity 0.4s ease;
+}
+.product-card:hover .product-eye {
+  opacity: 1;
+}
+.product-actions {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.45s ease, opacity 0.35s ease;
+}
+.product-card:hover .product-actions {
+  max-height: 140px;
+  opacity: 1;
 }
 
 /* Skeleton shimmer */

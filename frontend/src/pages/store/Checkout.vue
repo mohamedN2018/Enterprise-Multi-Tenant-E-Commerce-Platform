@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { Plus, MapPin, Lock, Check } from 'lucide-vue-next';
 import FormField from '@/components/ui/FormField.vue';
 import Spinner from '@/components/ui/Spinner.vue';
+import PageHero from '@/components/ui/PageHero.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import { useCartStore } from '@/stores/cart';
 import { useUiStore } from '@/stores/ui';
@@ -95,8 +96,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="container py-8">
-    <h1 class="mb-6 text-2xl font-bold">Checkout</h1>
+  <div>
+    <PageHero title="Checkout" :items="[{ label: 'Cart', to: { name: 'cart' } }, { label: 'Checkout' }]" />
+    <div class="container py-10">
 
     <div v-if="loading" class="flex min-h-[30vh] items-center justify-center">
       <Spinner :size="28" label="Preparing checkout…" />
@@ -180,6 +182,7 @@ onMounted(async () => {
           </p>
         </div>
       </aside>
+    </div>
     </div>
   </div>
 </template>

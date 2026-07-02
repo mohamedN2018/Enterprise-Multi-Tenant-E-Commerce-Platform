@@ -158,7 +158,8 @@ onMounted(async () => {
   <div>
     <PageHeader title="Products" subtitle="Manage your catalog.">
       <template #actions>
-        <button class="btn btn-primary btn-sm" :disabled="!tenant.hasStores" @click="openCreate">
+        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
+        <button v-if="tenant.canWrite" class="btn btn-primary btn-sm" :disabled="!tenant.hasStores" @click="openCreate">
           <Plus class="h-4 w-4" /> Add product
         </button>
       </template>
@@ -192,10 +193,11 @@ onMounted(async () => {
       <template #cell-price="{ row }">{{ priceRange(row) }} {{ tenant.currency }}</template>
       <template #cell-status="{ value }"><StatusBadge :status="value" /></template>
       <template #cell-actions="{ row }">
-        <div class="flex justify-end gap-1">
+        <div v-if="tenant.canWrite" class="flex justify-end gap-1">
           <button class="btn btn-ghost btn-sm" @click="openEdit(row)"><Pencil class="h-4 w-4" /></button>
           <button class="btn btn-ghost btn-sm text-rose-600" @click="confirmDelete = row"><Trash2 class="h-4 w-4" /></button>
         </div>
+        <span v-else class="text-xs text-muted">—</span>
       </template>
     </DataTable>
 

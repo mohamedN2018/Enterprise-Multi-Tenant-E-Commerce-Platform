@@ -56,6 +56,11 @@ const routes = [
     children: [
       { path: '', name: 'admin-dashboard', component: () => import('@/pages/admin/Dashboard.vue') },
       {
+        path: 'platform',
+        name: 'admin-platform',
+        component: () => import('@/pages/admin/Platform.vue')
+      },
+      {
         path: 'products',
         name: 'admin-products',
         component: () => import('@/pages/admin/Products.vue')

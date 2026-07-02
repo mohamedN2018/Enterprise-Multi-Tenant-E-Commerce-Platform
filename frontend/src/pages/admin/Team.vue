@@ -94,7 +94,8 @@ onMounted(load);
   <div>
     <PageHeader title="Team" subtitle="Manage who can access this store.">
       <template #actions>
-        <button class="btn btn-primary btn-sm" :disabled="!tenant.hasStores" @click="showInvite = true">
+        <span v-if="!tenant.canAdminTeam" class="chip border-slate-200 bg-slate-100 text-slate-600">Owners manage roles</span>
+        <button v-if="tenant.canManageMembers" class="btn btn-primary btn-sm" :disabled="!tenant.hasStores" @click="showInvite = true">
           <UserPlus class="h-4 w-4" /> Add member
         </button>
       </template>
@@ -111,19 +112,19 @@ onMounted(load);
       </template>
       <template #cell-role="{ row }">
         <select
-          v-if="row.role !== 'owner'"
+          v-if="tenant.canAdminTeam && row.role !== 'owner'"
           :value="row.role"
           class="input h-9 max-w-[140px] py-1 text-sm capitalize"
           @change="changeRole(row, $event.target.value)"
         >
           <option v-for="r in roles" :key="r" :value="r" class="capitalize">{{ r }}</option>
         </select>
-        <StatusBadge v-else status="indigo" label="Owner" />
+        <StatusBadge v-else :status="row.role === 'owner' ? 'indigo' : 'gray'" :label="row.role" />
       </template>
       <template #cell-is_active="{ value }"><StatusBadge :status="value ? 'active' : 'inactive'" /></template>
       <template #cell-created_at="{ value }">{{ (value || '').slice(0, 10) }}</template>
       <template #cell-actions="{ row }">
-        <button v-if="row.role !== 'owner'" class="btn btn-ghost btn-sm text-rose-600" @click="confirmRemove = row">
+        <button v-if="tenant.canAdminTeam && row.role !== 'owner'" class="btn btn-ghost btn-sm text-rose-600" @click="confirmRemove = row">
           <Trash2 class="h-4 w-4" />
         </button>
       </template>

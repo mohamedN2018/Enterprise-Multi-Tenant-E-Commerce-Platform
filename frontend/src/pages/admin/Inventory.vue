@@ -109,10 +109,11 @@ onMounted(async () => {
   <div>
     <PageHeader title="Inventory" subtitle="Track stock across warehouses.">
       <template #actions>
-        <button class="btn btn-outline btn-sm" :disabled="!variantOptions.length" @click="openModal('adjust')">
+        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
+        <button v-if="tenant.canWrite" class="btn btn-outline btn-sm" :disabled="!variantOptions.length" @click="openModal('adjust')">
           <Settings2 class="h-4 w-4" /> Adjust
         </button>
-        <button class="btn btn-primary btn-sm" :disabled="!variantOptions.length" @click="openModal('receive')">
+        <button v-if="tenant.canWrite" class="btn btn-primary btn-sm" :disabled="!variantOptions.length" @click="openModal('receive')">
           <PackagePlus class="h-4 w-4" /> Receive stock
         </button>
       </template>

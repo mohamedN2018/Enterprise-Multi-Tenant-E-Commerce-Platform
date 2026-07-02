@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted } from 'vue';
 import { MapPin, ArrowRight } from 'lucide-vue-next';
-import Breadcrumbs from '@/components/ui/Breadcrumbs.vue';
+import PageHero from '@/components/ui/PageHero.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import { storefront } from '@/services/storefront';
@@ -22,11 +22,12 @@ onMounted(() => load());
 </script>
 
 <template>
-  <div class="container py-8">
-    <Breadcrumbs :items="[{ label: 'Home', to: { name: 'home' } }, { label: 'Stores' }]" />
-    <div class="mt-3 mb-6">
-      <h1 class="text-2xl font-bold">Browse stores</h1>
-      <p class="text-sm text-slate-500">{{ total }} independent stores on the marketplace</p>
+  <div>
+    <PageHero title="Stores" :items="[{ label: 'Stores' }]" />
+    <div class="container py-10">
+    <div class="mb-6">
+      <h2 class="section-title">Browse stores</h2>
+      <p class="text-sm text-muted">{{ total }} independent stores on the marketplace</p>
     </div>
 
     <div v-if="loading" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -73,5 +74,6 @@ onMounted(() => load());
     </template>
 
     <EmptyState v-else title="No stores yet" message="Check back soon — new sellers are joining regularly." />
+    </div>
   </div>
 </template>

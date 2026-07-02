@@ -132,10 +132,10 @@ onMounted(async () => {
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button v-if="selected && selected.status === 'pending'" class="btn btn-danger" :disabled="acting" @click="cancelOrder(selected)">
+          <button v-if="tenant.canWrite && selected && selected.status === 'pending'" class="btn btn-danger" :disabled="acting" @click="cancelOrder(selected)">
             <X class="h-4 w-4" /> Cancel
           </button>
-          <button v-if="selected && selected.status === 'pending'" class="btn btn-primary" :disabled="acting" @click="confirmOrder(selected)">
+          <button v-if="tenant.canWrite && selected && selected.status === 'pending'" class="btn btn-primary" :disabled="acting" @click="confirmOrder(selected)">
             <Spinner v-if="acting" :size="18" /><template v-else><Check class="h-4 w-4" /> Confirm</template>
           </button>
           <button class="btn btn-ghost" @click="selected = null">Close</button>

@@ -79,7 +79,11 @@ onMounted(load);
 
 <template>
   <div>
-    <PageHeader title="Settings" subtitle="Configure your store." />
+    <PageHeader title="Settings" subtitle="Configure your store.">
+      <template #actions>
+        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
+      </template>
+    </PageHeader>
 
     <div v-if="loading" class="flex min-h-[40vh] items-center justify-center">
       <Spinner :size="28" label="Loading settings…" />
@@ -118,7 +122,7 @@ onMounted(load);
               </select>
             </div>
           </div>
-          <div>
+          <div v-if="tenant.canWrite">
             <button type="submit" class="btn btn-primary" :disabled="savingProfile">
               <Spinner v-if="savingProfile" :size="18" /><span v-else>Save profile</span>
             </button>
@@ -165,7 +169,7 @@ onMounted(load);
               Allow backorders
             </label>
           </div>
-          <div>
+          <div v-if="tenant.canWrite">
             <button type="submit" class="btn btn-primary" :disabled="savingSettings">
               <Spinner v-if="savingSettings" :size="18" /><span v-else>Save settings</span>
             </button>

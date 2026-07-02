@@ -14,6 +14,7 @@ import {
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Spinner from '@/components/ui/Spinner.vue';
+import PageHero from '@/components/ui/PageHero.vue';
 import Alert from '@/components/ui/Alert.vue';
 import FormField from '@/components/ui/FormField.vue';
 import { useAuthStore } from '@/stores/auth';
@@ -153,8 +154,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container py-8">
-    <h1 class="mb-6 text-2xl font-bold">My account</h1>
+  <div>
+    <PageHero title="My Account" :items="[{ label: 'Account' }]" />
+    <div class="container py-10">
 
     <div class="grid gap-8 lg:grid-cols-[240px_1fr]">
       <!-- Sidebar -->
@@ -294,6 +296,7 @@ onMounted(() => {
           </form>
         </section>
       </div>
+    </div>
     </div>
   </div>
 </template>
