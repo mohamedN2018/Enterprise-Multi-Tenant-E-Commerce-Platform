@@ -107,7 +107,7 @@ onMounted(load);
       <div class="print-area mx-auto max-w-3xl rounded-xl border border-slate-200 bg-white p-8">
         <div class="flex items-start justify-between border-b border-slate-100 pb-6">
           <div>
-            <h1 class="font-heading text-2xl font-black text-primary-600"><ShoppingBag class="mb-1 mr-1 inline h-6 w-6 text-secondary-500" />Electro</h1>
+            <img src="/brand/qtech-logo.png" alt="q-shop" class="h-12 w-auto" />
             <p class="mt-1 text-sm text-muted">{{ tenant.active?.name }}</p>
           </div>
           <div class="text-right">
@@ -164,7 +164,7 @@ onMounted(load);
           <div class="flex justify-between border-t border-slate-200 pt-2 font-heading text-base font-bold"><span>Total</span><span>{{ order.total }} {{ currency }}</span></div>
         </div>
 
-        <p class="mt-8 border-t border-slate-100 pt-4 text-center text-xs text-slate-400">Thank you for shopping with {{ tenant.active?.name }} on Electro.</p>
+        <p class="mt-8 border-t border-slate-100 pt-4 text-center text-xs text-slate-400">Thank you for shopping with {{ tenant.active?.name }} on q-shop.</p>
       </div>
 
       <Modal v-model="trackModal" title="Set tracking number" size="sm">

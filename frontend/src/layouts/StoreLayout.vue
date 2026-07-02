@@ -8,7 +8,6 @@ import {
   Shuffle,
   Heart,
   ShoppingCart,
-  ShoppingBag,
   User,
   LogOut,
   LayoutDashboard,
@@ -125,9 +124,7 @@ onMounted(async () => {
     <div class="border-b border-slate-100">
       <div class="container flex flex-wrap items-center gap-4 py-4">
         <RouterLink :to="{ name: 'home' }" class="flex items-center">
-          <h1 class="m-0 font-heading text-3xl font-black text-primary-600">
-            <ShoppingBag class="mb-1 mr-1 inline h-7 w-7 text-secondary-500" />Electro
-          </h1>
+          <img src="/brand/qtech-logo.png" alt="q-shop" class="h-12 w-auto" />
         </RouterLink>
 
         <form class="order-3 flex w-full flex-1 lg:order-none lg:w-auto" @submit.prevent="search">
@@ -227,10 +224,8 @@ onMounted(async () => {
     <footer class="mt-16 bg-ink text-slate-300">
       <div class="container grid gap-8 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <h1 class="m-0 mb-4 font-heading text-2xl font-black text-white">
-            <ShoppingBag class="mb-1 mr-1 inline h-6 w-6 text-primary-600" />Electro
-          </h1>
-          <p class="text-sm leading-7">Your multi-vendor marketplace for electronics, fashion, home and more — curated from verified independent stores.</p>
+          <img src="/brand/dark-logo.png" alt="q-shop" class="mb-4 h-16 w-auto" />
+          <p class="text-sm leading-7">q-shop — your multi-vendor marketplace for electronics, fashion, home and more, curated from verified independent stores.</p>
           <div class="mt-4 flex gap-2">
             <a href="#" class="grid h-9 w-9 place-items-center rounded-full border border-white/20 hover:bg-primary-600 hover:text-white"><Facebook class="h-4 w-4" /></a>
             <a href="#" class="grid h-9 w-9 place-items-center rounded-full border border-white/20 hover:bg-primary-600 hover:text-white"><Twitter class="h-4 w-4" /></a>
@@ -252,7 +247,7 @@ onMounted(async () => {
           <ul class="space-y-2 text-sm">
             <li><RouterLink :to="{ name: 'products' }" class="text-slate-300 hover:text-primary-500 hover:tracking-wide">Shop</RouterLink></li>
             <li><RouterLink :to="{ name: 'stores' }" class="text-slate-300 hover:text-primary-500 hover:tracking-wide">Stores</RouterLink></li>
-            <li><RouterLink :to="{ name: 'admin-dashboard' }" class="text-slate-300 hover:text-primary-500 hover:tracking-wide">Sell on Electro</RouterLink></li>
+            <li><RouterLink :to="{ name: 'admin-dashboard' }" class="text-slate-300 hover:text-primary-500 hover:tracking-wide">Sell on q-shop</RouterLink></li>
             <li><RouterLink :to="{ name: 'register' }" class="text-slate-300 hover:text-primary-500 hover:tracking-wide">Open a Store</RouterLink></li>
           </ul>
         </div>
@@ -268,7 +263,7 @@ onMounted(async () => {
       </div>
       <div class="bg-primary-600">
         <div class="container flex flex-col items-center justify-between gap-2 py-4 text-sm text-white sm:flex-row">
-          <p>© 2026 Electro Marketplace. All rights reserved.</p>
+          <p>© 2026 q-shop Marketplace. All rights reserved.</p>
           <p class="opacity-90">Built on an enterprise multi-tenant platform.</p>
         </div>
       </div>

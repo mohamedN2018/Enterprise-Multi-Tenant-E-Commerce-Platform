@@ -13,11 +13,8 @@ const perks = [
     <div class="relative hidden overflow-hidden bg-primary-700 p-12 text-white lg:flex lg:flex-col">
       <div class="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary-500/40 blur-3xl"></div>
       <div class="absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-primary-400/30 blur-3xl"></div>
-      <RouterLink :to="{ name: 'home' }" class="relative flex items-center gap-2 text-xl font-bold">
-        <span class="grid h-10 w-10 place-items-center rounded-xl bg-white/15">
-          <Store class="h-5 w-5" />
-        </span>
-        Marketplace
+      <RouterLink :to="{ name: 'home' }" class="relative">
+        <img src="/brand/dark-logo.png" alt="q-shop" class="h-16 w-auto" />
       </RouterLink>
       <div class="relative my-auto max-w-md">
         <h1 class="text-3xl font-bold leading-tight">Sell more with a platform built for scale.</h1>
@@ -37,7 +34,7 @@ const perks = [
           </li>
         </ul>
       </div>
-      <p class="relative text-sm text-primary-200">© 2026 Marketplace</p>
+      <p class="relative text-sm text-primary-200">© 2026 q-shop</p>
     </div>
 
     <div class="flex items-center justify-center bg-slate-50 p-6">

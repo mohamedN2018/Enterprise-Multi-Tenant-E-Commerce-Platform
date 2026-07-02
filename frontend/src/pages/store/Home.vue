@@ -9,14 +9,18 @@ import {
   CreditCard,
   Lock,
   Headphones,
-  ShoppingCart
+  Sparkles,
+  ShieldCheck,
+  Store as StoreIcon,
+  Quote,
+  Star,
+  Rocket
 } from 'lucide-vue-next';
 import ProductCard from '@/components/ProductCard.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
-import { Store as StoreIcon, Quote, Star, Rocket } from 'lucide-vue-next';
 import { storefront } from '@/services/storefront';
 import { useAddToCart } from '@/composables/useAddToCart';
-import { heroImage, catImage, storeBanner, storeLogo, onImgError } from '@/utils/media';
+import { heroImage, catImage, storeBanner, storeLogo, productImage, onImgError } from '@/utils/media';
 import { getRecentlyViewed } from '@/utils/recent';
 
 const router = useRouter();
@@ -33,7 +37,7 @@ const recent = ref(getRecentlyViewed());
 const testimonials = [
   { name: 'Sarah M.', text: 'Fast shipping and the product quality exceeded my expectations. My go-to marketplace now!', role: 'Verified buyer' },
   { name: 'Ahmed K.', text: 'Love the variety of independent stores. Found exactly what I was looking for at a great price.', role: 'Verified buyer' },
-  { name: 'Elena R.', text: 'Checkout was smooth and the wishlist feature is so handy. Highly recommend Electro.', role: 'Verified buyer' }
+  { name: 'Elena R.', text: 'Checkout was smooth and the wishlist feature is so handy. Highly recommend q-shop.', role: 'Verified buyer' }
 ];
 
 const services = [
@@ -71,39 +75,47 @@ onMounted(async () => {
 <template>
   <div>
     <!-- Hero -->
-    <section class="bg-lightbg">
-      <div class="container grid gap-4 py-8 lg:grid-cols-3">
-        <!-- Main promo -->
-        <div class="relative overflow-hidden rounded-xl bg-white lg:col-span-2">
-          <div class="grid h-full items-center gap-4 p-8 sm:grid-cols-2">
-            <div>
-              <h4 class="mb-3 font-heading font-bold uppercase tracking-[3px] text-secondary-500">Save up to $400</h4>
-              <h1 class="mb-4 font-heading text-3xl font-black leading-tight text-ink lg:text-4xl">
-                On selected Laptops, Desktops & Smartphones
-              </h1>
-              <p class="mb-6 text-muted">Terms and conditions apply.</p>
-              <RouterLink :to="{ name: 'products' }" class="btn btn-primary btn-lg">Shop Now <ArrowRight class="h-4 w-4" /></RouterLink>
-            </div>
-            <img :src="heroImage('electro', 700, 560)" alt="" class="ml-auto hidden max-h-72 w-full rounded-lg object-cover sm:block" @error="onImgError" />
+    <section class="relative overflow-hidden bg-gradient-to-br from-ink via-ink to-primary-900 text-white">
+      <div class="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-primary-600/30 blur-3xl"></div>
+      <div class="absolute -bottom-32 left-1/3 h-80 w-80 rounded-full bg-secondary-500/20 blur-3xl"></div>
+      <div class="container relative grid items-center gap-10 py-16 lg:grid-cols-2 lg:py-24">
+        <div>
+          <span class="chip border-white/20 bg-white/10 text-white"><Sparkles class="h-3.5 w-3.5 text-primary-400" /> Welcome to q-shop</span>
+          <h1 class="mt-5 font-heading text-4xl font-black leading-[1.1] lg:text-5xl">
+            Everything you love, from <span class="text-primary-500">independent stores</span>
+          </h1>
+          <p class="mt-4 max-w-lg text-lg text-slate-300">
+            Shop thousands of products across electronics, fashion, home and more — one cart, secure checkout, and fast delivery from verified sellers.
+          </p>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <RouterLink :to="{ name: 'products' }" class="btn btn-primary btn-lg">Shop now <ArrowRight class="h-4 w-4" /></RouterLink>
+            <RouterLink :to="{ name: 'register' }" class="btn btn-light btn-lg"><Rocket class="h-4 w-4" /> Become a seller</RouterLink>
+          </div>
+          <div class="mt-10 flex gap-8">
+            <div><p class="font-heading text-2xl font-black">{{ stores.length || '10' }}+</p><p class="text-sm text-slate-400">Stores</p></div>
+            <div><p class="font-heading text-2xl font-black">{{ categories.length || '10' }}+</p><p class="text-sm text-slate-400">Categories</p></div>
+            <div><p class="flex items-center gap-1 font-heading text-2xl font-black"><ShieldCheck class="h-5 w-5 text-primary-400" /> 24/7</p><p class="text-sm text-slate-400">Support</p></div>
           </div>
         </div>
 
-        <!-- Side offer banner -->
-        <RouterLink :to="featured ? { name: 'product', params: { id: featured.id } } : { name: 'products' }" class="group relative overflow-hidden rounded-xl">
-          <img :src="heroImage('offer', 500, 560)" alt="" class="h-full min-h-64 w-full object-cover" @error="onImgError" />
-          <div class="absolute left-4 top-4 flex items-center gap-2">
-            <span class="rounded bg-primary-600 px-3 py-1 text-sm font-semibold text-white">Special Offer</span>
-          </div>
-          <div class="absolute inset-x-0 bottom-0 bg-ink/50 p-5 text-center text-white">
-            <p class="text-sm text-white/80">{{ featured?.store_slug || 'Featured store' }}</p>
-            <p class="clamp-1 font-heading text-xl font-bold">{{ featured?.name || 'Top pick of the week' }}</p>
-            <p class="mt-1 text-primary-400">
-              <del v-if="featured?.compare_at_price" class="mr-2 text-white/60">{{ featured.compare_at_price }}</del>
-              <span class="font-semibold text-white">{{ featured?.price }} {{ featured?.currency }}</span>
-            </p>
-            <span class="btn btn-primary mt-3"><ShoppingCart class="h-4 w-4" /> Shop offer</span>
-          </div>
-        </RouterLink>
+        <!-- Featured product card -->
+        <div class="relative mx-auto w-full max-w-sm lg:max-w-md">
+          <div class="absolute -inset-4 rounded-3xl bg-white/5 blur-xl"></div>
+          <RouterLink :to="featured ? { name: 'product', params: { id: featured.id } } : { name: 'products' }" class="relative block overflow-hidden rounded-2xl bg-white text-ink shadow-pop transition hover:-translate-y-1">
+            <div class="relative">
+              <img :src="featured ? productImage(featured, 800, 500) : heroImage('hero', 800, 500)" alt="" class="h-60 w-full object-cover" @error="onImgError" />
+              <span class="absolute left-4 top-4 rounded-full bg-secondary-500 px-3 py-1 text-xs font-bold text-white">Featured</span>
+            </div>
+            <div class="p-5">
+              <p class="text-xs font-medium text-primary-600">{{ featured?.store_slug || 'q-shop' }}</p>
+              <p class="clamp-1 font-heading text-lg font-bold">{{ featured?.name || 'Discover top picks' }}</p>
+              <div class="mt-3 flex items-center justify-between">
+                <span class="font-heading text-xl font-bold text-primary-600">{{ featured?.price }} {{ featured?.currency }}</span>
+                <span class="btn btn-primary btn-sm">View <ArrowRight class="h-4 w-4" /></span>
+              </div>
+            </div>
+          </RouterLink>
+        </div>
       </div>
     </section>
 
@@ -236,7 +248,7 @@ onMounted(async () => {
         <div class="flex items-center gap-4">
           <span class="hidden h-14 w-14 place-items-center rounded-2xl bg-primary-600 text-white sm:grid"><StoreIcon class="h-7 w-7" /></span>
           <div>
-            <h2 class="font-heading text-2xl font-black text-white lg:text-3xl">Start selling on Electro today</h2>
+            <h2 class="font-heading text-2xl font-black text-white lg:text-3xl">Start selling on q-shop today</h2>
             <p class="mt-2 text-slate-300">Open your store, reach thousands of shoppers, and grow your business.</p>
           </div>
         </div>

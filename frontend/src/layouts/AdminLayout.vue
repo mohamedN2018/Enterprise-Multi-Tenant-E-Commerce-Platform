@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   LayoutDashboard,
+  Activity,
   Package,
   Tags,
   Bookmark,
@@ -50,6 +51,7 @@ const navGroups = computed(() => [
     title: 'Overview',
     links: [
       { label: 'Dashboard', to: { name: 'admin-dashboard' }, icon: LayoutDashboard },
+      { label: 'Analytics', to: { name: 'admin-analytics' }, icon: Activity },
       ...(tenant.isPlatform ? [{ label: 'Platform', to: { name: 'admin-platform' }, icon: Globe }] : [])
     ]
   },
@@ -137,11 +139,9 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
       class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform lg:translate-x-0"
       :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
     >
-      <div class="flex h-16 items-center gap-2 border-b border-slate-100 px-5 font-heading font-bold">
-        <span class="grid h-9 w-9 place-items-center rounded-lg bg-primary-600 text-white">
-          <StoreIcon class="h-5 w-5" />
-        </span>
-        {{ tenant.isPlatform ? 'Admin Center' : 'Seller Center' }}
+      <div class="flex h-16 items-center gap-2 border-b border-slate-100 px-4">
+        <img src="/brand/qtech-logo.png" alt="q-shop" class="h-9 w-auto" />
+        <span class="font-heading text-sm font-bold text-slate-500">{{ tenant.isPlatform ? 'Admin' : 'Seller' }}</span>
       </div>
 
       <div class="border-b border-slate-100 p-3">

@@ -118,6 +118,26 @@ export const seller = {
   submitPurchaseOrder: (id) => http.post(`/procurement/purchase-orders/${id}/submit/`),
   receivePurchaseOrder: (id, payload) => http.post(`/procurement/purchase-orders/${id}/receive/`, payload || {}),
   cancelPurchaseOrder: (id) => http.post(`/procurement/purchase-orders/${id}/cancel/`),
+  stockBatches: (params) => http.get('/procurement/batches/', { params }),
+  serials: (params) => http.get('/procurement/serials/', { params }),
+  registerSerials: (payload) => http.post('/procurement/serials/', payload),
+  boms: () => http.get('/procurement/boms/'),
+  createBom: (payload) => http.post('/procurement/boms/', payload),
+  addBomComponent: (bomId, payload) => http.post(`/procurement/boms/${bomId}/components/`, payload),
+  workOrders: (params) => http.get('/procurement/work-orders/', { params }),
+  createWorkOrder: (payload) => http.post('/procurement/work-orders/', payload),
+  completeWorkOrder: (id) => http.post(`/procurement/work-orders/${id}/complete/`),
+  cancelWorkOrder: (id) => http.post(`/procurement/work-orders/${id}/cancel/`),
+
+  // Catalog advanced (variants / bundles / digital)
+  generateVariants: (productId, payload) => http.post(`/catalog/products/${productId}/generate-variants/`, payload),
+  bundleComponents: (productId) => http.get(`/catalog/products/${productId}/components/`),
+  addBundleComponent: (productId, payload) => http.post(`/catalog/products/${productId}/components/`, payload),
+  deleteBundleComponent: (productId, componentId) => http.delete(`/catalog/products/${productId}/components/${componentId}/`),
+  variantDigital: (variantId) => http.get(`/catalog/variants/${variantId}/digital/`),
+  setVariantDigital: (variantId, payload) => http.put(`/catalog/variants/${variantId}/digital/`, payload),
+  variantLicenseKeys: (variantId) => http.get(`/catalog/variants/${variantId}/license-keys/`),
+  addLicenseKeys: (variantId, payload) => http.post(`/catalog/variants/${variantId}/license-keys/`, payload),
 
   // Attributes (catalog)
   attributes: () => http.get('/catalog/attributes/'),

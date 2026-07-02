@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { Plus, Search, Pencil, Trash2, Package, Download } from 'lucide-vue-next';
+import { Plus, Search, Pencil, Trash2, Package, Download, Sparkles, Key } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import Pagination from '@/components/ui/Pagination.vue';
@@ -141,6 +141,53 @@ const addVariant = async () => {
   }
 };
 
+// --- Generate variants (configurable products) ----------------------------
+const genModal = ref(false);
+const genBusy = ref(false);
+const genForm = ref({ base_price: 0, sku_prefix: '' });
+const generateVariants = async () => {
+  genBusy.value = true;
+  try {
+    const payload = { base_price: genForm.value.base_price };
+    if (genForm.value.sku_prefix) payload.sku_prefix = genForm.value.sku_prefix;
+    await seller.generateVariants(editing.value.id, payload);
+    ui.success('Variants generated.');
+    genModal.value = false;
+    const res = await seller.product(editing.value.id);
+    editing.value.variants = res.data.variants || editing.value.variants;
+    fetch();
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    genBusy.value = false;
+  }
+};
+
+// --- License keys (digital products) --------------------------------------
+const keysModal = ref(false);
+const keysBusy = ref(false);
+const keysVariant = ref(null);
+const keysText = ref('');
+const openKeys = (v) => {
+  keysVariant.value = v;
+  keysText.value = '';
+  keysModal.value = true;
+};
+const addKeys = async () => {
+  keysBusy.value = true;
+  try {
+    await seller.addLicenseKeys(keysVariant.value.id, {
+      keys: keysText.value.split(/[\n,]/).map((k) => k.trim()).filter(Boolean)
+    });
+    ui.success('License keys added.');
+    keysModal.value = false;
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    keysBusy.value = false;
+  }
+};
+
 // --- Delete ---------------------------------------------------------------
 const confirmDelete = ref(null);
 const deleting = ref(false);
@@ -268,11 +315,17 @@ onMounted(async () => {
 
       <!-- Variants (edit only) -->
       <div v-if="editing" class="mt-6 border-t border-slate-100 pt-5">
-        <h4 class="mb-3 text-sm font-semibold">Variants</h4>
+        <div class="mb-3 flex items-center justify-between">
+          <h4 class="text-sm font-semibold">Variants</h4>
+          <button type="button" class="btn btn-ghost btn-sm" @click="genModal = true"><Sparkles class="h-4 w-4" /> Generate</button>
+        </div>
         <ul v-if="editing.variants?.length" class="mb-4 space-y-2">
-          <li v-for="v in editing.variants" :key="v.id" class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
+          <li v-for="v in editing.variants" :key="v.id" class="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
             <span>{{ v.name || v.sku }} <span class="text-slate-400">· {{ v.sku }}</span></span>
-            <span class="font-medium">{{ v.price }} {{ tenant.currency }}</span>
+            <div class="flex items-center gap-2">
+              <span class="font-medium">{{ v.price }} {{ tenant.currency }}</span>
+              <button v-if="editing.product_type === 'digital'" type="button" class="btn btn-ghost btn-sm" @click="openKeys(v)"><Key class="h-3.5 w-3.5" /> Keys</button>
+            </div>
           </li>
         </ul>
         <form class="grid grid-cols-2 gap-3 sm:grid-cols-4" @submit.prevent="addVariant">
@@ -307,6 +360,33 @@ onMounted(async () => {
           <button class="btn btn-danger" :disabled="deleting" @click="doDelete">
             <Spinner v-if="deleting" :size="18" /><span v-else>Delete</span>
           </button>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Generate variants -->
+    <Modal v-model="genModal" title="Generate variants" size="sm">
+      <p class="mb-3 text-sm text-muted">Builds variants from this product's variant attributes. Set a base price and optional SKU prefix.</p>
+      <div class="grid gap-4">
+        <FormField v-model.number="genForm.base_price" label="Base price" type="number" step="0.01" required />
+        <FormField v-model="genForm.sku_prefix" label="SKU prefix" placeholder="e.g. TSHIRT" />
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button class="btn btn-ghost" @click="genModal = false">Cancel</button>
+          <button class="btn btn-primary" :disabled="genBusy" @click="generateVariants"><Spinner v-if="genBusy" :size="18" /><span v-else>Generate</span></button>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- License keys -->
+    <Modal v-model="keysModal" :title="`License keys${keysVariant ? ` · ${keysVariant.sku}` : ''}`">
+      <p class="mb-3 text-sm text-muted">Add license keys (one per line) that buyers receive on purchase.</p>
+      <textarea v-model="keysText" rows="5" class="input" placeholder="KEY-001&#10;KEY-002"></textarea>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button class="btn btn-ghost" @click="keysModal = false">Cancel</button>
+          <button class="btn btn-primary" :disabled="keysBusy || !keysText.trim()" @click="addKeys"><Spinner v-if="keysBusy" :size="18" /><span v-else>Add keys</span></button>
         </div>
       </template>
     </Modal>

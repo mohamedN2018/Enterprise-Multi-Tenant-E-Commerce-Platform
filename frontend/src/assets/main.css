@@ -8,6 +8,7 @@
   }
   body {
     @apply bg-white text-ink font-sans;
+    cursor: url('/cursors/cursor-dark.png') 4 2, auto;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading font-bold;
@@ -15,10 +16,29 @@
   a {
     @apply text-primary-600;
   }
+  /* Custom "click" cursor on interactive elements */
+  a,
+  button,
+  [role='button'],
+  .btn,
+  select,
+  label,
+  summary,
+  input[type='checkbox'],
+  input[type='radio'] {
+    cursor: url('/cursors/cursor-click-dark.png') 6 2, pointer;
+  }
+  /* Light cursor on dark surfaces for contrast */
+  .bg-ink,
+  .bg-ink *,
+  .bg-primary-600,
+  .bg-primary-600 * {
+    cursor: url('/cursors/cursor-light.png') 4 2, auto;
+  }
 }
 
 @layer components {
-  /* Buttons — Roboto, Electro pill styling; primary hovers to secondary red */
+  /* Buttons — Roboto, q-shop pill styling; primary hovers to secondary red */
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-full font-heading font-medium transition
            focus:outline-none focus:ring-2 focus:ring-primary-500/40 disabled:opacity-60 disabled:pointer-events-none
@@ -81,12 +101,12 @@
     @apply font-heading text-2xl font-bold text-ink;
   }
 
-  /* Electro circular corner badges on product media */
+  /* q-shop circular corner badges on product media */
   .corner-badge {
     @apply absolute right-3 top-3 grid h-12 w-12 place-items-center rounded-full text-xs font-semibold uppercase text-white shadow;
   }
 
-  /* Electro inner-page header: fixed image + dark overlay + breadcrumb */
+  /* q-shop inner-page header: fixed image + dark overlay + breadcrumb */
   .page-hero {
     @apply relative bg-cover bg-fixed bg-center py-16;
   }
@@ -96,7 +116,7 @@
   }
 }
 
-/* Product card hover: media zooms, action bar slides up (Electro signature) */
+/* Product card hover: media zooms, action bar slides up (q-shop signature) */
 .product-media img {
   transition: transform 0.5s ease;
 }

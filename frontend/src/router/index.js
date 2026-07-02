@@ -72,6 +72,7 @@ const routes = [
         name: 'admin-platform',
         component: () => import('@/pages/admin/Platform.vue')
       },
+      { path: 'analytics', name: 'admin-analytics', component: () => import('@/pages/admin/Analytics.vue') },
       {
         path: 'products',
         name: 'admin-products',
@@ -154,6 +155,7 @@ const TITLES = {
   'verify-email': 'Verify email',
   'admin-dashboard': 'Dashboard',
   'admin-platform': 'Platform',
+  'admin-analytics': 'Analytics',
   'admin-products': 'Products',
   'admin-categories': 'Categories',
   'admin-brands': 'Brands',
@@ -180,7 +182,7 @@ const TITLES = {
 };
 router.afterEach((to) => {
   const t = TITLES[to.name];
-  document.title = t ? `${t} · Electro` : 'Electro Marketplace';
+  document.title = t ? `${t} · q-shop` : 'q-shop Marketplace';
 });
 
 router.beforeEach(async (to) => {
