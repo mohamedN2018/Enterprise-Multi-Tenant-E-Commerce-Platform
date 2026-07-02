@@ -79,23 +79,23 @@ onMounted(async () => {
 
 <template>
   <div>
-    <PageHero title="Shop" :items="[{ label: 'Shop' }]" />
+    <PageHero :title="$t('shop.title')" :items="[{ label: $t('shop.title') }]" />
 
     <div class="container py-10">
       <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 class="section-title capitalize">{{ heading }}</h2>
-          <p class="text-sm text-muted">{{ total }} products found</p>
+          <p class="text-sm text-muted">{{ total }} {{ $t('shop.productsFound') }}</p>
         </div>
         <form class="relative w-full max-w-sm" @submit.prevent="submitSearch">
-          <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input v-model="term" type="search" placeholder="Search products…" class="input rounded-full pl-9" />
+          <Search class="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input v-model="term" type="search" :placeholder="$t('nav.searchPlaceholder')" class="input rounded-full ps-9" />
         </form>
       </div>
 
       <div class="mb-4 flex items-center gap-3 lg:hidden">
-        <button class="btn btn-outline btn-sm" @click="mobileFilters = !mobileFilters"><SlidersHorizontal class="h-4 w-4" /> Filters</button>
-        <button v-if="hasFilters" class="btn btn-ghost btn-sm" @click="clearAll"><X class="h-4 w-4" /> Clear</button>
+        <button class="btn btn-outline btn-sm" @click="mobileFilters = !mobileFilters"><SlidersHorizontal class="h-4 w-4" /> {{ $t('shop.filter') }}</button>
+        <button v-if="hasFilters" class="btn btn-ghost btn-sm" @click="clearAll"><X class="h-4 w-4" /> {{ $t('common.clear') }}</button>
       </div>
 
       <div class="grid gap-8 lg:grid-cols-[260px_1fr]">
@@ -103,7 +103,7 @@ onMounted(async () => {
         <aside :class="mobileFilters ? 'block' : 'hidden'" class="lg:block">
           <div class="space-y-6">
             <div class="rounded-xl border border-slate-200 p-5">
-              <h3 class="mb-3 border-b border-slate-100 pb-2 font-heading text-lg font-bold text-ink">Categories</h3>
+              <h3 class="mb-3 border-b border-slate-100 pb-2 font-heading text-lg font-bold text-ink">{{ $t('shop.categories') }}</h3>
               <ul>
                 <li v-for="c in categories" :key="c.name" class="flex items-center justify-between border-b border-slate-50 py-2 last:border-0">
                   <button class="text-sm transition hover:text-primary-600" :class="activeCategory === c.name ? 'font-semibold text-primary-600' : 'text-ink'" @click="toggleCategory(c.name)">
@@ -114,12 +114,12 @@ onMounted(async () => {
               </ul>
             </div>
             <div class="rounded-xl border border-slate-200 p-5">
-              <h3 class="mb-3 border-b border-slate-100 pb-2 font-heading text-lg font-bold text-ink">Filter</h3>
+              <h3 class="mb-3 border-b border-slate-100 pb-2 font-heading text-lg font-bold text-ink">{{ $t('shop.filter') }}</h3>
               <label class="flex cursor-pointer items-center gap-2 text-sm text-ink">
                 <input type="checkbox" :checked="onSale" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" @change="toggleSale" />
-                On sale only
+                {{ $t('shop.onSaleOnly') }}
               </label>
-              <button v-if="hasFilters" class="mt-4 text-sm text-primary-600 hover:underline" @click="clearAll">Reset all filters</button>
+              <button v-if="hasFilters" class="mt-4 text-sm text-primary-600 hover:underline" @click="clearAll">{{ $t('shop.resetFilters') }}</button>
             </div>
           </div>
         </aside>
@@ -142,8 +142,8 @@ onMounted(async () => {
             </div>
           </template>
 
-          <EmptyState v-else title="No products found" message="Try adjusting your filters or search terms.">
-            <button class="btn btn-primary btn-sm" @click="clearAll">Clear filters</button>
+          <EmptyState v-else :title="$t('shop.noProducts')" :message="$t('shop.noProductsMsg')">
+            <button class="btn btn-primary btn-sm" @click="clearAll">{{ $t('shop.clearFilters') }}</button>
           </EmptyState>
         </div>
       </div>

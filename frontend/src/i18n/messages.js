@@ -10,7 +10,9 @@ export default {
       export: 'تصدير', refresh: 'تحديث', filters: 'الفلاتر', reset: 'إعادة تعيين', clear: 'مسح',
       selected: 'محدد', of: 'من', items: 'عناصر', date: 'التاريخ', name: 'الاسم', email: 'البريد الإلكتروني',
       phone: 'الهاتف', country: 'الدولة', city: 'المدينة', description: 'الوصف', type: 'النوع',
-      active: 'مفعّل', inactive: 'غير مفعّل', more: 'المزيد', noResults: 'لا توجد نتائج'
+      active: 'مفعّل', inactive: 'غير مفعّل', more: 'المزيد', noResults: 'لا توجد نتائج',
+      pageNotFound: 'الصفحة غير موجودة', pageNotFoundMsg: 'الصفحة التي تبحث عنها غير موجودة أو ربما تم نقلها.',
+      backHome: 'العودة للرئيسية', browseProducts: 'تصفّح المنتجات'
     },
     nav: {
       home: 'الرئيسية', shop: 'المتجر', stores: 'المتاجر', account: 'حسابي', help: 'مساعدة',
@@ -46,12 +48,20 @@ export default {
       noReviewsMsg: 'كن أول من يقيّم هذا المنتج بعد الشراء.', related: 'منتجات ذات صلة', verified: 'موثّق',
       sale: 'خصم', moreFromStore: 'المزيد من هذا المتجر', wishlist: 'حفظ في المفضلة',
       notFound: 'المنتج غير موجود', notFoundMsg: 'ربما تم حذف هذا المنتج أو لم يعد متاحًا.',
-      browseProducts: 'تصفّح المنتجات', noDescription: 'لا يوجد وصف لهذا المنتج.'
+      browseProducts: 'تصفّح المنتجات', noDescription: 'لا يوجد وصف لهذا المنتج.',
+      detail: 'التفاصيل', shopDetail: 'تفاصيل المنتج', loading: 'جارٍ تحميل المنتج…', out: 'غير متوفر',
+      reviewsCount: 'تقييم', signInReviewToast: 'من فضلك سجّل الدخول لكتابة تقييم.', reviewSubmitted: 'تم إرسال تقييمك للمراجعة. شكرًا لك!'
     },
     shop: {
       title: 'المتجر', productsFound: 'منتج', categories: 'الأقسام', filter: 'تصفية', onSaleOnly: 'العروض فقط',
       resetFilters: 'إعادة تعيين كل الفلاتر', allProducts: 'كل المنتجات', noProducts: 'لا توجد منتجات',
       noProductsMsg: 'جرّب تعديل الفلاتر أو كلمات البحث.', clearFilters: 'مسح الفلاتر'
+    },
+    stores: {
+      title: 'المتاجر', browse: 'تصفّح المتاجر', subtitle: 'متجر مستقل على المنصة', visitStore: 'زيارة المتجر',
+      curated: 'متجر مستقل مختار.', noStores: 'لا توجد متاجر بعد', noStoresMsg: 'عُد قريبًا — بائعون جدد ينضمّون باستمرار.',
+      products: 'المنتجات', about: 'عن المتجر', joined: 'انضم في', noProducts: 'لا توجد منتجات في هذا المتجر بعد.',
+      storeNotFound: 'المتجر غير موجود', storeNotFoundMsg: 'ربما تم إغلاق هذا المتجر أو تغيّر رابطه.', allStores: 'كل المتاجر'
     },
     cart: {
       title: 'سلة التسوق', empty: 'سلتك فارغة', emptyMsg: 'تصفّح السوق وأضف المنتجات التي تحبها.',
@@ -65,7 +75,14 @@ export default {
       free: 'مجاني', orderSummary: 'ملخص الطلب', placeOrder: 'تأكيد الطلب', secureCheckout: 'دفع آمن ومشفّر',
       fullName: 'الاسم الكامل', line1: 'العنوان 1', line2: 'العنوان 2', region: 'المنطقة/المحافظة',
       postal: 'الرمز البريدي', saveAddress: 'حفظ العنوان', preparing: 'جارٍ تجهيز الدفع…', emptyCart: 'سلتك فارغة',
-      emptyCartMsg: 'أضف عناصر للسلة قبل إتمام الدفع.', browseProducts: 'تصفّح المنتجات', orderPlaced: 'تم تأكيد الطلب بنجاح!'
+      emptyCartMsg: 'أضف عناصر للسلة قبل إتمام الدفع.', browseProducts: 'تصفّح المنتجات', orderPlaced: 'تم تأكيد الطلب بنجاح!',
+      addressSaved: 'تم حفظ العنوان.'
+    },
+    order: {
+      confirmation: 'تأكيد الطلب', order: 'الطلب', loading: 'جارٍ تحميل الطلب…', notFound: 'الطلب غير موجود',
+      notFoundMsg: 'تعذّر تحميل هذا الطلب.', goToOrders: 'الذهاب إلى طلباتي', thankYou: 'شكرًا على طلبك!',
+      placedPrefix: 'تم تأكيد الطلب', placedSuffix: 'بنجاح.', details: 'تفاصيل الطلب', tax: 'الضريبة',
+      shipping: 'الشحن', viewMyOrders: 'عرض طلباتي', continueShopping: 'مواصلة التسوق'
     },
     account: {
       title: 'حسابي', profile: 'الملف الشخصي', orders: 'الطلبات', returns: 'المرتجعات', addresses: 'العناوين',
@@ -121,7 +138,9 @@ export default {
       submit: 'Submit', yes: 'Yes', no: 'No', readOnly: 'Read-only', export: 'Export', refresh: 'Refresh',
       filters: 'Filters', reset: 'Reset', clear: 'Clear', selected: 'selected', of: 'of', items: 'items',
       date: 'Date', name: 'Name', email: 'Email', phone: 'Phone', country: 'Country', city: 'City',
-      description: 'Description', type: 'Type', active: 'Active', inactive: 'Inactive', more: 'More', noResults: 'No results'
+      description: 'Description', type: 'Type', active: 'Active', inactive: 'Inactive', more: 'More', noResults: 'No results',
+      pageNotFound: 'Page not found', pageNotFoundMsg: "The page you're looking for doesn't exist or may have been moved.",
+      backHome: 'Back home', browseProducts: 'Browse products'
     },
     nav: {
       home: 'Home', shop: 'Shop', stores: 'Stores', account: 'Account', help: 'Help', support: 'Support',
@@ -156,12 +175,20 @@ export default {
       noReviewsMsg: 'Be the first to review this product after purchase.', related: 'Related Products', verified: 'Verified',
       sale: 'Sale', moreFromStore: 'More from this store', wishlist: 'Save to wishlist',
       notFound: 'Product not found', notFoundMsg: 'This product may have been removed or is no longer available.',
-      browseProducts: 'Browse products', noDescription: 'No description provided for this product.'
+      browseProducts: 'Browse products', noDescription: 'No description provided for this product.',
+      detail: 'Detail', shopDetail: 'Shop Detail', loading: 'Loading product…', out: 'out',
+      reviewsCount: 'reviews', signInReviewToast: 'Please sign in to write a review.', reviewSubmitted: 'Review submitted for moderation. Thank you!'
     },
     shop: {
       title: 'Shop', productsFound: 'products found', categories: 'Categories', filter: 'Filter', onSaleOnly: 'On sale only',
       resetFilters: 'Reset all filters', allProducts: 'All Products', noProducts: 'No products found',
       noProductsMsg: 'Try adjusting your filters or search terms.', clearFilters: 'Clear filters'
+    },
+    stores: {
+      title: 'Stores', browse: 'Browse stores', subtitle: 'independent stores on the marketplace', visitStore: 'Visit store',
+      curated: 'A curated independent store.', noStores: 'No stores yet', noStoresMsg: 'Check back soon — new sellers are joining regularly.',
+      products: 'Products', about: 'About', joined: 'Joined', noProducts: 'No products in this store yet.',
+      storeNotFound: 'Store not found', storeNotFoundMsg: 'This store may have been closed or its link changed.', allStores: 'All stores'
     },
     cart: {
       title: 'Shopping Cart', empty: 'Your cart is empty', emptyMsg: 'Browse the marketplace and add products you love.',
@@ -175,7 +202,14 @@ export default {
       free: 'Free', orderSummary: 'Order summary', placeOrder: 'Place order', secureCheckout: 'Secure, encrypted checkout',
       fullName: 'Full name', line1: 'Address line 1', line2: 'Address line 2', region: 'State / Region',
       postal: 'Postal code', saveAddress: 'Save address', preparing: 'Preparing checkout…', emptyCart: 'Your cart is empty',
-      emptyCartMsg: 'Add items to your cart before checking out.', browseProducts: 'Browse products', orderPlaced: 'Order placed successfully!'
+      emptyCartMsg: 'Add items to your cart before checking out.', browseProducts: 'Browse products', orderPlaced: 'Order placed successfully!',
+      addressSaved: 'Address saved.'
+    },
+    order: {
+      confirmation: 'Order Confirmation', order: 'Order', loading: 'Loading order…', notFound: 'Order not found',
+      notFoundMsg: "We couldn't load this order.", goToOrders: 'Go to my orders', thankYou: 'Thank you for your order!',
+      placedPrefix: 'Order', placedSuffix: 'has been placed.', details: 'Order details', tax: 'Tax',
+      shipping: 'Shipping', viewMyOrders: 'View my orders', continueShopping: 'Continue shopping'
     },
     account: {
       title: 'My account', profile: 'Profile', orders: 'Orders', returns: 'Returns', addresses: 'Addresses',

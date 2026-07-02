@@ -23,11 +23,11 @@ onMounted(() => load());
 
 <template>
   <div>
-    <PageHero title="Stores" :items="[{ label: 'Stores' }]" />
+    <PageHero :title="$t('stores.title')" :items="[{ label: $t('stores.title') }]" />
     <div class="container py-10">
     <div class="mb-6">
-      <h2 class="section-title">Browse stores</h2>
-      <p class="text-sm text-muted">{{ total }} independent stores on the marketplace</p>
+      <h2 class="section-title">{{ $t('stores.browse') }}</h2>
+      <p class="text-sm text-muted">{{ total }} {{ $t('stores.subtitle') }}</p>
     </div>
 
     <div v-if="loading" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -61,9 +61,9 @@ onMounted(() => load());
                 </p>
               </div>
             </div>
-            <p class="clamp-2 mt-3 text-sm text-slate-500">{{ s.description || 'A curated independent store.' }}</p>
+            <p class="clamp-2 mt-3 text-sm text-slate-500">{{ s.description || $t('stores.curated') }}</p>
             <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary-600">
-              Visit store <ArrowRight class="h-4 w-4 transition group-hover:translate-x-0.5" />
+              {{ $t('stores.visitStore') }} <ArrowRight class="h-4 w-4 transition group-hover:translate-x-0.5 rtl:rotate-180" />
             </span>
           </div>
         </RouterLink>
@@ -73,7 +73,7 @@ onMounted(() => load());
       </div>
     </template>
 
-    <EmptyState v-else title="No stores yet" message="Check back soon — new sellers are joining regularly." />
+    <EmptyState v-else :title="$t('stores.noStores')" :message="$t('stores.noStoresMsg')" />
     </div>
   </div>
 </template>

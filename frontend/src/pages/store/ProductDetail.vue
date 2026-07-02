@@ -16,6 +16,7 @@ import { useUiStore } from '@/stores/ui';
 import { productImage, onImgError } from '@/utils/media';
 import { errorMessage } from '@/services/http';
 import { pushRecentlyViewed } from '@/utils/recent';
+import { t } from '@/i18n';
 
 const route = useRoute();
 const auth = useAuthStore();
@@ -28,7 +29,7 @@ const submittingReview = ref(false);
 
 const submitReview = async () => {
   if (!auth.isAuthenticated) {
-    ui.info('Please sign in to write a review.');
+    ui.info(t('product.signInReviewToast'));
     return;
   }
   submittingReview.value = true;
@@ -42,7 +43,7 @@ const submitReview = async () => {
         body: reviewForm.value.body
       }
     );
-    ui.success('Review submitted for moderation. Thank you!');
+    ui.success(t('product.reviewSubmitted'));
     reviewForm.value = { rating: 5, title: '', body: '' };
   } catch (e) {
     ui.error(errorMessage(e));
@@ -112,13 +113,13 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
 
 <template>
   <div>
-    <PageHero title="Shop Detail" :items="[{ label: 'Shop', to: { name: 'products' } }, { label: 'Detail' }]" />
+    <PageHero :title="$t('product.shopDetail')" :items="[{ label: $t('shop.title'), to: { name: 'products' } }, { label: $t('product.detail') }]" />
 
     <div class="container py-10">
-      <div v-if="loading" class="flex min-h-[40vh] items-center justify-center"><Spinner :size="28" label="Loading product…" /></div>
+      <div v-if="loading" class="flex min-h-[40vh] items-center justify-center"><Spinner :size="28" :label="$t('product.loading')" /></div>
 
-      <EmptyState v-else-if="notFound" title="Product not found" message="This product may have been removed or is no longer available.">
-        <RouterLink :to="{ name: 'products' }" class="btn btn-primary btn-sm">Browse products</RouterLink>
+      <EmptyState v-else-if="notFound" :title="$t('product.notFound')" :message="$t('product.notFoundMsg')">
+        <RouterLink :to="{ name: 'products' }" class="btn btn-primary btn-sm">{{ $t('product.browseProducts') }}</RouterLink>
       </EmptyState>
 
       <template v-else-if="product">
@@ -152,13 +153,13 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
             <div class="mt-5 flex items-end gap-3">
               <span class="font-heading text-4xl font-bold text-primary-600">{{ price }} {{ currency }}</span>
               <del v-if="onSale" class="mb-1 text-lg text-slate-400">{{ compareAt }} {{ currency }}</del>
-              <span v-if="onSale" class="mb-1 rounded-full bg-secondary-500 px-3 py-0.5 text-xs font-bold text-white">Sale</span>
+              <span v-if="onSale" class="mb-1 rounded-full bg-secondary-500 px-3 py-0.5 text-xs font-bold text-white">{{ $t('product.sale') }}</span>
             </div>
 
             <p v-if="product.description" class="mt-5 whitespace-pre-line leading-7 text-muted">{{ product.description }}</p>
 
             <div v-if="product.variants?.length > 1" class="mt-6">
-              <p class="label">Options</p>
+              <p class="label">{{ $t('product.options') }}</p>
               <div class="flex flex-wrap gap-2">
                 <button
                   v-for="v in product.variants"
@@ -168,7 +169,7 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
                   :disabled="v.in_stock === false"
                   @click="selectedVariant = v"
                 >
-                  {{ v.name }} <span v-if="v.in_stock === false" class="text-slate-400">(out)</span>
+                  {{ v.name }} <span v-if="v.in_stock === false" class="text-slate-400">({{ $t('product.out') }})</span>
                 </button>
               </div>
             </div>
@@ -180,18 +181,18 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
                 <button class="grid h-11 w-11 place-items-center rounded-full text-ink hover:bg-lightbg" @click="qty++"><Plus class="h-4 w-4" /></button>
               </div>
               <button class="btn btn-primary btn-lg flex-1 border border-secondary-500 sm:flex-none" :disabled="!inStock || adding === product.id" @click="addToCart">
-                <ShoppingCart class="h-5 w-5" /> {{ inStock ? 'Add to cart' : 'Out of stock' }}
+                <ShoppingCart class="h-5 w-5" /> {{ inStock ? $t('product.addToCart') : $t('product.outOfStock') }}
               </button>
-              <button class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500 disabled:opacity-50" title="Save to wishlist" :disabled="wishSaving === product.id" @click="saveWishlist(product, { variant: selectedVariant })"><Heart class="h-5 w-5" /></button>
-              <RouterLink :to="{ name: 'products', query: { store: product.store_slug } }" class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500" title="More from this store"><Shuffle class="h-5 w-5" /></RouterLink>
+              <button class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500 disabled:opacity-50" :title="$t('product.wishlist')" :disabled="wishSaving === product.id" @click="saveWishlist(product, { variant: selectedVariant })"><Heart class="h-5 w-5" /></button>
+              <RouterLink :to="{ name: 'products', query: { store: product.store_slug } }" class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500" :title="$t('product.moreFromStore')"><Shuffle class="h-5 w-5" /></RouterLink>
             </div>
 
             <div class="mt-6 flex items-center gap-1.5 text-sm" :class="inStock ? 'text-emerald-600' : 'text-secondary-500'">
-              <Check v-if="inStock" class="h-4 w-4" /> {{ inStock ? 'In stock and ready to ship' : 'Currently unavailable' }}
+              <Check v-if="inStock" class="h-4 w-4" /> {{ inStock ? $t('product.inStock') : $t('product.unavailable') }}
             </div>
             <div class="mt-6 grid gap-3 border-t border-slate-100 pt-6 sm:grid-cols-2">
-              <div class="flex items-center gap-2 text-sm text-muted"><Truck class="h-4 w-4 text-primary-600" /> Fast, tracked delivery</div>
-              <div class="flex items-center gap-2 text-sm text-muted"><ShieldCheck class="h-4 w-4 text-primary-600" /> Secure payment</div>
+              <div class="flex items-center gap-2 text-sm text-muted"><Truck class="h-4 w-4 text-primary-600" /> {{ $t('product.fastDelivery') }}</div>
+              <div class="flex items-center gap-2 text-sm text-muted"><ShieldCheck class="h-4 w-4 text-primary-600" /> {{ $t('product.securePayment') }}</div>
             </div>
           </div>
         </div>
@@ -199,19 +200,19 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
         <!-- Tabs -->
         <div class="mt-14">
           <div class="flex gap-6 border-b border-slate-200">
-            <button class="border-b-2 pb-3 font-heading font-semibold transition" :class="activeTab === 'description' ? 'border-secondary-500 text-ink' : 'border-transparent text-muted hover:text-ink'" @click="activeTab = 'description'">Description</button>
-            <button class="border-b-2 pb-3 font-heading font-semibold transition" :class="activeTab === 'reviews' ? 'border-secondary-500 text-ink' : 'border-transparent text-muted hover:text-ink'" @click="activeTab = 'reviews'">Reviews ({{ summary?.count || 0 }})</button>
+            <button class="border-b-2 pb-3 font-heading font-semibold transition" :class="activeTab === 'description' ? 'border-secondary-500 text-ink' : 'border-transparent text-muted hover:text-ink'" @click="activeTab = 'description'">{{ $t('product.description') }}</button>
+            <button class="border-b-2 pb-3 font-heading font-semibold transition" :class="activeTab === 'reviews' ? 'border-secondary-500 text-ink' : 'border-transparent text-muted hover:text-ink'" @click="activeTab = 'reviews'">{{ $t('product.reviews') }} ({{ summary?.count || 0 }})</button>
           </div>
 
           <div v-if="activeTab === 'description'" class="prose mt-6 max-w-none leading-7 text-muted">
-            <p class="whitespace-pre-line">{{ product.description || 'No description provided for this product.' }}</p>
+            <p class="whitespace-pre-line">{{ product.description || $t('product.noDescription') }}</p>
           </div>
 
           <div v-else class="mt-6 grid gap-8 lg:grid-cols-[280px_1fr]">
             <div class="h-fit rounded-xl border border-slate-200 p-6 text-center">
               <p class="font-heading text-4xl font-bold text-ink">{{ (summary?.average_rating || 0).toFixed(1) }}</p>
               <div class="mt-2 flex justify-center"><StarRating :value="summary?.average_rating || 0" /></div>
-              <p class="mt-1 text-sm text-muted">{{ summary?.count || 0 }} reviews</p>
+              <p class="mt-1 text-sm text-muted">{{ summary?.count || 0 }} {{ $t('product.reviewsCount') }}</p>
               <div v-if="summary?.distribution" class="mt-5 space-y-1.5">
                 <div v-for="n in [5, 4, 3, 2, 1]" :key="n" class="flex items-center gap-2 text-xs">
                   <span class="w-6 text-muted">{{ n }}★</span>
@@ -225,23 +226,23 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
             <div>
               <!-- Write a review -->
               <div class="mb-6 rounded-xl border border-slate-200 p-5">
-                <h4 class="mb-3 font-heading font-semibold text-ink">Write a review</h4>
+                <h4 class="mb-3 font-heading font-semibold text-ink">{{ $t('product.writeReview') }}</h4>
                 <template v-if="auth.isAuthenticated">
                   <form class="space-y-3" @submit.prevent="submitReview">
                     <div class="flex items-center gap-3">
-                      <span class="text-sm text-muted">Your rating</span>
+                      <span class="text-sm text-muted">{{ $t('product.yourRating') }}</span>
                       <StarRating :value="reviewForm.rating" editable :size="22" @update:value="reviewForm.rating = $event" />
                     </div>
-                    <input v-model="reviewForm.title" class="input" placeholder="Title (optional)" maxlength="150" />
-                    <textarea v-model="reviewForm.body" rows="3" class="input" placeholder="Share your experience…"></textarea>
+                    <input v-model="reviewForm.title" class="input" :placeholder="$t('product.reviewTitle')" maxlength="150" />
+                    <textarea v-model="reviewForm.body" rows="3" class="input" :placeholder="$t('product.reviewBody')"></textarea>
                     <button type="submit" class="btn btn-primary btn-sm" :disabled="submittingReview">
-                      <Spinner v-if="submittingReview" :size="16" /><span v-else>Submit review</span>
+                      <Spinner v-if="submittingReview" :size="16" /><span v-else>{{ $t('product.submitReview') }}</span>
                     </button>
                   </form>
                 </template>
                 <p v-else class="text-sm text-muted">
-                  <RouterLink :to="{ name: 'login', query: { redirect: route.fullPath } }" class="font-semibold text-primary-600 hover:underline">Sign in</RouterLink>
-                  to write a review.
+                  <RouterLink :to="{ name: 'login', query: { redirect: route.fullPath } }" class="font-semibold text-primary-600 hover:underline">{{ $t('product.signInToReview') }}</RouterLink>
+                  {{ $t('product.toWriteReview') }}
                 </p>
               </div>
 
@@ -249,20 +250,20 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
                 <article v-for="r in reviews" :key="r.id" class="rounded-xl border border-slate-200 p-5">
                   <div class="flex items-center justify-between">
                     <StarRating :value="r.rating" :size="14" />
-                    <span v-if="r.is_verified_purchase" class="chip border-emerald-200 bg-emerald-50 text-emerald-700"><Check class="h-3 w-3" /> Verified</span>
+                    <span v-if="r.is_verified_purchase" class="chip border-emerald-200 bg-emerald-50 text-emerald-700"><Check class="h-3 w-3" /> {{ $t('product.verified') }}</span>
                   </div>
                   <h4 v-if="r.title" class="mt-2 font-semibold text-ink">{{ r.title }}</h4>
                   <p class="mt-1 text-sm text-muted">{{ r.body }}</p>
                 </article>
               </div>
-              <EmptyState v-else title="No reviews yet" message="Be the first to review this product after purchase." />
+              <EmptyState v-else :title="$t('product.noReviews')" :message="$t('product.noReviewsMsg')" />
             </div>
           </div>
         </div>
 
         <!-- Related -->
         <div v-if="related.length" class="mt-14">
-          <h2 class="section-title mb-6">Related Products</h2>
+          <h2 class="section-title mb-6">{{ $t('product.related') }}</h2>
           <div class="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
             <ProductCard v-for="rp in related" :key="rp.id" :product="rp" :adding="adding === rp.id" @add="add" />
           </div>

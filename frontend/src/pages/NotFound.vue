@@ -8,13 +8,13 @@ import { Compass } from 'lucide-vue-next';
       <Compass class="h-8 w-8" />
     </span>
     <p class="mt-6 text-5xl font-bold text-ink">404</p>
-    <h1 class="mt-2 text-xl font-semibold">Page not found</h1>
+    <h1 class="mt-2 text-xl font-semibold">{{ $t('common.pageNotFound') }}</h1>
     <p class="mt-2 max-w-sm text-slate-500">
-      The page you're looking for doesn't exist or may have been moved.
+      {{ $t('common.pageNotFoundMsg') }}
     </p>
     <div class="mt-6 flex gap-3">
-      <RouterLink :to="{ name: 'home' }" class="btn btn-primary">Back home</RouterLink>
-      <RouterLink :to="{ name: 'products' }" class="btn btn-outline">Browse products</RouterLink>
+      <RouterLink :to="{ name: 'home' }" class="btn btn-primary">{{ $t('common.backHome') }}</RouterLink>
+      <RouterLink :to="{ name: 'products' }" class="btn btn-outline">{{ $t('common.browseProducts') }}</RouterLink>
     </div>
   </div>
 </template>

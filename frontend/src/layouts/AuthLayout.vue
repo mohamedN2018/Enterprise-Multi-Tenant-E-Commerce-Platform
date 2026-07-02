@@ -2,9 +2,9 @@
 import { ShieldCheck, Store, TrendingUp } from 'lucide-vue-next';
 
 const perks = [
-  { icon: Store, title: 'Launch your storefront', text: 'Spin up a branded store in minutes.' },
-  { icon: TrendingUp, title: 'Grow with insights', text: 'Rich analytics on every order.' },
-  { icon: ShieldCheck, title: 'Enterprise-grade', text: 'Secure, multi-tenant, and reliable.' }
+  { icon: Store, title: 'تسوّق من متاجر موثوقة', text: 'آلاف المنتجات في مكان واحد.' },
+  { icon: TrendingUp, title: 'عروض وخصومات', text: 'أفضل الأسعار من بائعين مستقلين.' },
+  { icon: ShieldCheck, title: 'دفع آمن', text: 'حماية كاملة لكل عملية شراء.' }
 ];
 </script>
 
@@ -17,10 +17,9 @@ const perks = [
         <img src="/brand/dark-logo.png" alt="q-shop" class="h-16 w-auto" />
       </RouterLink>
       <div class="relative my-auto max-w-md">
-        <h1 class="text-3xl font-bold leading-tight">Sell more with a platform built for scale.</h1>
+        <h1 class="text-3xl font-bold leading-tight">تسوّق أذكى مع q-shop.</h1>
         <p class="mt-3 text-primary-100">
-          Everything you need to run a modern commerce business — catalog, inventory, checkout,
-          payments and promotions.
+          كل ما تحتاجه للتسوّق من متاجر مستقلة موثوقة — منتجات متنوّعة، دفع آمن، وتوصيل سريع.
         </p>
         <ul class="mt-8 space-y-5">
           <li v-for="p in perks" :key="p.title" class="flex gap-4">

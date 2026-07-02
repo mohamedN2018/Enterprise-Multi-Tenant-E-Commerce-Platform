@@ -10,6 +10,7 @@ import { useCartStore } from '@/stores/cart';
 import { useUiStore } from '@/stores/ui';
 import { shop } from '@/services/shop';
 import { errorMessage } from '@/services/http';
+import { t } from '@/i18n';
 
 const router = useRouter();
 const cart = useCartStore();
@@ -64,7 +65,7 @@ const saveAddress = async () => {
     selectedAddress.value = created.id;
     showForm.value = false;
     form.value = blankAddress();
-    ui.success('Address saved.');
+    ui.success(t('checkout.addressSaved'));
   } catch (e) {
     ui.error(errorMessage(e));
   } finally {
@@ -92,7 +93,7 @@ const placeOrder = async () => {
       country: chosen?.country || cart.shopStore?.country || '',
       currency: cart.shopStore?.currency || ''
     });
-    ui.success('Order placed successfully!');
+    ui.success(t('checkout.orderPlaced'));
     router.push({ name: 'order-confirmation', params: { id: order.id } });
   } catch (e) {
     ui.error(errorMessage(e));
@@ -110,19 +111,19 @@ onMounted(async () => {
 
 <template>
   <div>
-    <PageHero title="Checkout" :items="[{ label: 'Cart', to: { name: 'cart' } }, { label: 'Checkout' }]" />
+    <PageHero :title="$t('checkout.title')" :items="[{ label: $t('cart.title'), to: { name: 'cart' } }, { label: $t('checkout.title') }]" />
     <div class="container py-10">
 
     <div v-if="loading" class="flex min-h-[30vh] items-center justify-center">
-      <Spinner :size="28" label="Preparing checkout…" />
+      <Spinner :size="28" :label="$t('checkout.preparing')" />
     </div>
 
     <EmptyState
       v-else-if="!items.length"
-      title="Your cart is empty"
-      message="Add items to your cart before checking out."
+      :title="$t('checkout.emptyCart')"
+      :message="$t('checkout.emptyCartMsg')"
     >
-      <RouterLink :to="{ name: 'products' }" class="btn btn-primary btn-sm">Browse products</RouterLink>
+      <RouterLink :to="{ name: 'products' }" class="btn btn-primary btn-sm">{{ $t('checkout.browseProducts') }}</RouterLink>
     </EmptyState>
 
     <div v-else class="grid gap-8 lg:grid-cols-[1fr_360px]">
@@ -130,9 +131,9 @@ onMounted(async () => {
       <div class="space-y-6">
         <section class="card p-6">
           <div class="mb-4 flex items-center justify-between">
-            <h2 class="flex items-center gap-2 font-semibold"><MapPin class="h-5 w-5 text-primary-600" /> Shipping address</h2>
+            <h2 class="flex items-center gap-2 font-semibold"><MapPin class="h-5 w-5 text-primary-600" /> {{ $t('checkout.shippingAddress') }}</h2>
             <button v-if="addresses.length" class="btn btn-ghost btn-sm" @click="showForm = !showForm">
-              <Plus class="h-4 w-4" /> New address
+              <Plus class="h-4 w-4" /> {{ $t('checkout.newAddress') }}
             </button>
           </div>
 
@@ -154,17 +155,17 @@ onMounted(async () => {
           </div>
 
           <form v-if="showForm" class="mt-4 grid gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2" @submit.prevent="saveAddress">
-            <FormField v-model="form.full_name" label="Full name" required class="sm:col-span-2" />
-            <FormField v-model="form.line1" label="Address line 1" required class="sm:col-span-2" />
-            <FormField v-model="form.line2" label="Address line 2" />
-            <FormField v-model="form.city" label="City" required />
-            <FormField v-model="form.region" label="State / Region" />
-            <FormField v-model="form.postal_code" label="Postal code" required />
-            <FormField v-model="form.country" label="Country (ISO-2)" maxlength="2" placeholder="US" required />
-            <FormField v-model="form.phone" label="Phone" />
+            <FormField v-model="form.full_name" :label="$t('checkout.fullName')" required class="sm:col-span-2" />
+            <FormField v-model="form.line1" :label="$t('checkout.line1')" required class="sm:col-span-2" />
+            <FormField v-model="form.line2" :label="$t('checkout.line2')" />
+            <FormField v-model="form.city" :label="$t('common.city')" required />
+            <FormField v-model="form.region" :label="$t('checkout.region')" />
+            <FormField v-model="form.postal_code" :label="$t('checkout.postal')" required />
+            <FormField v-model="form.country" :label="$t('common.country')" maxlength="2" placeholder="US" required />
+            <FormField v-model="form.phone" :label="$t('common.phone')" />
             <div class="sm:col-span-2">
               <button type="submit" class="btn btn-primary btn-sm" :disabled="savingAddress">
-                <Spinner v-if="savingAddress" :size="16" /><span v-else>Save address</span>
+                <Spinner v-if="savingAddress" :size="16" /><span v-else>{{ $t('checkout.saveAddress') }}</span>
               </button>
             </div>
           </form>
@@ -172,7 +173,7 @@ onMounted(async () => {
 
         <!-- Shipping method -->
         <section v-if="shippingMethods.length" class="card p-6">
-          <h2 class="mb-4 flex items-center gap-2 font-semibold"><Truck class="h-5 w-5 text-primary-600" /> Shipping method</h2>
+          <h2 class="mb-4 flex items-center gap-2 font-semibold"><Truck class="h-5 w-5 text-primary-600" /> {{ $t('checkout.shippingMethod') }}</h2>
           <div class="grid gap-3">
             <label
               v-for="m in shippingMethods"
@@ -187,7 +188,7 @@ onMounted(async () => {
                   <span class="block text-xs text-muted">{{ m.zone_name }}</span>
                 </span>
               </span>
-              <span class="text-sm font-semibold">{{ Number(m.price) > 0 ? `${m.price} ${currency}` : 'Free' }}</span>
+              <span class="text-sm font-semibold">{{ Number(m.price) > 0 ? `${m.price} ${currency}` : $t('checkout.free') }}</span>
             </label>
           </div>
         </section>
@@ -196,7 +197,7 @@ onMounted(async () => {
       <!-- Right: summary -->
       <aside class="h-fit space-y-4 lg:sticky lg:top-24">
         <div class="card p-5">
-          <h3 class="font-semibold">Order summary</h3>
+          <h3 class="font-semibold">{{ $t('checkout.orderSummary') }}</h3>
           <ul class="mt-4 space-y-3 border-b border-slate-100 pb-4">
             <li v-for="item in items" :key="item.id" class="flex justify-between gap-2 text-sm">
               <span class="text-slate-600">{{ item.product_name }} <span class="text-slate-400">× {{ item.quantity }}</span></span>
@@ -204,16 +205,16 @@ onMounted(async () => {
             </li>
           </ul>
           <dl class="mt-4 space-y-2 text-sm">
-            <div class="flex justify-between"><dt class="text-slate-500">Subtotal</dt><dd class="font-medium">{{ data.subtotal }} {{ currency }}</dd></div>
-            <div v-if="Number(data.discount) > 0" class="flex justify-between text-emerald-600"><dt>Discount</dt><dd>−{{ data.discount }} {{ currency }}</dd></div>
-            <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>Total</dt><dd>{{ data.total }} {{ currency }}</dd></div>
+            <div class="flex justify-between"><dt class="text-slate-500">{{ $t('common.subtotal') }}</dt><dd class="font-medium">{{ data.subtotal }} {{ currency }}</dd></div>
+            <div v-if="Number(data.discount) > 0" class="flex justify-between text-emerald-600"><dt>{{ $t('common.discount') }}</dt><dd>−{{ data.discount }} {{ currency }}</dd></div>
+            <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>{{ $t('common.total') }}</dt><dd>{{ data.total }} {{ currency }}</dd></div>
           </dl>
           <button class="btn btn-primary btn-lg mt-5 w-full" :disabled="placing" @click="placeOrder">
             <Spinner v-if="placing" :size="18" />
-            <template v-else><Lock class="h-4 w-4" /> Place order</template>
+            <template v-else><Lock class="h-4 w-4" /> {{ $t('checkout.placeOrder') }}</template>
           </button>
           <p class="mt-3 flex items-center justify-center gap-1 text-xs text-slate-400">
-            <Check class="h-3.5 w-3.5" /> Secure, encrypted checkout
+            <Check class="h-3.5 w-3.5" /> {{ $t('checkout.secureCheckout') }}
           </p>
         </div>
       </aside>

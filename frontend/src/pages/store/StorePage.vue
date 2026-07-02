@@ -48,11 +48,11 @@ watch(() => route.params.slug, (slug) => slug && loadStore(slug), { immediate: t
 
 <template>
   <div>
-    <div v-if="loadingStore" class="flex min-h-[50vh] items-center justify-center"><Spinner :size="30" label="Loading store…" /></div>
+    <div v-if="loadingStore" class="flex min-h-[50vh] items-center justify-center"><Spinner :size="30" :label="$t('stores.title')" /></div>
 
     <div v-else-if="notFound || !store" class="container py-16">
-      <EmptyState title="Store not found" message="This store may no longer be available.">
-        <RouterLink :to="{ name: 'stores' }" class="btn btn-primary btn-sm">Browse stores</RouterLink>
+      <EmptyState :title="$t('stores.storeNotFound')" :message="$t('stores.storeNotFoundMsg')">
+        <RouterLink :to="{ name: 'stores' }" class="btn btn-primary btn-sm">{{ $t('stores.allStores') }}</RouterLink>
       </EmptyState>
     </div>
 
@@ -73,7 +73,7 @@ watch(() => route.params.slug, (slug) => slug && loadStore(slug), { immediate: t
               </h1>
               <p v-if="store.country" class="flex items-center gap-1 text-sm text-muted"><MapPin class="h-4 w-4" /> {{ store.country }} · {{ store.currency }}</p>
             </div>
-            <div class="text-sm text-muted"><span class="font-semibold text-ink">{{ total }}</span> products</div>
+            <div class="text-sm text-muted"><span class="font-semibold text-ink">{{ total }}</span> {{ $t('stores.products') }}</div>
           </div>
           <p v-if="store.description" class="mt-4 max-w-3xl text-muted">{{ store.description }}</p>
         </div>
@@ -81,7 +81,7 @@ watch(() => route.params.slug, (slug) => slug && loadStore(slug), { immediate: t
 
       <!-- Products -->
       <section class="container py-10">
-        <h2 class="section-title mb-6">Products</h2>
+        <h2 class="section-title mb-6">{{ $t('stores.products') }}</h2>
         <div v-if="loading" class="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
           <div v-for="n in 8" :key="n" class="rounded-xl border border-slate-200"><div class="skeleton aspect-[4/3] rounded-t-xl"></div><div class="space-y-2 p-4"><div class="skeleton mx-auto h-4 w-2/3 rounded"></div><div class="skeleton mx-auto h-4 w-1/3 rounded"></div></div></div>
         </div>
@@ -91,7 +91,7 @@ watch(() => route.params.slug, (slug) => slug && loadStore(slug), { immediate: t
           </div>
           <div v-if="totalPages > 1" class="mt-10"><Pagination :page="page" :page-size="20" :total="total" @update:page="changePage" /></div>
         </template>
-        <EmptyState v-else :icon="Package" title="No products yet" message="This store hasn't published any products yet." />
+        <EmptyState v-else :icon="Package" :title="$t('shop.noProducts')" :message="$t('stores.noProducts')" />
       </section>
     </template>
   </div>
