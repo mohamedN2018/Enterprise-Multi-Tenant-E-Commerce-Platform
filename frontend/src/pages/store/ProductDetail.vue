@@ -143,7 +143,7 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
 
           <!-- Info -->
           <div>
-            <RouterLink v-if="product.store_slug" :to="{ name: 'products', query: { store: product.store_slug } }" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:underline">
+            <RouterLink v-if="product.store_slug" :to="{ name: 'store', params: { slug: product.store_slug } }" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:underline">
               <StoreIcon class="h-4 w-4" /> {{ product.store_slug }}
             </RouterLink>
             <h1 class="mt-2 font-heading text-3xl font-bold text-ink">{{ product.name }}</h1>

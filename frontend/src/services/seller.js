@@ -38,6 +38,35 @@ export const seller = {
   updateCategory: (id, payload) => http.patch(`/catalog/categories/${id}/`, payload),
   deleteCategory: (id) => http.delete(`/catalog/categories/${id}/`),
 
+  brands: (params) => http.get('/catalog/brands/', { params }),
+  createBrand: (payload) => http.post('/catalog/brands/', payload),
+  updateBrand: (id, payload) => http.patch(`/catalog/brands/${id}/`, payload),
+  deleteBrand: (id) => http.delete(`/catalog/brands/${id}/`),
+
+  // Shipping (staff)
+  shippingZones: () => http.get('/shipping/zones/'),
+  createShippingZone: (payload) => http.post('/shipping/zones/', payload),
+  updateShippingZone: (id, payload) => http.patch(`/shipping/zones/${id}/`, payload),
+  deleteShippingZone: (id) => http.delete(`/shipping/zones/${id}/`),
+  shippingMethods: (zoneId) => http.get(`/shipping/zones/${zoneId}/methods/`),
+  createShippingMethod: (zoneId, payload) => http.post(`/shipping/zones/${zoneId}/methods/`, payload),
+  setOrderTracking: (orderId, payload) => http.post(`/shipping/orders/${orderId}/tracking/`, payload),
+
+  // Payouts (staff)
+  payoutAccount: () => http.get('/payouts/account/'),
+  payoutLedger: (params) => http.get('/payouts/ledger/', { params }),
+  payouts: (params) => http.get('/payouts/', { params }),
+  requestPayout: (payload) => http.post('/payouts/', payload),
+  markPayoutPaid: (id) => http.post(`/payouts/${id}/mark-paid/`),
+  commission: () => http.get('/payouts/commission/'),
+  setCommission: (payload) => http.put('/payouts/commission/', payload),
+
+  // Returns (staff)
+  returnsManage: (params) => http.get('/returns/manage/', { params }),
+  approveReturn: (id) => http.post(`/returns/${id}/approve/`),
+  rejectReturn: (id, payload) => http.post(`/returns/${id}/reject/`, payload || {}),
+  refundReturn: (id) => http.post(`/returns/${id}/refund/`),
+
   // Orders (staff)
   orders: (params) => http.get('/orders/manage/', { params }),
   order: (id) => http.get(`/orders/manage/${id}/`),

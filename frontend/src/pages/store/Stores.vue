@@ -45,7 +45,7 @@ onMounted(() => load());
         <RouterLink
           v-for="s in items"
           :key="s.id"
-          :to="{ name: 'products', query: { store: s.slug } }"
+          :to="{ name: 'store', params: { slug: s.slug } }"
           class="card group overflow-hidden transition hover:-translate-y-0.5 hover:shadow-pop"
         >
           <div class="h-28 overflow-hidden bg-slate-100">

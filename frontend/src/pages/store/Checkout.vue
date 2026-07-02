@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Plus, MapPin, Lock, Check } from 'lucide-vue-next';
+import { Plus, MapPin, Lock, Check, Truck } from 'lucide-vue-next';
 import FormField from '@/components/ui/FormField.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import PageHero from '@/components/ui/PageHero.vue';
@@ -21,6 +21,8 @@ const addresses = ref([]);
 const selectedAddress = ref(null);
 const showForm = ref(false);
 const savingAddress = ref(false);
+const shippingMethods = ref([]);
+const selectedMethod = ref(null);
 
 const blankAddress = () => ({
   label: 'Home',
@@ -70,12 +72,23 @@ const saveAddress = async () => {
   }
 };
 
+const loadShipping = async () => {
+  try {
+    const res = await shop.availableShipping(cart.headers);
+    shippingMethods.value = res.data || [];
+    if (shippingMethods.value.length) selectedMethod.value = shippingMethods.value[0].id;
+  } catch {
+    shippingMethods.value = [];
+  }
+};
+
 const placeOrder = async () => {
   placing.value = true;
   try {
     const chosen = addresses.value.find((a) => a.id === selectedAddress.value);
     const order = await cart.checkout({
       address_id: selectedAddress.value || undefined,
+      shipping_method_id: selectedMethod.value || undefined,
       country: chosen?.country || cart.shopStore?.country || '',
       currency: cart.shopStore?.currency || ''
     });
@@ -90,7 +103,7 @@ const placeOrder = async () => {
 
 onMounted(async () => {
   await cart.refreshCart();
-  await loadAddresses();
+  await Promise.all([loadAddresses(), loadShipping()]);
   loading.value = false;
 });
 </script>
@@ -155,6 +168,28 @@ onMounted(async () => {
               </button>
             </div>
           </form>
+        </section>
+
+        <!-- Shipping method -->
+        <section v-if="shippingMethods.length" class="card p-6">
+          <h2 class="mb-4 flex items-center gap-2 font-semibold"><Truck class="h-5 w-5 text-primary-600" /> Shipping method</h2>
+          <div class="grid gap-3">
+            <label
+              v-for="m in shippingMethods"
+              :key="m.id"
+              class="flex cursor-pointer items-center justify-between gap-3 rounded-lg border p-3 transition"
+              :class="selectedMethod === m.id ? 'border-primary-500 bg-primary-50/50' : 'border-slate-200 hover:border-slate-300'"
+            >
+              <span class="flex items-center gap-3">
+                <input v-model="selectedMethod" type="radio" :value="m.id" class="text-primary-600 focus:ring-primary-500" />
+                <span>
+                  <span class="block text-sm font-semibold">{{ m.name }}</span>
+                  <span class="block text-xs text-muted">{{ m.zone_name }}</span>
+                </span>
+              </span>
+              <span class="text-sm font-semibold">{{ Number(m.price) > 0 ? `${m.price} ${currency}` : 'Free' }}</span>
+            </label>
+          </div>
         </section>
       </div>
 

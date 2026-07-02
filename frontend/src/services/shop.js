@@ -25,5 +25,19 @@ export const shop = {
   wishlist: (headers) => http.get('/wishlist/', { headers }),
   addWishlist: (headers, payload) => http.post('/wishlist/', payload, { headers }),
   removeWishlist: (headers, id) => http.delete(`/wishlist/${id}/`, { headers }),
-  wishlistToCart: (headers, id) => http.post(`/wishlist/${id}/move-to-cart/`, null, { headers })
+  wishlistToCart: (headers, id) => http.post(`/wishlist/${id}/move-to-cart/`, null, { headers }),
+
+  // Shipping (buyer)
+  availableShipping: (headers, params) => http.get('/shipping/methods/', { headers, params }),
+
+  // Returns (buyer)
+  returns: (headers) => http.get('/returns/', { headers }),
+  createReturn: (headers, payload) => http.post('/returns/', payload, { headers }),
+  cancelReturn: (headers, id) => http.post(`/returns/${id}/cancel/`, null, { headers }),
+
+  // Rewards (buyer)
+  wallet: (headers) => http.get('/rewards/wallet/', { headers }),
+  loyalty: (headers) => http.get('/rewards/loyalty/', { headers }),
+  redeemLoyalty: (headers, payload) => http.post('/rewards/loyalty/redeem/', payload, { headers }),
+  redeemGiftCard: (headers, payload) => http.post('/rewards/gift-cards/redeem/', payload, { headers })
 };

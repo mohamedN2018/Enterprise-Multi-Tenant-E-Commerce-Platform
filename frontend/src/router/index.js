@@ -13,6 +13,7 @@ const routes = [
     children: [
       { path: '', name: 'home', component: () => import('@/pages/store/Home.vue') },
       { path: 'stores', name: 'stores', component: () => import('@/pages/store/Stores.vue') },
+      { path: 'store/:slug', name: 'store', component: () => import('@/pages/store/StorePage.vue') },
       { path: 'products', name: 'products', component: () => import('@/pages/store/Products.vue') },
       {
         path: 'product/:id',
@@ -46,7 +47,18 @@ const routes = [
     meta: { guestOnly: true },
     children: [
       { path: 'login', name: 'login', component: () => import('@/pages/auth/Login.vue') },
-      { path: 'register', name: 'register', component: () => import('@/pages/auth/Register.vue') }
+      { path: 'register', name: 'register', component: () => import('@/pages/auth/Register.vue') },
+      {
+        path: 'forgot',
+        name: 'forgot-password',
+        component: () => import('@/pages/auth/ForgotPassword.vue')
+      },
+      {
+        path: 'reset',
+        name: 'reset-password',
+        component: () => import('@/pages/auth/ResetPassword.vue')
+      },
+      { path: 'verify', name: 'verify-email', component: () => import('@/pages/auth/VerifyEmail.vue') }
     ]
   },
   {
@@ -70,6 +82,7 @@ const routes = [
         name: 'admin-categories',
         component: () => import('@/pages/admin/Categories.vue')
       },
+      { path: 'brands', name: 'admin-brands', component: () => import('@/pages/admin/Brands.vue') },
       { path: 'orders', name: 'admin-orders', component: () => import('@/pages/admin/Orders.vue') },
       {
         path: 'orders/:id',
@@ -86,6 +99,9 @@ const routes = [
         name: 'admin-promotions',
         component: () => import('@/pages/admin/Promotions.vue')
       },
+      { path: 'shipping', name: 'admin-shipping', component: () => import('@/pages/admin/Shipping.vue') },
+      { path: 'returns', name: 'admin-returns', component: () => import('@/pages/admin/Returns.vue') },
+      { path: 'payouts', name: 'admin-payouts', component: () => import('@/pages/admin/Payouts.vue') },
       { path: 'reviews', name: 'admin-reviews', component: () => import('@/pages/admin/Reviews.vue') },
       {
         path: 'notifications',
@@ -110,6 +126,45 @@ const router = createRouter({
     if (saved) return saved;
     return { top: 0 };
   }
+});
+
+// Dynamic document titles.
+const TITLES = {
+  home: 'Home',
+  stores: 'Stores',
+  store: 'Store',
+  products: 'Shop',
+  product: 'Product',
+  cart: 'Cart',
+  checkout: 'Checkout',
+  'order-confirmation': 'Order Confirmation',
+  account: 'My Account',
+  login: 'Sign in',
+  register: 'Register',
+  'forgot-password': 'Forgot password',
+  'reset-password': 'Reset password',
+  'verify-email': 'Verify email',
+  'admin-dashboard': 'Dashboard',
+  'admin-platform': 'Platform',
+  'admin-products': 'Products',
+  'admin-categories': 'Categories',
+  'admin-brands': 'Brands',
+  'admin-orders': 'Orders',
+  'admin-order-detail': 'Order',
+  'admin-inventory': 'Inventory',
+  'admin-shipping': 'Shipping',
+  'admin-returns': 'Returns',
+  'admin-promotions': 'Promotions',
+  'admin-reviews': 'Reviews',
+  'admin-payouts': 'Payouts',
+  'admin-notifications': 'Notifications',
+  'admin-team': 'Team',
+  'admin-settings': 'Settings',
+  'not-found': 'Not found'
+};
+router.afterEach((to) => {
+  const t = TITLES[to.name];
+  document.title = t ? `${t} · Electro` : 'Electro Marketplace';
 });
 
 router.beforeEach(async (to) => {

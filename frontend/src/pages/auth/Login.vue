@@ -58,6 +58,9 @@ const submit = async () => {
         autocomplete="current-password"
         required
       />
+      <div class="text-right">
+        <RouterLink :to="{ name: 'forgot-password' }" class="text-sm font-medium text-primary-600 hover:underline">Forgot password?</RouterLink>
+      </div>
       <button type="submit" class="btn btn-primary btn-lg w-full" :disabled="loading">
         <Spinner v-if="loading" :size="18" />
         <span v-else>Sign in</span>

@@ -6,6 +6,8 @@ import PageHeader from '@/components/ui/PageHeader.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import Modal from '@/components/ui/Modal.vue';
+import FormField from '@/components/ui/FormField.vue';
 import { useTenantStore } from '@/stores/tenant';
 import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
@@ -53,6 +55,28 @@ const act = async (kind) => {
 
 const print = () => window.print();
 
+// Tracking
+const trackModal = ref(false);
+const trackNumber = ref('');
+const trackBusy = ref(false);
+const openTrack = () => {
+  trackNumber.value = order.value?.tracking_number || '';
+  trackModal.value = true;
+};
+const saveTracking = async () => {
+  trackBusy.value = true;
+  try {
+    await seller.setOrderTracking(order.value.id, { tracking_number: trackNumber.value });
+    order.value.tracking_number = trackNumber.value;
+    ui.success('Tracking number set.');
+    trackModal.value = false;
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    trackBusy.value = false;
+  }
+};
+
 onMounted(load);
 </script>
 
@@ -70,6 +94,7 @@ onMounted(load);
           <template #actions>
             <button class="btn btn-ghost btn-sm" @click="router.push({ name: 'admin-orders' })"><ArrowLeft class="h-4 w-4" /> Back</button>
             <button class="btn btn-outline btn-sm" @click="print"><Printer class="h-4 w-4" /> Print invoice</button>
+            <button v-if="tenant.canWrite" class="btn btn-outline btn-sm" @click="openTrack"><Truck class="h-4 w-4" /> Tracking</button>
             <template v-if="tenant.canWrite && order.status === 'pending'">
               <button class="btn btn-danger btn-sm" :disabled="acting" @click="act('cancel')"><X class="h-4 w-4" /> Cancel</button>
               <button class="btn btn-primary btn-sm" :disabled="acting" @click="act('confirm')"><Check class="h-4 w-4" /> Confirm</button>
@@ -141,6 +166,16 @@ onMounted(load);
 
         <p class="mt-8 border-t border-slate-100 pt-4 text-center text-xs text-slate-400">Thank you for shopping with {{ tenant.active?.name }} on Electro.</p>
       </div>
+
+      <Modal v-model="trackModal" title="Set tracking number" size="sm">
+        <FormField v-model="trackNumber" label="Tracking number" placeholder="e.g. 1Z999AA10123456784" required />
+        <template #footer>
+          <div class="flex justify-end gap-2">
+            <button class="btn btn-ghost" @click="trackModal = false">Cancel</button>
+            <button class="btn btn-primary" :disabled="trackBusy || !trackNumber" @click="saveTracking"><Spinner v-if="trackBusy" :size="18" /><span v-else>Save</span></button>
+          </div>
+        </template>
+      </Modal>
     </template>
   </div>
 </template>

@@ -21,6 +21,7 @@ const ui = useUiStore();
 const term = ref('');
 const statusFilter = ref('');
 const categories = ref([]);
+const brands = ref([]);
 
 const columns = [
   { key: 'name', label: 'Product', sortable: true },
@@ -76,7 +77,7 @@ const priceRange = (p) => {
 const showModal = ref(false);
 const editing = ref(null);
 const saving = ref(false);
-const blank = () => ({ name: '', description: '', product_type: 'physical', status: 'draft', category: '' });
+const blank = () => ({ name: '', description: '', product_type: 'physical', status: 'draft', category: '', brand: '' });
 const form = ref(blank());
 
 const openCreate = () => {
@@ -91,7 +92,8 @@ const openEdit = (p) => {
     description: p.description || '',
     product_type: p.product_type,
     status: p.status,
-    category: p.category || ''
+    category: p.category || '',
+    brand: p.brand || ''
   };
   showModal.value = true;
 };
@@ -101,6 +103,7 @@ const save = async () => {
   try {
     const payload = { ...form.value };
     if (!payload.category) delete payload.category;
+    if (!payload.brand) delete payload.brand;
     if (editing.value) {
       await seller.updateProduct(editing.value.id, payload);
       ui.success('Product updated.');
@@ -159,10 +162,12 @@ onMounted(async () => {
   const id = await tenant.ensureReady();
   if (!id) return;
   try {
-    const cat = await seller.categories();
+    const [cat, br] = await Promise.all([seller.categories({ page_size: 100 }), seller.brands({ page_size: 100 })]);
     categories.value = cat.data?.results || cat.data || [];
+    brands.value = br.data?.results || br.data || [];
   } catch {
     categories.value = [];
+    brands.value = [];
   }
   fetch();
 });
@@ -228,7 +233,7 @@ onMounted(async () => {
           <label class="label">Description</label>
           <textarea v-model="form.description" rows="3" class="input"></textarea>
         </div>
-        <div class="grid gap-4 sm:grid-cols-3">
+        <div class="grid gap-4 sm:grid-cols-2">
           <div>
             <label class="label">Type</label>
             <select v-model="form.product_type" class="input">
@@ -249,6 +254,13 @@ onMounted(async () => {
             <select v-model="form.category" class="input">
               <option value="">None</option>
               <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Brand</label>
+            <select v-model="form.brand" class="input">
+              <option value="">None</option>
+              <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
             </select>
           </div>
         </div>
