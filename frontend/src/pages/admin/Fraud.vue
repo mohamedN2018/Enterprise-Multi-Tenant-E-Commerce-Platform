@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { ShieldCheck, ShieldX, ShieldAlert } from 'lucide-vue-next';
+import { ShieldCheck, ShieldX, Download } from 'lucide-vue-next';
+import { downloadCsv } from '@/utils/csv';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import Pagination from '@/components/ui/Pagination.vue';
@@ -49,6 +50,19 @@ const reject = (row) => run(row, () => seller.rejectFraud(row.id), 'Flagged as f
 
 const scoreTone = (s) => (Number(s) >= 70 ? 'text-secondary-500' : Number(s) >= 40 ? 'text-amber-600' : 'text-emerald-600');
 
+const exportCsv = () => {
+  const rows = items.value.map((c) => ({
+    date: (c.created_at || '').slice(0, 10),
+    order: c.order_number,
+    total: c.order_total,
+    score: c.score,
+    decision: c.decision,
+    resolution: c.resolution,
+    reasons: Array.isArray(c.reasons) ? c.reasons.join('; ') : c.reasons || ''
+  }));
+  downloadCsv(`fraud-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+};
+
 onMounted(async () => {
   const id = await tenant.ensureReady();
   if (id) load();
@@ -60,6 +74,7 @@ onMounted(async () => {
     <PageHeader title="Fraud review" subtitle="Risk checks on orders flagged for review.">
       <template #actions>
         <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
+        <button class="btn btn-outline btn-sm" :disabled="!items.length" @click="exportCsv"><Download class="h-4 w-4" /> Export</button>
       </template>
     </PageHeader>
 

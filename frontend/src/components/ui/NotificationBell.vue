@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { Bell, CheckCheck } from 'lucide-vue-next';
 import { useTenantStore } from '@/stores/tenant';
 import { seller } from '@/services/seller';
@@ -49,7 +49,12 @@ const markAll = async () => {
   }
 };
 
-onMounted(loadUnread);
+let timer = null;
+onMounted(() => {
+  loadUnread();
+  timer = setInterval(loadUnread, 60000);
+});
+onBeforeUnmount(() => timer && clearInterval(timer));
 </script>
 
 <template>

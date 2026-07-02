@@ -1,18 +1,23 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { Activity, ShoppingBag, DollarSign, BarChart3 } from 'lucide-vue-next';
+import { Activity, ShoppingBag, DollarSign, BarChart3, RefreshCw, Download } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import { useTenantStore } from '@/stores/tenant';
+import { useUiStore } from '@/stores/ui';
 import { usePaginated } from '@/composables/usePaginated';
 import { seller } from '@/services/seller';
+import { downloadCsv } from '@/utils/csv';
 
 const tenant = useTenantStore();
+const ui = useUiStore();
 
 const loading = ref(true);
 const summary = ref(null);
+const period = ref(30);
+const summaryLoading = ref(false);
 
 const kpis = computed(() => {
   const s = summary.value;
@@ -44,27 +49,55 @@ const changePage = (n) => {
   load();
 };
 
+const loadSummary = async () => {
+  summaryLoading.value = true;
+  try {
+    const start = new Date(Date.now() - period.value * 86400000).toISOString().slice(0, 10);
+    const s = await seller.analyticsSummary({ start });
+    summary.value = s.data;
+  } catch {
+    summary.value = null;
+  } finally {
+    summaryLoading.value = false;
+  }
+};
+const setPeriod = (d) => {
+  period.value = d;
+  loadSummary();
+};
+const refresh = async () => {
+  await Promise.all([loadSummary(), load()]);
+  ui.success('Analytics refreshed.');
+};
+const exportCsv = () => {
+  const rows = eventTypes.value.map((e) => ({ event: e.type, count: e.count }));
+  if (!rows.length) return;
+  downloadCsv(`analytics-events-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+};
+
 onMounted(async () => {
   const id = await tenant.ensureReady();
   if (!id) {
     loading.value = false;
     return;
   }
-  try {
-    const s = await seller.analyticsSummary();
-    summary.value = s.data;
-  } catch {
-    summary.value = null;
-  } finally {
-    loading.value = false;
-  }
+  await loadSummary();
+  loading.value = false;
   load();
 });
 </script>
 
 <template>
   <div>
-    <PageHeader title="Analytics" subtitle="Store activity and event insights." />
+    <PageHeader title="Analytics" subtitle="Store activity and event insights.">
+      <template #actions>
+        <div class="flex rounded-full bg-lightbg p-0.5">
+          <button v-for="d in [7, 30, 90]" :key="d" class="rounded-full px-3 py-1 text-sm font-medium transition" :class="period === d ? 'bg-primary-600 text-white' : 'text-ink hover:text-primary-600'" @click="setPeriod(d)">{{ d }}d</button>
+        </div>
+        <button class="btn btn-outline btn-sm" :disabled="!summary?.events" @click="exportCsv"><Download class="h-4 w-4" /> Export</button>
+        <button class="btn btn-ghost btn-sm" :disabled="summaryLoading" @click="refresh"><RefreshCw class="h-4 w-4" :class="summaryLoading ? 'animate-spin' : ''" /> Refresh</button>
+      </template>
+    </PageHeader>
 
     <div v-if="loading" class="flex min-h-[30vh] items-center justify-center"><Spinner :size="28" label="Loading…" /></div>
 

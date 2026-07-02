@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { Check, X, Banknote, Undo2 } from 'lucide-vue-next';
+import { Check, X, Banknote, Download } from 'lucide-vue-next';
+import { downloadCsv } from '@/utils/csv';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import Pagination from '@/components/ui/Pagination.vue';
@@ -65,6 +66,18 @@ const approve = (r) => run(r, () => seller.approveReturn(r.id), 'Return approved
 const reject = (r) => run(r, () => seller.rejectReturn(r.id, { reason: '' }), 'Return rejected.');
 const refund = (r) => run(r, () => seller.refundReturn(r.id), 'Refund issued.');
 
+const exportCsv = () => {
+  const rows = items.value.map((r) => ({
+    date: (r.created_at || '').slice(0, 10),
+    order: String(r.order).slice(0, 8),
+    resolution: r.resolution,
+    reason: r.reason || '',
+    refund_amount: r.refund_amount,
+    status: r.status
+  }));
+  downloadCsv(`returns-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+};
+
 onMounted(async () => {
   const id = await tenant.ensureReady();
   if (id) fetch();
@@ -76,6 +89,7 @@ onMounted(async () => {
     <PageHeader title="Returns" subtitle="Handle customer return & refund requests.">
       <template #actions>
         <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
+        <button class="btn btn-outline btn-sm" :disabled="!items.length" @click="exportCsv"><Download class="h-4 w-4" /> Export</button>
       </template>
     </PageHeader>
 

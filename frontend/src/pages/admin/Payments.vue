@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { CreditCard, CheckCheck } from 'lucide-vue-next';
+import { CreditCard, CheckCheck, Download } from 'lucide-vue-next';
+import { downloadCsv } from '@/utils/csv';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import Pagination from '@/components/ui/Pagination.vue';
@@ -32,6 +33,19 @@ const changePage = (n) => {
   load();
 };
 
+const exportCsv = () => {
+  const rows = items.value.map((p) => ({
+    date: (p.created_at || '').slice(0, 10),
+    order: String(p.order).slice(0, 8),
+    gateway: p.gateway,
+    amount: p.amount,
+    currency: p.currency,
+    status: p.status,
+    transaction_id: p.transaction_id || ''
+  }));
+  downloadCsv(`payments-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+};
+
 const capture = async (p) => {
   acting.value = p.id;
   try {
@@ -60,7 +74,11 @@ onMounted(async () => {
 
 <template>
   <div>
-    <PageHeader title="Payments" subtitle="Payment transactions across your store." />
+    <PageHeader title="Payments" subtitle="Payment transactions across your store.">
+      <template #actions>
+        <button class="btn btn-outline btn-sm" :disabled="!items.length" @click="exportCsv"><Download class="h-4 w-4" /> Export</button>
+      </template>
+    </PageHeader>
 
     <div v-if="gateways.length" class="mb-4 flex flex-wrap gap-2">
       <span v-for="g in gateways" :key="g.code" class="chip border-slate-200 bg-white text-ink"><CreditCard class="h-3.5 w-3.5 text-primary-600" /> {{ g.display_name || g.code }}</span>

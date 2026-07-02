@@ -33,7 +33,10 @@ const cat = ref('');
 const categories = ref([]);
 const catOpen = ref(false);
 const accountOpen = ref(false);
+const cartOpen = ref(false);
 const mobileNav = ref(false);
+
+const cartItems = computed(() => cart.cart?.items || []);
 
 const nav = [
   { label: 'Home', to: { name: 'home' } },
@@ -145,13 +148,39 @@ onMounted(async () => {
           <RouterLink :to="{ name: 'account' }" class="grid h-11 w-11 place-items-center rounded-full border border-slate-200 text-ink hover:border-primary-500 hover:text-primary-600" title="Wishlist">
             <Heart class="h-4 w-4" />
           </RouterLink>
-          <RouterLink :to="{ name: 'cart' }" class="flex items-center gap-2 text-ink hover:text-primary-600" title="Cart">
-            <span class="relative grid h-11 w-11 place-items-center rounded-full border border-slate-200">
-              <ShoppingCart class="h-4 w-4" />
-              <span v-if="cartCount" class="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-secondary-500 px-1 text-[11px] font-bold text-white">{{ cartCount }}</span>
-            </span>
-            <span class="hidden font-semibold sm:inline">{{ cartTotal }} {{ currency }}</span>
-          </RouterLink>
+          <div class="relative">
+            <button class="flex items-center gap-2 text-ink hover:text-primary-600" title="Cart" @click="cartOpen = !cartOpen">
+              <span class="relative grid h-11 w-11 place-items-center rounded-full border border-slate-200">
+                <ShoppingCart class="h-4 w-4" />
+                <span v-if="cartCount" class="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-secondary-500 px-1 text-[11px] font-bold text-white">{{ cartCount }}</span>
+              </span>
+              <span class="hidden font-semibold sm:inline">{{ cartTotal }} {{ currency }}</span>
+            </button>
+            <div v-if="cartOpen" class="fixed inset-0 z-30" @click="cartOpen = false"></div>
+            <div v-if="cartOpen" class="absolute right-0 z-40 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-pop">
+              <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                <p class="font-heading font-semibold text-ink">Your cart</p>
+                <span class="text-xs text-muted">{{ cartCount }} items</span>
+              </div>
+              <div class="max-h-72 overflow-y-auto">
+                <template v-if="cartItems.length">
+                  <div v-for="it in cartItems.slice(0, 5)" :key="it.id" class="flex items-center justify-between gap-3 border-b border-slate-50 px-4 py-2.5 text-sm last:border-0">
+                    <div class="min-w-0"><p class="clamp-1 font-medium text-ink">{{ it.product_name }}</p><p class="text-xs text-muted">× {{ it.quantity }}</p></div>
+                    <span class="shrink-0 font-semibold">{{ it.line_total }} {{ currency }}</span>
+                  </div>
+                  <p v-if="cartItems.length > 5" class="px-4 py-2 text-center text-xs text-muted">+ {{ cartItems.length - 5 }} more</p>
+                </template>
+                <p v-else class="px-4 py-8 text-center text-sm text-muted">Your cart is empty.</p>
+              </div>
+              <div v-if="cartItems.length" class="border-t border-slate-100 px-4 py-3">
+                <div class="mb-3 flex items-center justify-between text-sm"><span class="text-muted">Total</span><span class="font-heading text-lg font-bold text-primary-600">{{ cartTotal }} {{ currency }}</span></div>
+                <div class="grid grid-cols-2 gap-2">
+                  <RouterLink :to="{ name: 'cart' }" class="btn btn-outline btn-sm" @click="cartOpen = false">View cart</RouterLink>
+                  <RouterLink :to="{ name: 'checkout' }" class="btn btn-primary btn-sm" @click="cartOpen = false">Checkout</RouterLink>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

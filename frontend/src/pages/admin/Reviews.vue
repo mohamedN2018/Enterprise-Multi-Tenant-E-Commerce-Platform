@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { Check, X, Star } from 'lucide-vue-next';
+import { Check, X, Star, Download } from 'lucide-vue-next';
+import { downloadCsv } from '@/utils/csv';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import Pagination from '@/components/ui/Pagination.vue';
@@ -62,6 +63,17 @@ const moderate = async (review, approve) => {
   }
 };
 
+const exportCsv = () => {
+  const rows = items.value.map((r) => ({
+    product: productMap.value[r.product] || 'Product',
+    rating: r.rating,
+    title: r.title || '',
+    status: r.status,
+    date: (r.created_at || '').slice(0, 10)
+  }));
+  downloadCsv(`reviews-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+};
+
 onMounted(async () => {
   const id = await tenant.ensureReady();
   if (!id) return;
@@ -81,6 +93,7 @@ onMounted(async () => {
     <PageHeader title="Reviews" subtitle="Moderate customer reviews for your store.">
       <template #actions>
         <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
+        <button class="btn btn-outline btn-sm" :disabled="!items.length" @click="exportCsv"><Download class="h-4 w-4" /> Export</button>
       </template>
     </PageHeader>
 
