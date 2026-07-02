@@ -12,7 +12,10 @@ export default {
       phone: 'الهاتف', country: 'الدولة', city: 'المدينة', description: 'الوصف', type: 'النوع',
       active: 'مفعّل', inactive: 'غير مفعّل', more: 'المزيد', noResults: 'لا توجد نتائج',
       pageNotFound: 'الصفحة غير موجودة', pageNotFoundMsg: 'الصفحة التي تبحث عنها غير موجودة أو ربما تم نقلها.',
-      backHome: 'العودة للرئيسية', browseProducts: 'تصفّح المنتجات'
+      backHome: 'العودة للرئيسية', browseProducts: 'تصفّح المنتجات',
+      category: 'القسم', brand: 'العلامة التجارية', searchDots: 'بحث…', allStatuses: 'كل الحالات',
+      deleteSelected: 'حذف المحدد', saveChanges: 'حفظ التغييرات', physical: 'مادي', digital: 'رقمي',
+      sku: 'SKU', stock: 'المخزون', close: 'إغلاق', cannotUndo: 'لا يمكن التراجع عن هذا الإجراء.'
     },
     nav: {
       home: 'الرئيسية', shop: 'المتجر', stores: 'المتاجر', account: 'حسابي', help: 'مساعدة',
@@ -112,6 +115,19 @@ export default {
       totalOrders: 'إجمالي الطلبات', revenueByStore: 'الإيراد حسب المتجر', noRevenue: 'لا إيراد بعد',
       noRevenueMsg: 'سيُرتَّب إيراد المتاجر هنا بعد تأكيد الطلبات.', storeLeaderboard: 'ترتيب المتاجر',
       noStoresManage: 'لا توجد متاجر', noStoresManageMsg: 'لا توجد متاجر قابلة للإدارة بعد.', ordersLabel: 'طلب'
+    },
+    prod: {
+      title: 'المنتجات', subtitle: 'إدارة الكتالوج.', addProduct: 'إضافة منتج', searchProducts: 'ابحث في المنتجات…',
+      product: 'المنتج', variants: 'المتغيّرات', noProducts: 'لا توجد منتجات بعد', noProductsMsg: 'أنشئ أول منتج لتبدأ البيع.',
+      productsDeleted: 'تم حذف {n} منتج.', productUpdated: 'تم تحديث المنتج.', productCreated: 'تم إنشاء المنتج.',
+      productDeleted: 'تم حذف المنتج.', editProduct: 'تعديل المنتج', newProduct: 'منتج جديد', createProduct: 'إنشاء منتج',
+      variantsHeading: 'المتغيّرات', generate: 'توليد', variantAdded: 'تمت إضافة المتغيّر.', variantsGenerated: 'تم توليد المتغيّرات.',
+      generateVariants: 'توليد المتغيّرات', generateHint: 'يبني المتغيّرات من خصائص هذا المنتج. حدّد سعرًا أساسيًا وبادئة SKU اختيارية.',
+      basePrice: 'السعر الأساسي', skuPrefix: 'بادئة SKU', addVariant: 'إضافة متغيّر', keys: 'المفاتيح',
+      licenseKeys: 'مفاتيح التفعيل', licenseKeysHint: 'أضف مفاتيح تفعيل (واحد بكل سطر) يستلمها المشترون عند الشراء.',
+      addKeys: 'إضافة مفاتيح', keysAdded: 'تمت إضافة مفاتيح التفعيل.', deleteProduct: 'حذف المنتج',
+      deleteProductConfirm: 'هل تريد حذف {name}؟ لا يمكن التراجع.', deleteProducts: 'حذف منتجات',
+      bulkDeleteConfirm: 'حذف {n} منتج محدد؟ لا يمكن التراجع.', defaultVariant: 'افتراضي'
     },
     account: {
       title: 'حسابي', profile: 'الملف الشخصي', orders: 'الطلبات', returns: 'المرتجعات', addresses: 'العناوين',
@@ -215,7 +231,10 @@ export default {
       date: 'Date', name: 'Name', email: 'Email', phone: 'Phone', country: 'Country', city: 'City',
       description: 'Description', type: 'Type', active: 'Active', inactive: 'Inactive', more: 'More', noResults: 'No results',
       pageNotFound: 'Page not found', pageNotFoundMsg: "The page you're looking for doesn't exist or may have been moved.",
-      backHome: 'Back home', browseProducts: 'Browse products'
+      backHome: 'Back home', browseProducts: 'Browse products',
+      category: 'Category', brand: 'Brand', searchDots: 'Search…', allStatuses: 'All statuses',
+      deleteSelected: 'Delete selected', saveChanges: 'Save changes', physical: 'Physical', digital: 'Digital',
+      sku: 'SKU', stock: 'Stock', close: 'Close', cannotUndo: 'This action cannot be undone.'
     },
     nav: {
       home: 'Home', shop: 'Shop', stores: 'Stores', account: 'Account', help: 'Help', support: 'Support',
@@ -314,6 +333,19 @@ export default {
       totalOrders: 'Total orders', revenueByStore: 'Revenue by store', noRevenue: 'No revenue yet',
       noRevenueMsg: 'Store revenue will rank here once orders are confirmed.', storeLeaderboard: 'Store leaderboard',
       noStoresManage: 'No stores', noStoresManageMsg: 'No manageable stores yet.', ordersLabel: 'orders'
+    },
+    prod: {
+      title: 'Products', subtitle: 'Manage your catalog.', addProduct: 'Add product', searchProducts: 'Search products…',
+      product: 'Product', variants: 'Variants', noProducts: 'No products yet', noProductsMsg: 'Create your first product to start selling.',
+      productsDeleted: '{n} products deleted.', productUpdated: 'Product updated.', productCreated: 'Product created.',
+      productDeleted: 'Product deleted.', editProduct: 'Edit product', newProduct: 'New product', createProduct: 'Create product',
+      variantsHeading: 'Variants', generate: 'Generate', variantAdded: 'Variant added.', variantsGenerated: 'Variants generated.',
+      generateVariants: 'Generate variants', generateHint: "Builds variants from this product's variant attributes. Set a base price and optional SKU prefix.",
+      basePrice: 'Base price', skuPrefix: 'SKU prefix', addVariant: 'Add variant', keys: 'Keys',
+      licenseKeys: 'License keys', licenseKeysHint: 'Add license keys (one per line) that buyers receive on purchase.',
+      addKeys: 'Add keys', keysAdded: 'License keys added.', deleteProduct: 'Delete product',
+      deleteProductConfirm: 'Are you sure you want to delete {name}? This cannot be undone.', deleteProducts: 'Delete products',
+      bulkDeleteConfirm: 'Delete {n} selected products? This cannot be undone.', defaultVariant: 'Default'
     },
     account: {
       title: 'My account', profile: 'Profile', orders: 'Orders', returns: 'Returns', addresses: 'Addresses',
