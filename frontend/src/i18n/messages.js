@@ -84,6 +84,35 @@ export default {
       placedPrefix: 'تم تأكيد الطلب', placedSuffix: 'بنجاح.', details: 'تفاصيل الطلب', tax: 'الضريبة',
       shipping: 'الشحن', viewMyOrders: 'عرض طلباتي', continueShopping: 'مواصلة التسوق'
     },
+    dash: {
+      title: 'لوحة التحكم', loading: 'جارٍ تحميل اللوحة…', refresh: 'تحديث', refreshed: 'تم تحديث اللوحة.',
+      revenue: 'الإيراد', orders: 'الطلبات', aov: 'متوسط قيمة الطلب', customers: 'العملاء', products: 'المنتجات',
+      lowStock: 'مخزون منخفض', avgRating: 'متوسط التقييم', payoutBalance: 'رصيد التحصيل',
+      pendingSuffix: 'قيد الانتظار', publishedSuffix: 'منشور', toModerateSuffix: 'بانتظار المراجعة',
+      ordersPending: 'طلبات قيد الانتظار', lowStockItems: 'أصناف منخفضة المخزون', reviewsToModerate: 'تقييمات للمراجعة',
+      returnsPending: 'مرتجعات قيد الانتظار', addProduct: 'إضافة منتج', newCoupon: 'كوبون جديد', inviteTeam: 'دعوة الفريق',
+      viewStorefront: 'عرض المتجر', confirmed: 'مؤكد', cancelled: 'ملغي', days: 'يوم', dayShort: 'ي',
+      revenueLast: 'الإيراد · آخر {n} يوم', events: 'الأحداث', revenue14: 'الإيراد · آخر 14 يومًا',
+      ordersByStatus: 'الطلبات حسب الحالة', noOrders: 'لا توجد طلبات بعد', orderBreakdown: 'سيظهر توزيع الطلبات هنا.',
+      topEvents: 'أبرز أحداث النشاط', noActivity: 'لا يوجد نشاط بعد', eventsHint: 'ستظهر أحداث المتجر هنا.',
+      manage: 'إدارة', left: 'متبقٍ', stockHealthy: 'المخزون جيد', stockHealthyMsg: 'لا توجد أصناف منخفضة المخزون الآن.',
+      recentOrders: 'أحدث الطلبات', viewAll: 'عرض الكل', noOrdersMsg: 'ستظهر الطلبات الجديدة هنا.',
+      topProducts: 'أفضل المنتجات', sold: 'مباع', noSales: 'لا مبيعات بعد', noSalesMsg: 'ستظهر أكثر منتجاتك مبيعًا هنا.',
+      hi: 'مرحبًا، {name} 👋', staffView: 'عرض الموظف', employeeReadonly: 'موظف · للقراءة فقط',
+      ordersToProcess: 'طلبات للمعالجة', publishedProducts: 'منتجات منشورة', storeRating: 'تقييم المتجر',
+      quickAccess: 'وصول سريع', reviewIncoming: 'مراجعة الطلبات الواردة', browseCatalog: 'تصفّح الكتالوج',
+      checkStock: 'فحص مستويات المخزون', viewCategories: 'عرض الأقسام', openOrders: 'فتح الطلبات',
+      noRecentOrders: 'لا طلبات حديثة', noRecentOrdersMsg: 'ستظهر الطلبات الجديدة هنا لمراجعتها.',
+      needsRestock: 'يحتاج إعادة تخزين', inventory: 'المخزون', needRestockMsg: 'لا توجد أصناف تحتاج إعادة تخزين الآن.',
+      categories: 'الأقسام',
+      loadingPlatform: 'جارٍ تحميل المنصة…', platformOverview: 'نظرة عامة على المنصة',
+      platformSubtitle: 'الأداء على مستوى السوق عبر جميع المتاجر.', allStores: 'كل المتاجر', djangoAdmin: 'إدارة Django',
+      totalStores: 'إجمالي المتاجر', totalProducts: 'إجمالي المنتجات', myManagedStores: 'متاجري المُدارة',
+      topStore: 'المتجر الأعلى أداءً', totalRevenue: 'إجمالي الإيراد', avgPerStore: 'المتوسط / متجر',
+      totalOrders: 'إجمالي الطلبات', revenueByStore: 'الإيراد حسب المتجر', noRevenue: 'لا إيراد بعد',
+      noRevenueMsg: 'سيُرتَّب إيراد المتاجر هنا بعد تأكيد الطلبات.', storeLeaderboard: 'ترتيب المتاجر',
+      noStoresManage: 'لا توجد متاجر', noStoresManageMsg: 'لا توجد متاجر قابلة للإدارة بعد.', ordersLabel: 'طلب'
+    },
     account: {
       title: 'حسابي', profile: 'الملف الشخصي', orders: 'الطلبات', returns: 'المرتجعات', addresses: 'العناوين',
       wishlist: 'المفضلة', downloads: 'التنزيلات', rewards: 'المكافآت', referrals: 'الإحالات', sessions: 'الجلسات',
@@ -126,7 +155,16 @@ export default {
       promotions: 'العروض', campaigns: 'الحملات', giftCards: 'بطاقات الهدايا', inventory: 'المخزون',
       shipping: 'الشحن', procurement: 'المشتريات', pricing: 'التسعير', fraud: 'الاحتيال', payouts: 'المدفوعات المستحقة',
       notifications: 'الإشعارات', team: 'الفريق', settings: 'الإعدادات', seller: 'بائع', admin: 'مدير',
-      viewStorefront: 'عرض الواجهة', selectStore: 'اختر متجرًا', noStores: 'لا توجد متاجر بعد'
+      viewStorefront: 'عرض الواجهة', selectStore: 'اختر متجرًا', noStores: 'لا توجد متاجر بعد',
+      loading: 'جارٍ التحميل…', welcomeSeller: 'أهلاً بك في مركز البائعين',
+      welcomeSellerSub: 'أنشئ متجرك الأول لتبدأ البيع.', noStoreYet: 'ليس لديك متجر بعد',
+      noStoreYetMsg: 'افتح متجرًا لإضافة المنتجات وإدارة الطلبات وتنمية عملك.',
+      contactAdminTitle: 'لم يتم تعيين متجر لحسابك بعد',
+      contactAdminMsg: 'يقوم فريق الإدارة بإضافة المتاجر بعد الاتفاق. تواصل مع الإدارة لتفعيل متجرك.',
+      createStore: 'إنشاء متجر', createNewStore: 'إنشاء متجر جديد', storeName: 'اسم المتجر',
+      currency: 'العملة', countryIso: 'الدولة (ISO-2)', whatSell: 'ماذا تبيع؟', storeCreated: 'تم إنشاء المتجر!',
+      provisionStore: 'إضافة متجر', provisionSubtitle: 'أضف متجرًا جديدًا إلى المنصة وعيّن مالكه.',
+      assignOwnerEmail: 'بريد مالك المتجر (اختياري)', assignOwnerHint: 'اترك الحقل فارغًا لتكون أنت المالك.'
     }
   },
   en: {
@@ -211,6 +249,35 @@ export default {
       placedPrefix: 'Order', placedSuffix: 'has been placed.', details: 'Order details', tax: 'Tax',
       shipping: 'Shipping', viewMyOrders: 'View my orders', continueShopping: 'Continue shopping'
     },
+    dash: {
+      title: 'Dashboard', loading: 'Loading dashboard…', refresh: 'Refresh', refreshed: 'Dashboard refreshed.',
+      revenue: 'Revenue', orders: 'Orders', aov: 'Avg. order value', customers: 'Customers', products: 'Products',
+      lowStock: 'Low stock', avgRating: 'Avg. rating', payoutBalance: 'Payout balance',
+      pendingSuffix: 'pending', publishedSuffix: 'published', toModerateSuffix: 'to moderate',
+      ordersPending: 'Orders pending', lowStockItems: 'Low-stock items', reviewsToModerate: 'Reviews to moderate',
+      returnsPending: 'Returns pending', addProduct: 'Add product', newCoupon: 'New coupon', inviteTeam: 'Invite team',
+      viewStorefront: 'View storefront', confirmed: 'Confirmed', cancelled: 'Cancelled', days: 'days', dayShort: 'd',
+      revenueLast: 'Revenue · last {n}d', events: 'Events', revenue14: 'Revenue · last 14 days',
+      ordersByStatus: 'Orders by status', noOrders: 'No orders yet', orderBreakdown: 'Order breakdown will appear here.',
+      topEvents: 'Top activity events', noActivity: 'No activity yet', eventsHint: 'Storefront events will appear here.',
+      manage: 'Manage', left: 'left', stockHealthy: 'Stock is healthy', stockHealthyMsg: 'No low-stock items right now.',
+      recentOrders: 'Recent orders', viewAll: 'View all', noOrdersMsg: 'New orders will show up here.',
+      topProducts: 'Top products', sold: 'sold', noSales: 'No sales yet', noSalesMsg: 'Your best sellers will appear here.',
+      hi: 'Hi, {name} 👋', staffView: 'staff view', employeeReadonly: 'Employee · read-only',
+      ordersToProcess: 'Orders to process', publishedProducts: 'Published products', storeRating: 'Store rating',
+      quickAccess: 'Quick access', reviewIncoming: 'Review incoming orders', browseCatalog: 'Browse the catalog',
+      checkStock: 'Check stock levels', viewCategories: 'View categories', openOrders: 'Open orders',
+      noRecentOrders: 'No recent orders', noRecentOrdersMsg: 'New orders will appear here for you to review.',
+      needsRestock: 'Needs restock', inventory: 'Inventory', needRestockMsg: 'No items need restocking right now.',
+      categories: 'Categories',
+      loadingPlatform: 'Loading platform…', platformOverview: 'Platform overview',
+      platformSubtitle: 'Marketplace-wide performance across all stores.', allStores: 'All stores', djangoAdmin: 'Django admin',
+      totalStores: 'Total stores', totalProducts: 'Total products', myManagedStores: 'My managed stores',
+      topStore: 'Top performing store', totalRevenue: 'Total revenue', avgPerStore: 'Avg / store',
+      totalOrders: 'Total orders', revenueByStore: 'Revenue by store', noRevenue: 'No revenue yet',
+      noRevenueMsg: 'Store revenue will rank here once orders are confirmed.', storeLeaderboard: 'Store leaderboard',
+      noStoresManage: 'No stores', noStoresManageMsg: 'No manageable stores yet.', ordersLabel: 'orders'
+    },
     account: {
       title: 'My account', profile: 'Profile', orders: 'Orders', returns: 'Returns', addresses: 'Addresses',
       wishlist: 'Wishlist', downloads: 'Downloads', rewards: 'Rewards', referrals: 'Referrals', sessions: 'Sessions',
@@ -252,7 +319,16 @@ export default {
       returns: 'Returns', payments: 'Payments', reviews: 'Reviews', promotions: 'Promotions', campaigns: 'Campaigns',
       giftCards: 'Gift cards', inventory: 'Inventory', shipping: 'Shipping', procurement: 'Procurement', pricing: 'Pricing',
       fraud: 'Fraud', payouts: 'Payouts', notifications: 'Notifications', team: 'Team', settings: 'Settings',
-      seller: 'Seller', admin: 'Admin', viewStorefront: 'View storefront', selectStore: 'Select store', noStores: 'No stores yet'
+      seller: 'Seller', admin: 'Admin', viewStorefront: 'View storefront', selectStore: 'Select store', noStores: 'No stores yet',
+      loading: 'Loading…', welcomeSeller: 'Welcome to your Seller Center',
+      welcomeSellerSub: 'Create your first store to start selling.', noStoreYet: "You don't have a store yet",
+      noStoreYetMsg: 'Open a store to add products, manage orders and grow your business.',
+      contactAdminTitle: 'No store assigned to your account yet',
+      contactAdminMsg: 'Our admin team adds stores after an agreement. Contact the admin to activate your store.',
+      createStore: 'Create store', createNewStore: 'Create a new store', storeName: 'Store name',
+      currency: 'Currency', countryIso: 'Country (ISO-2)', whatSell: 'What do you sell?', storeCreated: 'Store created!',
+      provisionStore: 'Provision store', provisionSubtitle: 'Add a new store to the platform and assign its owner.',
+      assignOwnerEmail: 'Store owner email (optional)', assignOwnerHint: 'Leave empty to own the store yourself.'
     }
   }
 };

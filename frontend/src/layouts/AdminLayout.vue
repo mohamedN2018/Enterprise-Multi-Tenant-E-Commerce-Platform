@@ -37,6 +37,7 @@ import {
 import { useAuthStore } from '@/stores/auth';
 import { useTenantStore } from '@/stores/tenant';
 import NotificationBell from '@/components/ui/NotificationBell.vue';
+import { t } from '@/i18n';
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -48,62 +49,62 @@ const storeMenu = ref(false);
 // Grouped, role-aware navigation.
 const navGroups = computed(() => [
   {
-    title: 'Overview',
+    title: t('admin.overview'),
     links: [
-      { label: 'Dashboard', to: { name: 'admin-dashboard' }, icon: LayoutDashboard },
-      { label: 'Analytics', to: { name: 'admin-analytics' }, icon: Activity },
-      ...(tenant.isPlatform ? [{ label: 'Platform', to: { name: 'admin-platform' }, icon: Globe }] : [])
+      { label: t('admin.dashboard'), to: { name: 'admin-dashboard' }, icon: LayoutDashboard },
+      { label: t('admin.analytics'), to: { name: 'admin-analytics' }, icon: Activity },
+      ...(tenant.isPlatform ? [{ label: t('admin.platform'), to: { name: 'admin-platform' }, icon: Globe }] : [])
     ]
   },
   {
-    title: 'Catalog',
+    title: t('admin.catalog'),
     links: [
-      { label: 'Products', to: { name: 'admin-products' }, icon: Package },
-      { label: 'Categories', to: { name: 'admin-categories' }, icon: Tags },
-      { label: 'Brands', to: { name: 'admin-brands' }, icon: Bookmark },
-      { label: 'Attributes', to: { name: 'admin-attributes' }, icon: SlidersHorizontal }
+      { label: t('admin.products'), to: { name: 'admin-products' }, icon: Package },
+      { label: t('admin.categories'), to: { name: 'admin-categories' }, icon: Tags },
+      { label: t('admin.brands'), to: { name: 'admin-brands' }, icon: Bookmark },
+      { label: t('admin.attributes'), to: { name: 'admin-attributes' }, icon: SlidersHorizontal }
     ]
   },
   {
-    title: 'Sales',
+    title: t('admin.sales'),
     links: [
-      { label: 'Orders', to: { name: 'admin-orders' }, icon: ShoppingBag },
-      { label: 'Returns', to: { name: 'admin-returns' }, icon: Undo2 },
-      { label: 'Payments', to: { name: 'admin-payments' }, icon: CreditCard },
-      { label: 'Reviews', to: { name: 'admin-reviews' }, icon: Star }
+      { label: t('admin.orders'), to: { name: 'admin-orders' }, icon: ShoppingBag },
+      { label: t('admin.returns'), to: { name: 'admin-returns' }, icon: Undo2 },
+      { label: t('admin.payments'), to: { name: 'admin-payments' }, icon: CreditCard },
+      { label: t('admin.reviews'), to: { name: 'admin-reviews' }, icon: Star }
     ]
   },
   {
-    title: 'Marketing',
+    title: t('admin.marketing'),
     links: [
-      { label: 'Promotions', to: { name: 'admin-promotions' }, icon: BadgePercent },
-      { label: 'Campaigns', to: { name: 'admin-campaigns' }, icon: Megaphone },
-      { label: 'Gift cards', to: { name: 'admin-giftcards' }, icon: Gift }
+      { label: t('admin.promotions'), to: { name: 'admin-promotions' }, icon: BadgePercent },
+      { label: t('admin.campaigns'), to: { name: 'admin-campaigns' }, icon: Megaphone },
+      { label: t('admin.giftCards'), to: { name: 'admin-giftcards' }, icon: Gift }
     ]
   },
   {
-    title: 'Operations',
+    title: t('admin.operations'),
     links: [
-      { label: 'Inventory', to: { name: 'admin-inventory' }, icon: Boxes },
-      { label: 'Shipping', to: { name: 'admin-shipping' }, icon: Truck },
-      { label: 'Procurement', to: { name: 'admin-procurement' }, icon: Building2 },
-      { label: 'Pricing', to: { name: 'admin-pricing' }, icon: Layers },
-      { label: 'Fraud', to: { name: 'admin-fraud' }, icon: ShieldAlert }
+      { label: t('admin.inventory'), to: { name: 'admin-inventory' }, icon: Boxes },
+      { label: t('admin.shipping'), to: { name: 'admin-shipping' }, icon: Truck },
+      { label: t('admin.procurement'), to: { name: 'admin-procurement' }, icon: Building2 },
+      { label: t('admin.pricing'), to: { name: 'admin-pricing' }, icon: Layers },
+      { label: t('admin.fraud'), to: { name: 'admin-fraud' }, icon: ShieldAlert }
     ]
   },
   {
-    title: 'Finance',
+    title: t('admin.finance'),
     links: [
-      { label: 'Payouts', to: { name: 'admin-payouts' }, icon: Wallet },
-      { label: 'Finance', to: { name: 'admin-finance' }, icon: Landmark }
+      { label: t('admin.payouts'), to: { name: 'admin-payouts' }, icon: Wallet },
+      { label: t('admin.finance'), to: { name: 'admin-finance' }, icon: Landmark }
     ]
   },
   {
-    title: 'Store',
+    title: t('admin.store'),
     links: [
-      { label: 'Notifications', to: { name: 'admin-notifications' }, icon: Bell },
-      ...(tenant.canManageMembers ? [{ label: 'Team', to: { name: 'admin-team' }, icon: Users }] : []),
-      { label: 'Settings', to: { name: 'admin-settings' }, icon: Settings }
+      { label: t('admin.notifications'), to: { name: 'admin-notifications' }, icon: Bell },
+      ...(tenant.canManageMembers ? [{ label: t('admin.team'), to: { name: 'admin-team' }, icon: Users }] : []),
+      { label: t('admin.settings'), to: { name: 'admin-settings' }, icon: Settings }
     ]
   }
 ]);
@@ -136,25 +137,25 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
   <div class="min-h-screen bg-slate-100 text-ink">
     <!-- Sidebar -->
     <aside
-      class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform lg:translate-x-0"
-      :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+      class="fixed inset-y-0 start-0 z-40 flex w-64 flex-col border-e border-slate-200 bg-white transition-transform lg:translate-x-0"
+      :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'"
     >
       <div class="flex h-16 items-center gap-2 border-b border-slate-100 px-4">
         <img src="/brand/qtech-logo.png" alt="q-shop" class="h-9 w-auto" />
-        <span class="font-heading text-sm font-bold text-slate-500">{{ tenant.isPlatform ? 'Admin' : 'Seller' }}</span>
+        <span class="font-heading text-sm font-bold text-slate-500">{{ tenant.isPlatform ? $t('admin.admin') : $t('admin.seller') }}</span>
       </div>
 
       <div class="border-b border-slate-100 p-3">
         <div class="relative">
           <button
-            class="flex w-full items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-left hover:bg-slate-50"
+            class="flex w-full items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-start hover:bg-slate-50"
             @click="storeMenu = !storeMenu"
           >
             <span class="grid h-8 w-8 place-items-center rounded-md bg-primary-100 text-xs font-bold text-primary-700">
               {{ (activeStore?.name || '?').charAt(0).toUpperCase() }}
             </span>
             <span class="min-w-0 flex-1">
-              <span class="block truncate text-sm font-semibold">{{ activeStore?.name || 'Select store' }}</span>
+              <span class="block truncate text-sm font-semibold">{{ activeStore?.name || $t('admin.selectStore') }}</span>
               <span class="block truncate text-xs text-slate-400">{{ activeStore?.slug || '—' }}</span>
             </span>
             <ChevronDown class="h-4 w-4 text-slate-400" />
@@ -172,7 +173,7 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
             >
               {{ s.name }}
             </button>
-            <p v-if="!tenant.stores.length" class="px-4 py-2 text-sm text-slate-400">No stores yet</p>
+            <p v-if="!tenant.stores.length" class="px-4 py-2 text-sm text-slate-400">{{ $t('admin.noStores') }}</p>
           </div>
         </div>
         <div v-if="tenant.role" class="mt-2 px-1">
@@ -202,10 +203,10 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
 
       <div class="border-t border-slate-100 p-3">
         <RouterLink :to="{ name: 'home' }" class="dropdown-item rounded-lg">
-          <ExternalLink class="h-4 w-4" /> View storefront
+          <ExternalLink class="h-4 w-4" /> {{ $t('admin.viewStorefront') }}
         </RouterLink>
         <button class="dropdown-item w-full rounded-lg text-rose-600" @click="logout">
-          <LogOut class="h-4 w-4" /> Sign out
+          <LogOut class="h-4 w-4" /> {{ $t('account.signOut') }}
         </button>
       </div>
     </aside>
@@ -217,7 +218,7 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
     ></div>
 
     <!-- Main -->
-    <div class="lg:pl-64">
+    <div class="lg:ps-64">
       <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur lg:px-8">
         <button
           class="grid h-10 w-10 place-items-center rounded-lg hover:bg-slate-100 lg:hidden"
@@ -225,7 +226,7 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
         >
           <Menu class="h-5 w-5" />
         </button>
-        <div class="ml-auto flex items-center gap-3">
+        <div class="ms-auto flex items-center gap-3">
           <NotificationBell />
           <span class="hidden text-sm text-slate-500 sm:inline">{{ auth.user?.email }}</span>
           <span class="grid h-9 w-9 place-items-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
