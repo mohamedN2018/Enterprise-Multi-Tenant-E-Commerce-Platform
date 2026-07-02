@@ -12,6 +12,7 @@ import {
   Sparkles,
   ShieldCheck,
   Store as StoreIcon,
+  LayoutGrid,
   Quote,
   Star,
   Rocket
@@ -78,7 +79,7 @@ onMounted(async () => {
     <section class="relative overflow-hidden bg-gradient-to-br from-ink via-ink to-primary-900 text-white">
       <div class="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-primary-600/30 blur-3xl"></div>
       <div class="absolute -bottom-32 left-1/3 h-80 w-80 rounded-full bg-secondary-500/20 blur-3xl"></div>
-      <div class="container relative grid items-center gap-10 py-16 lg:grid-cols-2 lg:py-24">
+      <div class="container relative grid items-center gap-10 pb-8 pt-14 lg:grid-cols-2 lg:pb-10 lg:pt-20">
         <div>
           <span class="chip border-white/20 bg-white/10 text-white"><Sparkles class="h-3.5 w-3.5 text-primary-400" /> {{ $t('home.heroBadge') }}</span>
           <h1 class="mt-5 font-heading text-4xl font-black leading-[1.1] lg:text-5xl">
@@ -115,6 +116,30 @@ onMounted(async () => {
           </RouterLink>
         </div>
       </div>
+
+      <!-- Categories inside the hero -->
+      <div v-if="categories.length" class="container relative pb-12 lg:pb-16">
+        <div class="mb-4 flex items-center justify-between">
+          <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-white/70">
+            <LayoutGrid class="h-4 w-4 text-primary-400" /> {{ $t('home.shopByCategory') }}
+          </p>
+          <RouterLink :to="{ name: 'products' }" class="text-sm font-medium text-primary-400 hover:text-primary-300">{{ $t('home.viewAll') }}</RouterLink>
+        </div>
+        <div class="hero-scroll flex gap-3 overflow-x-auto pb-1">
+          <button
+            v-for="c in categories"
+            :key="c.name"
+            class="group flex shrink-0 items-center gap-3 rounded-full border border-white/15 bg-white/10 py-2 pe-4 ps-2 backdrop-blur transition hover:border-primary-400 hover:bg-white/20"
+            @click="goCategory(c.name)"
+          >
+            <span class="h-9 w-9 shrink-0 overflow-hidden rounded-full ring-2 ring-white/20">
+              <img :src="catImage(c.name, 80)" :alt="c.name" class="h-full w-full object-cover" @error="onImgError" />
+            </span>
+            <span class="whitespace-nowrap text-sm font-medium text-white">{{ c.name }}</span>
+            <span class="rounded-full bg-white/15 px-2 py-0.5 text-[11px] text-white/80">{{ c.product_count }}</span>
+          </button>
+        </div>
+      </div>
     </section>
 
     <!-- Services strip -->
@@ -126,22 +151,6 @@ onMounted(async () => {
             <h6 class="font-heading text-sm font-bold text-ink">{{ $t('home.svc.' + s.key) }}</h6>
             <p class="text-xs text-muted">{{ $t('home.svc.' + s.key + 'Msg') }}</p>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Category strip -->
-    <section v-if="categories.length" class="bg-lightbg py-10">
-      <div class="container">
-        <h2 class="section-title mb-6 text-center">{{ $t('home.shopByCategory') }}</h2>
-        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8">
-          <button v-for="c in categories" :key="c.name" class="group flex flex-col items-center gap-2" @click="goCategory(c.name)">
-            <span class="h-24 w-24 overflow-hidden rounded-full border-2 border-transparent transition group-hover:border-primary-600">
-              <img :src="catImage(c.name)" :alt="c.name" class="h-full w-full object-cover" @error="onImgError" />
-            </span>
-            <span class="text-center text-sm font-medium text-ink group-hover:text-primary-600">{{ c.name }}</span>
-            <span class="text-xs text-muted">{{ c.product_count }} {{ $t('home.items') }}</span>
-          </button>
         </div>
       </div>
     </section>

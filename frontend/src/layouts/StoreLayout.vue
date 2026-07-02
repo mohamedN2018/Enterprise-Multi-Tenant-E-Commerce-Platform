@@ -134,11 +134,13 @@ onMounted(async () => {
       </div>
     </div>
 
+    <!-- Sticky header: main header + category nav follow on scroll -->
+    <div class="sticky top-0 z-40 bg-white shadow-sm dark:bg-slate-900">
     <!-- Main header: logo + search + actions -->
     <div class="border-b border-slate-100">
-      <div class="container flex flex-wrap items-center gap-4 py-4">
-        <RouterLink :to="{ name: 'home' }" class="flex items-center">
-          <img src="/brand/qtech-logo.png" alt="q-shop" class="h-12 w-auto" />
+      <div class="container flex flex-wrap items-center gap-3 py-3 lg:gap-4 lg:py-4">
+        <RouterLink :to="{ name: 'home' }" class="flex shrink-0 items-center">
+          <img src="/brand/qtech-logo.png" alt="q-shop" class="h-9 w-auto lg:h-12" />
         </RouterLink>
 
         <form class="order-3 flex w-full flex-1 lg:order-none lg:w-auto" @submit.prevent="search">
@@ -152,8 +154,8 @@ onMounted(async () => {
           </div>
         </form>
 
-        <div class="ml-auto flex items-center gap-3">
-          <RouterLink :to="{ name: 'products' }" class="grid h-11 w-11 place-items-center rounded-full border border-slate-200 text-ink hover:border-primary-500 hover:text-primary-600" title="Compare">
+        <div class="ms-auto flex items-center gap-2 lg:gap-3">
+          <RouterLink :to="{ name: 'products' }" class="hidden h-11 w-11 place-items-center rounded-full border border-slate-200 text-ink hover:border-primary-500 hover:text-primary-600 sm:grid" title="Compare">
             <Shuffle class="h-4 w-4" />
           </RouterLink>
           <RouterLink :to="{ name: 'account' }" class="grid h-11 w-11 place-items-center rounded-full border border-slate-200 text-ink hover:border-primary-500 hover:text-primary-600" title="Wishlist">
@@ -234,7 +236,7 @@ onMounted(async () => {
         </nav>
 
         <!-- Mobile nav toggle -->
-        <button class="ml-auto flex items-center gap-2 py-3 text-white lg:hidden" @click="mobileNav = !mobileNav">
+        <button class="ms-auto flex items-center gap-2 py-3 text-white lg:hidden" @click="mobileNav = !mobileNav">
           <component :is="mobileNav ? X : Menu" class="h-6 w-6" /> {{ t('nav.menu') }}
         </button>
       </div>
@@ -249,6 +251,7 @@ onMounted(async () => {
           <button v-for="c in categories" :key="c.name" class="block w-full py-1.5 text-left text-sm text-white/90" @click="goCategory(c.name)">{{ c.name }}</button>
         </div>
       </div>
+    </div>
     </div>
 
     <!-- Content -->
