@@ -16,6 +16,7 @@ import EmptyState from '@/components/ui/EmptyState.vue';
 import { storefront } from '@/services/storefront';
 import { useAddToCart } from '@/composables/useAddToCart';
 import { heroImage, catImage, onImgError } from '@/utils/media';
+import { getRecentlyViewed } from '@/utils/recent';
 
 const router = useRouter();
 const { add, adding } = useAddToCart();
@@ -25,6 +26,7 @@ const newest = ref([]);
 const deals = ref([]);
 const loading = ref(true);
 const tab = ref('all');
+const recent = ref(getRecentlyViewed());
 
 const services = [
   { icon: RotateCcw, title: 'Free Return', text: '30 days money back guarantee!' },
@@ -142,6 +144,14 @@ onMounted(async () => {
         </div>
         <img :src="heroImage('deal2', 220, 180)" alt="" class="h-28 w-28 rounded-lg object-cover" @error="onImgError" />
       </RouterLink>
+    </section>
+
+    <!-- Recently viewed -->
+    <section v-if="recent.length" class="container py-8">
+      <h2 class="section-title mb-6">Recently Viewed</h2>
+      <div class="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
+        <ProductCard v-for="p in recent" :key="p.id" :product="p" :adding="adding === p.id" @add="add" />
+      </div>
     </section>
 
     <!-- Our Products -->

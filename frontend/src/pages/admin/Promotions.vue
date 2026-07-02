@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { Plus, Pencil, Trash2, Ticket } from 'lucide-vue-next';
+import { Plus, Pencil, Trash2, Ticket, Download } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import Pagination from '@/components/ui/Pagination.vue';
@@ -13,6 +13,7 @@ import { useUiStore } from '@/stores/ui';
 import { usePaginated } from '@/composables/usePaginated';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
+import { downloadCsv } from '@/utils/csv';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -36,6 +37,20 @@ const changePage = (n) => {
 
 const discountLabel = (c) =>
   c.discount_type === 'percentage' ? `${c.value}%` : `${c.value} ${tenant.currency}`;
+
+const exportCsv = () => {
+  const rows = items.value.map((c) => ({
+    code: c.code,
+    discount_type: c.discount_type,
+    value: c.value,
+    min_spend: c.min_spend ?? '',
+    used_count: c.used_count,
+    starts_at: (c.starts_at || '').slice(0, 10),
+    ends_at: (c.ends_at || '').slice(0, 10),
+    active: c.is_active
+  }));
+  downloadCsv(`coupons-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+};
 
 const showModal = ref(false);
 const editing = ref(null);
@@ -129,6 +144,7 @@ onMounted(async () => {
     <PageHeader title="Promotions" subtitle="Create coupons to drive sales.">
       <template #actions>
         <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
+        <button class="btn btn-outline btn-sm" :disabled="!items.length" @click="exportCsv"><Download class="h-4 w-4" /> Export</button>
         <button v-if="tenant.canWrite" class="btn btn-primary btn-sm" :disabled="!tenant.hasStores" @click="openCreate">
           <Plus class="h-4 w-4" /> New coupon
         </button>

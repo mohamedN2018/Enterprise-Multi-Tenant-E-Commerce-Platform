@@ -8,11 +8,48 @@ import ProductCard from '@/components/ProductCard.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import { storefront } from '@/services/storefront';
+import { shop } from '@/services/shop';
 import { useAddToCart } from '@/composables/useAddToCart';
+import { useWishlist } from '@/composables/useWishlist';
+import { useAuthStore } from '@/stores/auth';
+import { useUiStore } from '@/stores/ui';
 import { productImage, onImgError } from '@/utils/media';
+import { errorMessage } from '@/services/http';
+import { pushRecentlyViewed } from '@/utils/recent';
 
 const route = useRoute();
+const auth = useAuthStore();
+const ui = useUiStore();
 const { add, adding } = useAddToCart();
+const { add: saveWishlist, saving: wishSaving } = useWishlist();
+
+const reviewForm = ref({ rating: 5, title: '', body: '' });
+const submittingReview = ref(false);
+
+const submitReview = async () => {
+  if (!auth.isAuthenticated) {
+    ui.info('Please sign in to write a review.');
+    return;
+  }
+  submittingReview.value = true;
+  try {
+    await shop.createReview(
+      { 'X-Store-Id': product.value.store },
+      {
+        product_id: product.value.id,
+        rating: reviewForm.value.rating,
+        title: reviewForm.value.title,
+        body: reviewForm.value.body
+      }
+    );
+    ui.success('Review submitted for moderation. Thank you!');
+    reviewForm.value = { rating: 5, title: '', body: '' };
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    submittingReview.value = false;
+  }
+};
 
 const product = ref(null);
 const reviews = ref([]);
@@ -51,6 +88,7 @@ const load = async (id) => {
   try {
     const res = await storefront.product(id);
     product.value = res.data;
+    pushRecentlyViewed(product.value);
     const variants = product.value.variants || [];
     selectedVariant.value = variants.find((v) => v.is_default) || variants[0] || null;
     const [rev, rel] = await Promise.all([
@@ -144,8 +182,8 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
               <button class="btn btn-primary btn-lg flex-1 border border-secondary-500 sm:flex-none" :disabled="!inStock || adding === product.id" @click="addToCart">
                 <ShoppingCart class="h-5 w-5" /> {{ inStock ? 'Add to cart' : 'Out of stock' }}
               </button>
-              <button class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500"><Heart class="h-5 w-5" /></button>
-              <button class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500"><Shuffle class="h-5 w-5" /></button>
+              <button class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500 disabled:opacity-50" title="Save to wishlist" :disabled="wishSaving === product.id" @click="saveWishlist(product, { variant: selectedVariant })"><Heart class="h-5 w-5" /></button>
+              <RouterLink :to="{ name: 'products', query: { store: product.store_slug } }" class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500" title="More from this store"><Shuffle class="h-5 w-5" /></RouterLink>
             </div>
 
             <div class="mt-6 flex items-center gap-1.5 text-sm" :class="inStock ? 'text-emerald-600' : 'text-secondary-500'">
@@ -185,6 +223,28 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
               </div>
             </div>
             <div>
+              <!-- Write a review -->
+              <div class="mb-6 rounded-xl border border-slate-200 p-5">
+                <h4 class="mb-3 font-heading font-semibold text-ink">Write a review</h4>
+                <template v-if="auth.isAuthenticated">
+                  <form class="space-y-3" @submit.prevent="submitReview">
+                    <div class="flex items-center gap-3">
+                      <span class="text-sm text-muted">Your rating</span>
+                      <StarRating :value="reviewForm.rating" editable :size="22" @update:value="reviewForm.rating = $event" />
+                    </div>
+                    <input v-model="reviewForm.title" class="input" placeholder="Title (optional)" maxlength="150" />
+                    <textarea v-model="reviewForm.body" rows="3" class="input" placeholder="Share your experience…"></textarea>
+                    <button type="submit" class="btn btn-primary btn-sm" :disabled="submittingReview">
+                      <Spinner v-if="submittingReview" :size="16" /><span v-else>Submit review</span>
+                    </button>
+                  </form>
+                </template>
+                <p v-else class="text-sm text-muted">
+                  <RouterLink :to="{ name: 'login', query: { redirect: route.fullPath } }" class="font-semibold text-primary-600 hover:underline">Sign in</RouterLink>
+                  to write a review.
+                </p>
+              </div>
+
               <div v-if="reviews.length" class="space-y-4">
                 <article v-for="r in reviews" :key="r.id" class="rounded-xl border border-slate-200 p-5">
                   <div class="flex items-center justify-between">

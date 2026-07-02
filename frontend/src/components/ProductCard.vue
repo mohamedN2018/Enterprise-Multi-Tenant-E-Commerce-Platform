@@ -2,12 +2,15 @@
 import { computed } from 'vue';
 import { Eye, ShoppingCart, Star, Shuffle, Heart } from 'lucide-vue-next';
 import { productImage, onImgError } from '@/utils/media';
+import { useWishlist } from '@/composables/useWishlist';
 
 const props = defineProps({
   product: { type: Object, required: true },
   adding: { type: Boolean, default: false }
 });
 const emit = defineEmits(['add']);
+
+const { add: saveWishlist, saving: wishSaving } = useWishlist();
 
 const p = computed(() => props.product);
 const to = computed(() => ({ name: 'product', params: { id: p.value.id } }));
@@ -64,8 +67,8 @@ const storeName = computed(() => p.value.store?.name || p.value.store_slug);
           <Star v-for="n in 5" :key="n" class="h-4 w-4" :class="n <= rating ? 'fill-primary-600 text-primary-600' : 'text-slate-300'" />
         </div>
         <div class="flex gap-2">
-          <RouterLink :to="{ name: 'products', query: { store: p.store_slug } }" class="grid h-8 w-8 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500"><Shuffle class="h-3.5 w-3.5" /></RouterLink>
-          <RouterLink :to="{ name: 'account' }" class="grid h-8 w-8 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500"><Heart class="h-3.5 w-3.5" /></RouterLink>
+          <RouterLink :to="{ name: 'products', query: { store: p.store_slug } }" class="grid h-8 w-8 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500" title="More from this store"><Shuffle class="h-3.5 w-3.5" /></RouterLink>
+          <button class="grid h-8 w-8 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500 disabled:opacity-50" title="Save to wishlist" :disabled="wishSaving === p.id" @click="saveWishlist(p)"><Heart class="h-3.5 w-3.5" /></button>
         </div>
       </div>
     </div>

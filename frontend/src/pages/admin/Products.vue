@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { Plus, Search, Pencil, Trash2, Package } from 'lucide-vue-next';
+import { Plus, Search, Pencil, Trash2, Package, Download } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import Pagination from '@/components/ui/Pagination.vue';
@@ -13,6 +13,7 @@ import { useUiStore } from '@/stores/ui';
 import { usePaginated } from '@/composables/usePaginated';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
+import { downloadCsv } from '@/utils/csv';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -48,6 +49,19 @@ const changePage = (n) => {
 const applyFilters = () => {
   page.value = 1;
   fetch();
+};
+
+const exportCsv = () => {
+  const rows = items.value.map((p) => ({
+    name: p.name,
+    slug: p.slug,
+    type: p.product_type,
+    status: p.status,
+    variants: p.variants?.length || 0,
+    price: priceRange(p),
+    currency: tenant.currency
+  }));
+  downloadCsv(`products-${new Date().toISOString().slice(0, 10)}.csv`, rows);
 };
 
 const priceRange = (p) => {
@@ -159,6 +173,7 @@ onMounted(async () => {
     <PageHeader title="Products" subtitle="Manage your catalog.">
       <template #actions>
         <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
+        <button class="btn btn-outline btn-sm" :disabled="!items.length" @click="exportCsv"><Download class="h-4 w-4" /> Export</button>
         <button v-if="tenant.canWrite" class="btn btn-primary btn-sm" :disabled="!tenant.hasStores" @click="openCreate">
           <Plus class="h-4 w-4" /> Add product
         </button>
