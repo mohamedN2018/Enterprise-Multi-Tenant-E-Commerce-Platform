@@ -48,5 +48,13 @@ export const shop = {
   // Devices / sessions (not store-scoped)
   devices: () => http.get('/auth/devices/'),
   revokeDevice: (id) => http.delete(`/auth/devices/${id}/`),
-  revokeAllDevices: () => http.post('/auth/devices/revoke-all/')
+  revokeAllDevices: () => http.post('/auth/devices/revoke-all/'),
+
+  // Digital downloads (buyer, store-scoped)
+  downloads: (headers) => http.get('/downloads/', { headers }),
+
+  // Referrals (buyer, store-scoped)
+  referralStats: (headers) => http.get('/rewards/referrals/code/', { headers }),
+  referrals: (headers) => http.get('/rewards/referrals/', { headers }),
+  applyReferral: (headers, payload) => http.post('/rewards/referrals/apply/', payload, { headers })
 };

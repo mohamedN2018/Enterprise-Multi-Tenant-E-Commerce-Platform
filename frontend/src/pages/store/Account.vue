@@ -14,7 +14,10 @@ import {
   Undo2,
   MonitorSmartphone,
   Wallet,
-  Ticket
+  Ticket,
+  Download,
+  Share2,
+  Copy
 } from 'lucide-vue-next';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
@@ -41,7 +44,9 @@ const tabs = [
   { key: 'returns', label: 'Returns', icon: Undo2 },
   { key: 'addresses', label: 'Addresses', icon: MapPin },
   { key: 'wishlist', label: 'Wishlist', icon: Heart },
+  { key: 'downloads', label: 'Downloads', icon: Download },
   { key: 'rewards', label: 'Rewards', icon: Gift },
+  { key: 'referrals', label: 'Referrals', icon: Share2 },
   { key: 'sessions', label: 'Sessions', icon: MonitorSmartphone },
   { key: 'security', label: 'Security', icon: ShieldCheck }
 ];
@@ -275,6 +280,66 @@ const savePrefs = async () => {
   }
 };
 
+// --- Downloads ------------------------------------------------------------
+const downloads = ref([]);
+const downloadsLoading = ref(false);
+const loadDownloads = async () => {
+  if (!hasStore.value) return;
+  downloadsLoading.value = true;
+  try {
+    const res = await shop.downloads(cart.headers);
+    downloads.value = res.data?.results || res.data || [];
+  } catch {
+    downloads.value = [];
+  } finally {
+    downloadsLoading.value = false;
+  }
+};
+
+// --- Referrals ------------------------------------------------------------
+const referralStats = ref(null);
+const referralList = ref([]);
+const referralsLoading = ref(false);
+const applyCode = ref('');
+const applyBusy = ref(false);
+const loadReferrals = async () => {
+  if (!hasStore.value) return;
+  referralsLoading.value = true;
+  try {
+    const [s, l] = await Promise.all([shop.referralStats(cart.headers), shop.referrals(cart.headers)]);
+    referralStats.value = s.data;
+    referralList.value = l.data?.results || l.data || [];
+  } catch {
+    referralStats.value = null;
+  } finally {
+    referralsLoading.value = false;
+  }
+};
+const copyCode = async () => {
+  const code = referralStats.value?.code;
+  if (!code) return;
+  try {
+    await navigator.clipboard.writeText(code);
+    ui.success('Referral code copied.');
+  } catch {
+    ui.info(code);
+  }
+};
+const applyReferral = async () => {
+  if (!applyCode.value.trim()) return;
+  applyBusy.value = true;
+  try {
+    await shop.applyReferral(cart.headers, { code: applyCode.value.trim() });
+    ui.success('Referral code applied.');
+    applyCode.value = '';
+    loadReferrals();
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    applyBusy.value = false;
+  }
+};
+
 // --- Security -------------------------------------------------------------
 const pwd = ref({ current_password: '', new_password: '', new_password_confirm: '' });
 const pwdBusy = ref(false);
@@ -306,6 +371,8 @@ const selectTab = (key) => {
   if (key === 'returns' && !returns.value.length) loadReturns();
   if (key === 'rewards' && !wallet.value) loadRewards();
   if (key === 'sessions' && !devices.value.length) loadSessions();
+  if (key === 'downloads' && !downloads.value.length) loadDownloads();
+  if (key === 'referrals' && !referralStats.value) loadReferrals();
 };
 
 onMounted(() => {
@@ -502,6 +569,67 @@ onMounted(() => {
                 <li v-for="t in wallet.transactions" :key="t.id" class="flex items-center justify-between py-2">
                   <span class="capitalize text-slate-600">{{ String(t.txn_type).replace(/_/g, ' ') }} <span class="text-xs text-slate-400">{{ (t.created_at || '').slice(0, 10) }}</span></span>
                   <span class="font-medium" :class="Number(t.amount) < 0 ? 'text-secondary-500' : 'text-emerald-600'">{{ Number(t.amount) > 0 ? '+' : '' }}{{ t.amount }} {{ currency }}</span>
+                </li>
+              </ul>
+            </div>
+          </template>
+        </section>
+
+        <!-- Downloads -->
+        <section v-else-if="tab === 'downloads'">
+          <div v-if="downloadsLoading" class="flex min-h-[20vh] items-center justify-center"><Spinner :size="26" label="Loading downloads…" /></div>
+          <div v-else-if="downloads.length" class="space-y-3">
+            <div v-for="d in downloads" :key="d.id" class="card flex items-center justify-between p-4">
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 place-items-center rounded-lg bg-primary-50 text-primary-600"><Download class="h-5 w-5" /></span>
+                <div>
+                  <p class="text-sm font-medium">Digital item</p>
+                  <p class="text-xs text-slate-400">{{ d.download_count }}/{{ d.download_limit }} downloads · {{ d.remaining_downloads }} left<span v-if="d.expires_at"> · expires {{ (d.expires_at || '').slice(0, 10) }}</span></p>
+                  <p v-if="d.license_keys?.length" class="mt-1 text-xs text-muted">Keys: {{ d.license_keys.join(', ') }}</p>
+                </div>
+              </div>
+              <a v-if="d.can_download && d.download_url" :href="d.download_url" target="_blank" rel="noopener" class="btn btn-primary btn-sm"><Download class="h-4 w-4" /> Download</a>
+              <span v-else class="chip border-slate-200 text-slate-500">Unavailable</span>
+            </div>
+          </div>
+          <EmptyState v-else :icon="Download" title="No downloads" message="Digital products you purchase will appear here." />
+        </section>
+
+        <!-- Referrals -->
+        <section v-else-if="tab === 'referrals'">
+          <div v-if="referralsLoading" class="flex min-h-[20vh] items-center justify-center"><Spinner :size="26" label="Loading referrals…" /></div>
+          <template v-else>
+            <div class="card p-6">
+              <h2 class="section-title mb-2">Invite friends</h2>
+              <p class="text-sm text-muted">Share your code — you both earn rewards when they shop.</p>
+              <div class="mt-4 flex items-center gap-2">
+                <code class="flex-1 rounded-lg border border-dashed border-primary-300 bg-primary-50 px-4 py-3 text-center font-mono text-lg font-bold text-primary-700">{{ referralStats?.code || '—' }}</code>
+                <button class="btn btn-outline" :disabled="!referralStats?.code" @click="copyCode"><Copy class="h-4 w-4" /> Copy</button>
+              </div>
+              <div v-if="referralStats" class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                <template v-for="(v, k) in referralStats" :key="k">
+                  <div v-if="k !== 'code' && typeof v !== 'object'" class="rounded-lg bg-lightbg p-3 text-center">
+                    <p class="font-heading text-xl font-bold">{{ v }}</p>
+                    <p class="text-xs capitalize text-muted">{{ String(k).replace(/_/g, ' ') }}</p>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <div class="card mt-4 p-6">
+              <h3 class="mb-3 font-semibold">Have a referral code?</h3>
+              <form class="flex gap-2" @submit.prevent="applyReferral">
+                <input v-model="applyCode" class="input" placeholder="Enter a friend's code" />
+                <button class="btn btn-primary btn-sm shrink-0" :disabled="applyBusy || !applyCode.trim()">Apply</button>
+              </form>
+            </div>
+
+            <div v-if="referralList.length" class="card mt-4 p-5">
+              <h3 class="mb-3 font-semibold">Your referrals</h3>
+              <ul class="divide-y divide-slate-100 text-sm">
+                <li v-for="r in referralList" :key="r.id" class="flex items-center justify-between py-2">
+                  <span>{{ r.referee_email || 'Friend' }}</span>
+                  <StatusBadge :status="r.status" />
                 </li>
               </ul>
             </div>
