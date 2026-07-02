@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowLeft, Printer, Check, X, Truck, Ticket, ShoppingBag } from 'lucide-vue-next';
+import { ArrowLeft, Printer, Check, X, XCircle, Truck, Ticket, ShoppingBag } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import Spinner from '@/components/ui/Spinner.vue';
@@ -25,6 +25,16 @@ const acting = ref(false);
 
 const currency = computed(() => order.value?.currency || '');
 const address = computed(() => (order.value?.shipping_address && typeof order.value.shipping_address === 'object' ? order.value.shipping_address : null));
+
+// Status timeline
+const STEPS = ['Placed', 'Confirmed', 'Fulfilled'];
+const isCancelled = computed(() => ['cancelled', 'canceled', 'refunded'].includes(order.value?.status));
+const stageIndex = computed(() => {
+  const s = order.value?.status;
+  if (['delivered', 'completed', 'fulfilled'].includes(s)) return 2;
+  if (['confirmed', 'shipped', 'processing'].includes(s)) return 1;
+  return 0;
+});
 
 const load = async () => {
   loading.value = true;
@@ -101,6 +111,26 @@ onMounted(load);
             </template>
           </template>
         </PageHeader>
+      </div>
+
+      <!-- Status timeline -->
+      <div class="no-print mb-6">
+        <div v-if="isCancelled" class="flex items-center gap-2 rounded-xl border border-secondary-200 bg-secondary-50 px-5 py-4 text-sm font-medium text-secondary-700">
+          <XCircle class="h-5 w-5" /> This order was {{ order.status }}.
+        </div>
+        <div v-else class="card p-5">
+          <div class="flex items-center">
+            <template v-for="(step, i) in STEPS" :key="step">
+              <div class="flex flex-col items-center">
+                <span class="grid h-9 w-9 place-items-center rounded-full text-sm font-semibold" :class="i <= stageIndex ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-400'">
+                  <Check v-if="i < stageIndex" class="h-4 w-4" /><span v-else>{{ i + 1 }}</span>
+                </span>
+                <span class="mt-1.5 text-xs" :class="i <= stageIndex ? 'font-semibold text-ink' : 'text-muted'">{{ step }}</span>
+              </div>
+              <div v-if="i < STEPS.length - 1" class="mx-3 h-0.5 flex-1 rounded" :class="i < stageIndex ? 'bg-primary-600' : 'bg-slate-200'"></div>
+            </template>
+          </div>
+        </div>
       </div>
 
       <!-- Invoice (printable) -->

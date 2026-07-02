@@ -12,16 +12,17 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
   emptyTitle: { type: String, default: 'No records found' },
   emptyMessage: { type: String, default: '' },
-  clickable: { type: Boolean, default: false }
+  clickable: { type: Boolean, default: false },
+  selectable: { type: Boolean, default: false },
+  selected: { type: Array, default: () => [] }
 });
-const emit = defineEmits(['row-click']);
+const emit = defineEmits(['row-click', 'update:selected']);
 
 const value = (row, key) => key.split('.').reduce((o, k) => (o == null ? o : o[k]), row);
 
 // Client-side sort of the currently loaded rows.
 const sortKey = ref('');
 const sortDir = ref('asc');
-
 const toggleSort = (col) => {
   if (!col.sortable) return;
   if (sortKey.value === col.key) {
@@ -31,7 +32,6 @@ const toggleSort = (col) => {
     sortDir.value = 'asc';
   }
 };
-
 const displayRows = computed(() => {
   if (!sortKey.value) return props.rows;
   const dir = sortDir.value === 'asc' ? 1 : -1;
@@ -45,6 +45,16 @@ const displayRows = computed(() => {
     return String(av ?? '').localeCompare(String(bv ?? '')) * dir;
   });
 });
+
+// Selection
+const allSelected = computed(() => props.rows.length > 0 && props.rows.every((r) => props.selected.includes(r[props.rowKey])));
+const toggleAll = () => emit('update:selected', allSelected.value ? [] : props.rows.map((r) => r[props.rowKey]));
+const toggleRow = (id) => {
+  const set = new Set(props.selected);
+  if (set.has(id)) set.delete(id);
+  else set.add(id);
+  emit('update:selected', [...set]);
+};
 </script>
 
 <template>
@@ -53,6 +63,9 @@ const displayRows = computed(() => {
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-slate-100 bg-slate-50/70 text-left text-xs uppercase tracking-wide text-slate-500">
+            <th v-if="selectable" class="w-10 px-4 py-3">
+              <input type="checkbox" :checked="allSelected" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" @change="toggleAll" />
+            </th>
             <th
               v-for="col in columns"
               :key="col.key"
@@ -75,6 +88,7 @@ const displayRows = computed(() => {
         <tbody>
           <template v-if="loading">
             <tr v-for="n in 6" :key="`s-${n}`" class="border-b border-slate-50">
+              <td v-if="selectable" class="px-4 py-3"><div class="skeleton h-4 w-4 rounded"></div></td>
               <td v-for="col in columns" :key="col.key" class="px-4 py-3">
                 <div class="skeleton h-4 w-full rounded"></div>
               </td>
@@ -85,9 +99,12 @@ const displayRows = computed(() => {
               v-for="row in displayRows"
               :key="row[rowKey]"
               class="border-b border-slate-50 last:border-0"
-              :class="clickable ? 'cursor-pointer hover:bg-slate-50/70' : ''"
+              :class="[clickable ? 'cursor-pointer hover:bg-slate-50/70' : '', selected.includes(row[rowKey]) ? 'bg-primary-50/40' : '']"
               @click="clickable && emit('row-click', row)"
             >
+              <td v-if="selectable" class="px-4 py-3" @click.stop>
+                <input type="checkbox" :checked="selected.includes(row[rowKey])" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" @change="toggleRow(row[rowKey])" />
+              </td>
               <td
                 v-for="col in columns"
                 :key="col.key"

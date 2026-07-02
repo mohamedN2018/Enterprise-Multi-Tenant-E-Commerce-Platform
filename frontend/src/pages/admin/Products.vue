@@ -22,6 +22,7 @@ const term = ref('');
 const statusFilter = ref('');
 const categories = ref([]);
 const brands = ref([]);
+const selected = ref([]);
 
 const columns = [
   { key: 'name', label: 'Product', sortable: true },
@@ -42,7 +43,10 @@ const params = () => {
   if (statusFilter.value) p.status = statusFilter.value;
   return p;
 };
-const fetch = () => load(params());
+const fetch = () => {
+  selected.value = [];
+  return load(params());
+};
 const changePage = (n) => {
   page.value = n;
   fetch();
@@ -50,6 +54,24 @@ const changePage = (n) => {
 const applyFilters = () => {
   page.value = 1;
   fetch();
+};
+
+// Bulk delete
+const bulkConfirm = ref(false);
+const bulkDeleting = ref(false);
+const bulkDelete = async () => {
+  bulkDeleting.value = true;
+  try {
+    await Promise.all(selected.value.map((id) => seller.deleteProduct(id)));
+    ui.success(`${selected.value.length} products deleted.`);
+    selected.value = [];
+    bulkConfirm.value = false;
+    fetch();
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    bulkDeleting.value = false;
+  }
 };
 
 const exportCsv = () => {
@@ -245,7 +267,15 @@ onMounted(async () => {
       </select>
     </div>
 
-    <DataTable :columns="columns" :rows="items" :loading="loading" empty-title="No products yet" empty-message="Create your first product to start selling.">
+    <div v-if="selected.length" class="mb-3 flex items-center justify-between rounded-lg border border-primary-200 bg-primary-50 px-4 py-2.5">
+      <span class="text-sm font-medium text-primary-700">{{ selected.length }} selected</span>
+      <div class="flex gap-2">
+        <button class="btn btn-ghost btn-sm" @click="selected = []">Clear</button>
+        <button v-if="tenant.canWrite" class="btn btn-danger btn-sm" @click="bulkConfirm = true"><Trash2 class="h-4 w-4" /> Delete selected</button>
+      </div>
+    </div>
+
+    <DataTable :columns="columns" :rows="items" :loading="loading" :selectable="tenant.canWrite" :selected="selected" empty-title="No products yet" empty-message="Create your first product to start selling." @update:selected="selected = $event">
       <template #cell-name="{ row }">
         <div class="flex items-center gap-3">
           <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-400"><Package class="h-4 w-4" /></span>
@@ -387,6 +417,17 @@ onMounted(async () => {
         <div class="flex justify-end gap-2">
           <button class="btn btn-ghost" @click="keysModal = false">Cancel</button>
           <button class="btn btn-primary" :disabled="keysBusy || !keysText.trim()" @click="addKeys"><Spinner v-if="keysBusy" :size="18" /><span v-else>Add keys</span></button>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Bulk delete -->
+    <Modal v-model="bulkConfirm" title="Delete products" size="sm">
+      <p class="text-sm text-slate-600">Delete <span class="font-semibold">{{ selected.length }}</span> selected products? This cannot be undone.</p>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button class="btn btn-ghost" @click="bulkConfirm = false">Cancel</button>
+          <button class="btn btn-danger" :disabled="bulkDeleting" @click="bulkDelete"><Spinner v-if="bulkDeleting" :size="18" /><span v-else>Delete {{ selected.length }}</span></button>
         </div>
       </template>
     </Modal>
