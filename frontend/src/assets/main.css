@@ -7,7 +7,7 @@
     -webkit-font-smoothing: antialiased;
   }
   body {
-    @apply bg-white text-ink font-sans;
+    @apply bg-white text-ink font-sans dark:bg-slate-900 dark:text-slate-100;
     cursor: url('/cursors/cursor-dark.png') 4 2, auto;
   }
   h1, h2, h3, h4, h5, h6 {
@@ -51,16 +51,18 @@
     @apply btn bg-secondary-500 text-white hover:bg-primary-600;
   }
   .btn-outline {
-    @apply btn border border-slate-200 bg-white text-ink hover:border-primary-500 hover:text-primary-600;
+    @apply btn border border-slate-200 bg-white text-ink hover:border-primary-500 hover:text-primary-600
+           dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:border-primary-500;
   }
   .btn-ghost {
-    @apply btn text-muted hover:bg-lightbg hover:text-ink;
+    @apply btn text-muted hover:bg-lightbg hover:text-ink dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white;
   }
   .btn-danger {
     @apply btn bg-secondary-500 text-white hover:bg-secondary-700;
   }
   .btn-light {
-    @apply btn bg-white text-ink hover:bg-lightbg border border-slate-200;
+    @apply btn bg-white text-ink hover:bg-lightbg border border-slate-200
+           dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600 dark:hover:bg-slate-700;
   }
   .btn-sm {
     @apply px-3.5 py-1.5 text-xs;
@@ -72,15 +74,16 @@
   /* Form controls */
   .input {
     @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-ink
-           placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none;
+           placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none
+           dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500;
   }
   .label {
-    @apply mb-1 block text-sm font-medium text-ink;
+    @apply mb-1 block text-sm font-medium text-ink dark:text-slate-200;
   }
 
   /* Surfaces */
   .card {
-    @apply rounded-xl border border-slate-200 bg-white shadow-card;
+    @apply rounded-xl border border-slate-200 bg-white shadow-card dark:border-slate-700 dark:bg-slate-800;
   }
 
   /* Badges & chips */
@@ -93,12 +96,12 @@
 
   /* Dropdown / menu items */
   .dropdown-item {
-    @apply flex items-center gap-2 px-4 py-2 text-sm text-ink transition hover:bg-primary-600 hover:text-white;
+    @apply flex items-center gap-2 px-4 py-2 text-sm text-ink transition hover:bg-primary-600 hover:text-white dark:text-slate-200;
   }
 
   /* Section heading */
   .section-title {
-    @apply font-heading text-2xl font-bold text-ink;
+    @apply font-heading text-2xl font-bold text-ink dark:text-slate-100;
   }
 
   /* q-shop circular corner badges on product media */
@@ -182,6 +185,46 @@
 }
 .page-leave-to {
   opacity: 0;
+}
+
+/* Dark mode: broad overrides for raw utility classes used across templates */
+.dark .bg-white {
+  background-color: #1e293b;
+}
+.dark .bg-lightbg {
+  background-color: #0f172a;
+}
+.dark .bg-slate-50,
+.dark .bg-slate-50\/60,
+.dark .bg-slate-50\/70,
+.dark .bg-slate-100 {
+  background-color: #334155;
+}
+.dark .text-ink {
+  color: #e2e8f0;
+}
+.dark .text-muted {
+  color: #94a3b8;
+}
+.dark .text-slate-700,
+.dark .text-slate-600 {
+  color: #cbd5e1;
+}
+.dark .text-slate-500 {
+  color: #94a3b8;
+}
+.dark .text-slate-400 {
+  color: #64748b;
+}
+.dark .border-slate-100,
+.dark .border-slate-200 {
+  border-color: #334155;
+}
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #334155;
+}
+.dark .skeleton {
+  background-color: rgba(51, 65, 85, 0.7);
 }
 
 /* Print: show only the invoice area */

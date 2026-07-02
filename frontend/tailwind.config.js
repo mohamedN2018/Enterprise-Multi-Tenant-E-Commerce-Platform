@@ -3,6 +3,7 @@
 // dark #484848, light #F5F5F5. Headings Roboto, body Open Sans.
 export default {
   content: ['./index.html', './src/**/*.{vue,js}'],
+  darkMode: 'class',
   theme: {
     container: {
       center: true,
@@ -40,8 +41,8 @@ export default {
         lightbg: '#F5F5F5'
       },
       fontFamily: {
-        sans: ['"Open Sans"', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Helvetica', 'Arial', 'sans-serif'],
-        heading: ['Roboto', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Arial', 'sans-serif']
+        sans: ['Cairo', '"Open Sans"', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Tahoma', 'Arial', 'sans-serif'],
+        heading: ['Cairo', 'Roboto', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Arial', 'sans-serif']
       },
       borderRadius: {
         DEFAULT: '0.5rem',
