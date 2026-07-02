@@ -6,12 +6,20 @@ import {
   Package,
   Tags,
   Bookmark,
+  SlidersHorizontal,
   ShoppingBag,
   Boxes,
   BadgePercent,
+  Megaphone,
+  Gift,
   Truck,
   Undo2,
+  CreditCard,
   Wallet,
+  Landmark,
+  Layers,
+  Building2,
+  ShieldAlert,
   Users,
   Settings,
   Store as StoreIcon,
@@ -36,32 +44,67 @@ const tenant = useTenantStore();
 const sidebarOpen = ref(false);
 const storeMenu = ref(false);
 
-const baseLinks = [
-  { label: 'Dashboard', to: { name: 'admin-dashboard' }, icon: LayoutDashboard },
-  { label: 'Products', to: { name: 'admin-products' }, icon: Package },
-  { label: 'Categories', to: { name: 'admin-categories' }, icon: Tags },
-  { label: 'Brands', to: { name: 'admin-brands' }, icon: Bookmark },
-  { label: 'Orders', to: { name: 'admin-orders' }, icon: ShoppingBag },
-  { label: 'Inventory', to: { name: 'admin-inventory' }, icon: Boxes },
-  { label: 'Shipping', to: { name: 'admin-shipping' }, icon: Truck },
-  { label: 'Returns', to: { name: 'admin-returns' }, icon: Undo2 },
-  { label: 'Promotions', to: { name: 'admin-promotions' }, icon: BadgePercent },
-  { label: 'Reviews', to: { name: 'admin-reviews' }, icon: Star },
-  { label: 'Payouts', to: { name: 'admin-payouts' }, icon: Wallet },
-  { label: 'Notifications', to: { name: 'admin-notifications' }, icon: Bell },
-  { label: 'Team', to: { name: 'admin-team' }, icon: Users, requires: 'members' },
-  { label: 'Settings', to: { name: 'admin-settings' }, icon: Settings }
-];
-
-// Nav is role-aware: employees don't see Team (they can't list members);
-// platform admins get a Platform overview link at the top.
-const links = computed(() => {
-  const items = baseLinks.filter((l) => l.requires !== 'members' || tenant.canManageMembers);
-  if (tenant.isPlatform) {
-    return [{ label: 'Platform', to: { name: 'admin-platform' }, icon: Globe }, ...items];
+// Grouped, role-aware navigation.
+const navGroups = computed(() => [
+  {
+    title: 'Overview',
+    links: [
+      { label: 'Dashboard', to: { name: 'admin-dashboard' }, icon: LayoutDashboard },
+      ...(tenant.isPlatform ? [{ label: 'Platform', to: { name: 'admin-platform' }, icon: Globe }] : [])
+    ]
+  },
+  {
+    title: 'Catalog',
+    links: [
+      { label: 'Products', to: { name: 'admin-products' }, icon: Package },
+      { label: 'Categories', to: { name: 'admin-categories' }, icon: Tags },
+      { label: 'Brands', to: { name: 'admin-brands' }, icon: Bookmark },
+      { label: 'Attributes', to: { name: 'admin-attributes' }, icon: SlidersHorizontal }
+    ]
+  },
+  {
+    title: 'Sales',
+    links: [
+      { label: 'Orders', to: { name: 'admin-orders' }, icon: ShoppingBag },
+      { label: 'Returns', to: { name: 'admin-returns' }, icon: Undo2 },
+      { label: 'Payments', to: { name: 'admin-payments' }, icon: CreditCard },
+      { label: 'Reviews', to: { name: 'admin-reviews' }, icon: Star }
+    ]
+  },
+  {
+    title: 'Marketing',
+    links: [
+      { label: 'Promotions', to: { name: 'admin-promotions' }, icon: BadgePercent },
+      { label: 'Campaigns', to: { name: 'admin-campaigns' }, icon: Megaphone },
+      { label: 'Gift cards', to: { name: 'admin-giftcards' }, icon: Gift }
+    ]
+  },
+  {
+    title: 'Operations',
+    links: [
+      { label: 'Inventory', to: { name: 'admin-inventory' }, icon: Boxes },
+      { label: 'Shipping', to: { name: 'admin-shipping' }, icon: Truck },
+      { label: 'Procurement', to: { name: 'admin-procurement' }, icon: Building2 },
+      { label: 'Pricing', to: { name: 'admin-pricing' }, icon: Layers },
+      { label: 'Fraud', to: { name: 'admin-fraud' }, icon: ShieldAlert }
+    ]
+  },
+  {
+    title: 'Finance',
+    links: [
+      { label: 'Payouts', to: { name: 'admin-payouts' }, icon: Wallet },
+      { label: 'Finance', to: { name: 'admin-finance' }, icon: Landmark }
+    ]
+  },
+  {
+    title: 'Store',
+    links: [
+      { label: 'Notifications', to: { name: 'admin-notifications' }, icon: Bell },
+      ...(tenant.canManageMembers ? [{ label: 'Team', to: { name: 'admin-team' }, icon: Users }] : []),
+      { label: 'Settings', to: { name: 'admin-settings' }, icon: Settings }
+    ]
   }
-  return items;
-});
+]);
 
 const roleTone = {
   platform: 'bg-secondary-100 text-secondary-700',
@@ -139,17 +182,22 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
         </div>
       </div>
 
-      <nav class="flex-1 space-y-1 overflow-y-auto p-3">
-        <RouterLink
-          v-for="link in links"
-          :key="link.label"
-          :to="link.to"
-          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-ink"
-          active-class="bg-primary-50 text-primary-700"
-        >
-          <component :is="link.icon" class="h-5 w-5" />
-          {{ link.label }}
-        </RouterLink>
+      <nav class="flex-1 space-y-4 overflow-y-auto p-3">
+        <div v-for="group in navGroups" :key="group.title">
+          <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ group.title }}</p>
+          <div class="space-y-0.5">
+            <RouterLink
+              v-for="link in group.links"
+              :key="link.label"
+              :to="link.to"
+              class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-ink"
+              active-class="bg-primary-50 text-primary-700"
+            >
+              <component :is="link.icon" class="h-5 w-5" />
+              {{ link.label }}
+            </RouterLink>
+          </div>
+        </div>
       </nav>
 
       <div class="border-t border-slate-100 p-3">

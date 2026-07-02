@@ -13,20 +13,28 @@ import {
 } from 'lucide-vue-next';
 import ProductCard from '@/components/ProductCard.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import { Store as StoreIcon, Quote, Star, Rocket } from 'lucide-vue-next';
 import { storefront } from '@/services/storefront';
 import { useAddToCart } from '@/composables/useAddToCart';
-import { heroImage, catImage, onImgError } from '@/utils/media';
+import { heroImage, catImage, storeBanner, storeLogo, onImgError } from '@/utils/media';
 import { getRecentlyViewed } from '@/utils/recent';
 
 const router = useRouter();
 const { add, adding } = useAddToCart();
 
 const categories = ref([]);
+const stores = ref([]);
 const newest = ref([]);
 const deals = ref([]);
 const loading = ref(true);
 const tab = ref('all');
 const recent = ref(getRecentlyViewed());
+
+const testimonials = [
+  { name: 'Sarah M.', text: 'Fast shipping and the product quality exceeded my expectations. My go-to marketplace now!', role: 'Verified buyer' },
+  { name: 'Ahmed K.', text: 'Love the variety of independent stores. Found exactly what I was looking for at a great price.', role: 'Verified buyer' },
+  { name: 'Elena R.', text: 'Checkout was smooth and the wishlist feature is so handy. Highly recommend Electro.', role: 'Verified buyer' }
+];
 
 const services = [
   { icon: RotateCcw, title: 'Free Return', text: '30 days money back guarantee!' },
@@ -44,12 +52,14 @@ const goCategory = (name) => router.push({ name: 'products', query: { category: 
 
 onMounted(async () => {
   try {
-    const [cat, nw, dl] = await Promise.all([
+    const [cat, st, nw, dl] = await Promise.all([
       storefront.categories(),
+      storefront.stores({ page_size: 6 }),
       storefront.products({ page_size: 8 }),
       storefront.products({ on_sale: 1, page_size: 8 })
     ]);
     categories.value = (cat.data || []).slice(0, 8);
+    stores.value = st.data?.results || st.data || [];
     newest.value = nw.data?.results || nw.data || [];
     deals.value = dl.data?.results || dl.data || [];
   } finally {
@@ -126,6 +136,26 @@ onMounted(async () => {
       </div>
     </section>
 
+    <!-- Featured stores -->
+    <section v-if="stores.length" class="container py-10">
+      <div class="mb-6 flex items-end justify-between">
+        <h2 class="section-title">Featured Stores</h2>
+        <RouterLink :to="{ name: 'stores' }" class="text-sm font-medium text-primary-600 hover:underline">View all</RouterLink>
+      </div>
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <RouterLink v-for="s in stores" :key="s.id" :to="{ name: 'store', params: { slug: s.slug } }" class="card group overflow-hidden transition hover:-translate-y-0.5 hover:shadow-pop">
+          <div class="h-24 overflow-hidden bg-lightbg"><img :src="storeBanner(s)" alt="" class="h-full w-full object-cover transition group-hover:scale-105" @error="onImgError" /></div>
+          <div class="flex items-center gap-3 p-4">
+            <img :src="storeLogo(s)" :alt="s.name" class="-mt-8 h-12 w-12 rounded-xl border-2 border-white object-cover shadow" @error="onImgError" />
+            <div class="min-w-0">
+              <p class="truncate font-heading font-semibold group-hover:text-primary-600">{{ s.name }}</p>
+              <p class="clamp-1 text-xs text-muted">{{ s.description || 'Independent store' }}</p>
+            </div>
+          </div>
+        </RouterLink>
+      </div>
+    </section>
+
     <!-- Promo banners -->
     <section class="container grid gap-4 py-10 lg:grid-cols-2">
       <RouterLink :to="{ name: 'products', query: { on_sale: 1 } }" class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-6 transition hover:shadow-pop">
@@ -177,6 +207,40 @@ onMounted(async () => {
 
       <div class="mt-10 text-center">
         <RouterLink :to="{ name: 'products' }" class="btn btn-outline btn-lg">View all products <ArrowRight class="h-4 w-4" /></RouterLink>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="bg-lightbg py-14">
+      <div class="container">
+        <h2 class="section-title mb-8 text-center">What our customers say</h2>
+        <div class="grid gap-6 md:grid-cols-3">
+          <div v-for="t in testimonials" :key="t.name" class="card p-6">
+            <Quote class="h-8 w-8 text-primary-200" />
+            <p class="mt-3 text-muted">{{ t.text }}</p>
+            <div class="mt-4 flex items-center gap-3">
+              <span class="grid h-10 w-10 place-items-center rounded-full bg-primary-100 font-bold text-primary-700">{{ t.name.charAt(0) }}</span>
+              <div>
+                <p class="font-semibold">{{ t.name }}</p>
+                <p class="flex items-center gap-1 text-xs text-muted"><Star class="h-3 w-3 fill-primary-600 text-primary-600" /> {{ t.role }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Seller CTA -->
+    <section class="bg-ink">
+      <div class="container flex flex-col items-center justify-between gap-6 py-12 text-center lg:flex-row lg:text-left">
+        <div class="flex items-center gap-4">
+          <span class="hidden h-14 w-14 place-items-center rounded-2xl bg-primary-600 text-white sm:grid"><StoreIcon class="h-7 w-7" /></span>
+          <div>
+            <h2 class="font-heading text-2xl font-black text-white lg:text-3xl">Start selling on Electro today</h2>
+            <p class="mt-2 text-slate-300">Open your store, reach thousands of shoppers, and grow your business.</p>
+          </div>
+        </div>
+        <RouterLink :to="{ name: 'register' }" class="btn btn-primary btn-lg shrink-0"><Rocket class="h-5 w-5" /> Become a seller</RouterLink>
       </div>
     </section>
   </div>

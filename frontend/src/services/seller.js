@@ -67,6 +67,68 @@ export const seller = {
   rejectReturn: (id, payload) => http.post(`/returns/${id}/reject/`, payload || {}),
   refundReturn: (id) => http.post(`/returns/${id}/refund/`),
 
+  // Campaigns (promotions)
+  campaigns: (params) => http.get('/promotions/campaigns/', { params }),
+  activeCampaigns: () => http.get('/promotions/campaigns/active/'),
+  createCampaign: (payload) => http.post('/promotions/campaigns/', payload),
+  updateCampaign: (id, payload) => http.patch(`/promotions/campaigns/${id}/`, payload),
+  deleteCampaign: (id) => http.delete(`/promotions/campaigns/${id}/`),
+
+  // Gift cards (staff)
+  giftCards: (params) => http.get('/rewards/gift-cards/', { params }),
+  issueGiftCard: (payload) => http.post('/rewards/gift-cards/', payload),
+
+  // Payments (staff)
+  paymentsManage: (params) => http.get('/payments/manage/', { params }),
+  paymentDetail: (id) => http.get(`/payments/manage/${id}/`),
+  capturePayment: (id) => http.post(`/payments/manage/${id}/capture/`),
+  gateways: () => http.get('/payments/gateways/'),
+
+  // Fraud (staff)
+  fraudChecks: (params) => http.get('/fraud/checks/', { params }),
+  clearFraud: (id) => http.post(`/fraud/checks/${id}/clear/`),
+  rejectFraud: (id) => http.post(`/fraud/checks/${id}/reject/`),
+
+  // Finance (staff)
+  taxZones: () => http.get('/finance/tax-zones/'),
+  createTaxZone: (payload) => http.post('/finance/tax-zones/', payload),
+  taxRates: (zoneId) => http.get(`/finance/tax-zones/${zoneId}/rates/`),
+  createTaxRate: (zoneId, payload) => http.post(`/finance/tax-zones/${zoneId}/rates/`, payload),
+  currencies: () => http.get('/finance/currencies/'),
+  createCurrency: (payload) => http.post('/finance/currencies/', payload),
+  exchangeRates: () => http.get('/finance/exchange-rates/'),
+  createExchangeRate: (payload) => http.post('/finance/exchange-rates/', payload),
+
+  // Pricing (staff)
+  customerGroups: () => http.get('/pricing/groups/'),
+  createCustomerGroup: (payload) => http.post('/pricing/groups/', payload),
+  groupMembers: (groupId) => http.get(`/pricing/groups/${groupId}/members/`),
+  addGroupMember: (groupId, payload) => http.post(`/pricing/groups/${groupId}/members/`, payload),
+  priceRules: (params) => http.get('/pricing/rules/', { params }),
+  createPriceRule: (payload) => http.post('/pricing/rules/', payload),
+  deletePriceRule: (id) => http.delete(`/pricing/rules/${id}/`),
+
+  // Procurement (staff)
+  suppliers: () => http.get('/procurement/suppliers/'),
+  createSupplier: (payload) => http.post('/procurement/suppliers/', payload),
+  updateSupplier: (id, payload) => http.patch(`/procurement/suppliers/${id}/`, payload),
+  purchaseOrders: (params) => http.get('/procurement/purchase-orders/', { params }),
+  purchaseOrder: (id) => http.get(`/procurement/purchase-orders/${id}/`),
+  createPurchaseOrder: (payload) => http.post('/procurement/purchase-orders/', payload),
+  submitPurchaseOrder: (id) => http.post(`/procurement/purchase-orders/${id}/submit/`),
+  receivePurchaseOrder: (id, payload) => http.post(`/procurement/purchase-orders/${id}/receive/`, payload || {}),
+  cancelPurchaseOrder: (id) => http.post(`/procurement/purchase-orders/${id}/cancel/`),
+
+  // Attributes (catalog)
+  attributes: () => http.get('/catalog/attributes/'),
+  createAttribute: (payload) => http.post('/catalog/attributes/', payload),
+  attributeValues: (attrId) => http.get(`/catalog/attributes/${attrId}/values/`),
+  createAttributeValue: (attrId, payload) => http.post(`/catalog/attributes/${attrId}/values/`, payload),
+
+  // Analytics (staff)
+  analyticsSummary: (params) => http.get('/analytics/summary/', { params }),
+  analyticsEvents: (params) => http.get('/analytics/events/', { params }),
+
   // Orders (staff)
   orders: (params) => http.get('/orders/manage/', { params }),
   order: (id) => http.get(`/orders/manage/${id}/`),
