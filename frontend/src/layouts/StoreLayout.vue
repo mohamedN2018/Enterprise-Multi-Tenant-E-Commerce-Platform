@@ -91,9 +91,9 @@ onMounted(async () => {
     <div class="hidden border-b border-slate-200 lg:block">
       <div class="container flex h-11 items-center justify-between text-sm">
         <div class="flex items-center gap-2 text-muted">
-          <a href="#" class="hover:text-primary-600">{{ t('nav.help') }}</a><span>/</span>
-          <a href="#" class="hover:text-primary-600">{{ t('nav.support') }}</a><span>/</span>
-          <RouterLink :to="{ name: 'stores' }" class="hover:text-primary-600">{{ t('nav.contact') }}</RouterLink>
+          <RouterLink :to="{ name: 'support' }" class="hover:text-primary-600">{{ t('nav.help') }}</RouterLink><span>/</span>
+          <RouterLink :to="{ name: 'support' }" class="hover:text-primary-600">{{ t('nav.support') }}</RouterLink><span>/</span>
+          <RouterLink :to="{ name: 'support' }" class="hover:text-primary-600">{{ t('nav.contact') }}</RouterLink>
         </div>
         <div class="flex items-center gap-1 text-muted">
           <span class="text-ink">{{ t('nav.callUs') }}:</span>
@@ -291,6 +291,7 @@ onMounted(async () => {
             <li><RouterLink :to="{ name: 'products' }" class="text-slate-300 hover:text-primary-500 hover:tracking-wide">{{ t('nav.shop') }}</RouterLink></li>
             <li><RouterLink :to="{ name: 'stores' }" class="text-slate-300 hover:text-primary-500 hover:tracking-wide">{{ t('nav.stores') }}</RouterLink></li>
             <li><RouterLink :to="{ name: 'seller-login' }" class="text-slate-300 hover:text-primary-500 hover:tracking-wide">{{ t('footer.sellOn') }}</RouterLink></li>
+            <li><RouterLink :to="{ name: 'support' }" class="text-slate-300 hover:text-primary-500 hover:tracking-wide">{{ t('nav.support') }}</RouterLink></li>
             <li><RouterLink :to="{ name: 'account' }" class="text-slate-300 hover:text-primary-500 hover:tracking-wide">{{ t('nav.account') }}</RouterLink></li>
           </ul>
         </div>

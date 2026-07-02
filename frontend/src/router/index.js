@@ -15,6 +15,7 @@ const routes = [
       { path: 'stores', name: 'stores', component: () => import('@/pages/store/Stores.vue') },
       { path: 'store/:slug', name: 'store', component: () => import('@/pages/store/StorePage.vue') },
       { path: 'products', name: 'products', component: () => import('@/pages/store/Products.vue') },
+      { path: 'support', name: 'support', component: () => import('@/pages/store/Support.vue') },
       {
         path: 'product/:id',
         name: 'product',
@@ -144,6 +145,7 @@ const TITLES = {
   stores: 'Stores',
   store: 'Store',
   products: 'Shop',
+  support: 'Support',
   product: 'Product',
   cart: 'Cart',
   checkout: 'Checkout',

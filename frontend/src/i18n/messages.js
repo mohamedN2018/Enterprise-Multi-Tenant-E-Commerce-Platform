@@ -135,6 +135,29 @@ export default {
       sellerSignIn: 'دخول البائعين', sellerSubtitle: 'ادخل إلى لوحة تحكم متجرك.',
       sellerLoginLink: 'هل أنت بائع أو موظف؟ ادخل من هنا', customerLoginLink: 'العودة لدخول العملاء'
     },
+    support: {
+      title: 'مركز مساعدة العملاء', subtitle: 'نحن هنا لمساعدتك. ابحث عن إجابة أو تواصل مع فريق الدعم.',
+      searchPlaceholder: 'ابحث في مركز المساعدة…', browseTopics: 'تصفّح حسب الموضوع', popularQuestions: 'الأسئلة الشائعة',
+      noResults: 'لا توجد نتائج مطابقة', noResultsMsg: 'جرّب كلمات بحث مختلفة أو تواصل معنا مباشرة.',
+      catOrders: 'الطلبات والشحن', catOrdersDesc: 'التتبّع، مواعيد التسليم، وتعديل الطلب.',
+      catReturns: 'الإرجاع والاسترداد', catReturnsDesc: 'كيفية إرجاع منتج واسترداد أموالك.',
+      catPayments: 'الدفع والفوترة', catPaymentsDesc: 'طرق الدفع، الأمان، والفواتير.',
+      catAccount: 'الحساب والأمان', catAccountDesc: 'تسجيل الدخول، كلمة المرور، وبياناتك.',
+      catStores: 'المتاجر والبائعون', catStoresDesc: 'الشراء من المتاجر والتواصل مع البائعين.',
+      contactTitle: 'ما زلت بحاجة إلى مساعدة؟', contactSubtitle: 'راسل فريق الدعم وسنعود إليك في أقرب وقت.',
+      yourName: 'اسمك', subject: 'الموضوع', message: 'رسالتك', send: 'إرسال الرسالة', sent: 'تم فتح تطبيق البريد لإرسال رسالتك.',
+      emailUs: 'راسلنا عبر البريد', callUs: 'اتصل بنا', workingHours: 'ساعات العمل', hoursValue: 'السبت–الخميس، 9ص–6م',
+      whatsapp: 'واتساب', responseTime: 'نردّ عادة خلال 24 ساعة.',
+      faqs: [
+        { q: 'كيف أتتبّع طلبي؟', a: 'من حسابك › الطلبات، اختر الطلب لعرض حالته وسجل التتبّع خطوة بخطوة.' },
+        { q: 'كم يستغرق التوصيل؟', a: 'يعتمد على المتجر وعنوانك. يظهر الوقت المقدّر ووسيلة الشحن عند إتمام الدفع.' },
+        { q: 'كيف أرجع منتجًا؟', a: 'من حسابك › المرتجعات، اطلب إرجاعًا خلال فترة الإرجاع المسموحة. ستتم مراجعة الطلب من المتجر.' },
+        { q: 'متى أستلم أموالي المستردة؟', a: 'بعد موافقة المتجر على الإرجاع، يُعاد المبلغ إلى وسيلة الدفع الأصلية خلال أيام العمل.' },
+        { q: 'هل الدفع آمن؟', a: 'نعم، جميع المدفوعات مشفّرة وتتم عبر بوابات دفع موثوقة. لا نخزّن بيانات بطاقتك.' },
+        { q: 'نسيت كلمة المرور، ماذا أفعل؟', a: 'من صفحة تسجيل الدخول اختر «نسيت كلمة المرور؟» وأدخل بريدك لإرسال رابط إعادة التعيين.' },
+        { q: 'كيف أتواصل مع بائع؟', a: 'افتح صفحة المتجر ثم استخدم روابط التواصل، أو راسل الدعم وسنساعدك في الوصول للبائع.' }
+      ]
+    },
     footer: {
       about: 'q-shop — سوقك متعدد البائعين للإلكترونيات والأزياء والمنزل وأكثر، منتقاة من متاجر مستقلة موثوقة.',
       account: 'الحساب', myAccount: 'حسابي', orderHistory: 'سجل الطلبات', quickLinks: 'روابط سريعة',
@@ -313,6 +336,29 @@ export default {
       passwordsNoMatch: 'Passwords do not match.',
       sellerSignIn: 'Seller sign in', sellerSubtitle: 'Access your store dashboard.',
       sellerLoginLink: 'Are you a seller or staff? Sign in here', customerLoginLink: 'Back to customer sign in'
+    },
+    support: {
+      title: 'Customer Support Center', subtitle: "We're here to help. Find an answer or reach our support team.",
+      searchPlaceholder: 'Search the help center…', browseTopics: 'Browse by topic', popularQuestions: 'Popular questions',
+      noResults: 'No matching results', noResultsMsg: 'Try different keywords or contact us directly.',
+      catOrders: 'Orders & Shipping', catOrdersDesc: 'Tracking, delivery times, and changing an order.',
+      catReturns: 'Returns & Refunds', catReturnsDesc: 'How to return an item and get your money back.',
+      catPayments: 'Payments & Billing', catPaymentsDesc: 'Payment methods, security, and invoices.',
+      catAccount: 'Account & Security', catAccountDesc: 'Sign-in, password, and your data.',
+      catStores: 'Stores & Sellers', catStoresDesc: 'Buying from stores and contacting sellers.',
+      contactTitle: 'Still need help?', contactSubtitle: "Message our support team and we'll get back to you shortly.",
+      yourName: 'Your name', subject: 'Subject', message: 'Your message', send: 'Send message', sent: 'Your email app was opened to send the message.',
+      emailUs: 'Email us', callUs: 'Call us', workingHours: 'Working hours', hoursValue: 'Sat–Thu, 9am–6pm',
+      whatsapp: 'WhatsApp', responseTime: 'We usually reply within 24 hours.',
+      faqs: [
+        { q: 'How do I track my order?', a: 'Go to Account › Orders and select an order to see its status and step-by-step tracking timeline.' },
+        { q: 'How long does delivery take?', a: 'It depends on the store and your address. The estimated time and shipping method are shown at checkout.' },
+        { q: 'How do I return a product?', a: 'Go to Account › Returns and request a return within the allowed window. The store will review your request.' },
+        { q: 'When will I get my refund?', a: 'Once the store approves the return, the amount is refunded to your original payment method within a few business days.' },
+        { q: 'Is payment secure?', a: 'Yes. All payments are encrypted and processed through trusted gateways. We never store your card details.' },
+        { q: 'I forgot my password, what do I do?', a: 'On the sign-in page choose “Forgot password?” and enter your email to receive a reset link.' },
+        { q: 'How do I contact a seller?', a: 'Open the store page and use its contact links, or message support and we will help you reach the seller.' }
+      ]
     },
     footer: {
       about: 'q-shop — your multi-vendor marketplace for electronics, fashion, home and more, curated from verified independent stores.',
