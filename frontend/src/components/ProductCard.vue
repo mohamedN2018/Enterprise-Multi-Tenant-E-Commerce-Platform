@@ -60,7 +60,7 @@ const storeName = computed(() => p.value.store?.name || p.value.store_slug);
     <!-- Slide-up actions -->
     <div class="product-actions absolute inset-x-0 top-full z-10 rounded-b-xl border border-t-0 border-slate-200 bg-white px-4 pb-4 text-center">
       <button class="btn btn-primary mb-3 w-full border border-secondary-500" :disabled="adding" @click="emit('add', p)">
-        <ShoppingCart class="h-4 w-4" /> {{ adding ? 'Adding…' : 'Add To Cart' }}
+        <ShoppingCart class="h-4 w-4" /> {{ adding ? $t('product.adding') : $t('product.addToCart') }}
       </button>
       <div class="flex items-center justify-between">
         <div class="flex">

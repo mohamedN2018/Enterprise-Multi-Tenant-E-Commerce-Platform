@@ -80,36 +80,36 @@ onMounted(() => {
 
 <template>
   <div>
-    <PageHero title="Shopping Cart" :items="[{ label: 'Cart' }]" />
+    <PageHero :title="$t('cart.title')" :items="[{ label: $t('cart.title') }]" />
     <div class="container py-10">
 
     <div v-if="cart.loading && !data" class="flex min-h-[30vh] items-center justify-center">
-      <Spinner :size="28" label="Loading cart…" />
+      <Spinner :size="28" :label="$t('common.loading')" />
     </div>
 
     <EmptyState
       v-else-if="!auth.isAuthenticated"
       :icon="ShoppingBag"
-      title="Sign in to view your cart"
-      message="Your cart is saved to your account so you can pick up where you left off."
+      :title="$t('cart.signInTitle')"
+      :message="$t('cart.signInMsg')"
     >
-      <RouterLink :to="{ name: 'login', query: { redirect: '/cart' } }" class="btn btn-primary btn-sm">Sign in</RouterLink>
+      <RouterLink :to="{ name: 'login', query: { redirect: '/cart' } }" class="btn btn-primary btn-sm">{{ $t('auth.signIn') }}</RouterLink>
     </EmptyState>
 
     <EmptyState
       v-else-if="!items.length"
       :icon="ShoppingBag"
-      title="Your cart is empty"
-      message="Browse the marketplace and add products you love."
+      :title="$t('cart.empty')"
+      :message="$t('cart.emptyMsg')"
     >
-      <RouterLink :to="{ name: 'products' }" class="btn btn-primary btn-sm">Start shopping</RouterLink>
+      <RouterLink :to="{ name: 'products' }" class="btn btn-primary btn-sm">{{ $t('cart.startShopping') }}</RouterLink>
     </EmptyState>
 
     <div v-else class="grid gap-8 lg:grid-cols-[1fr_360px]">
       <!-- Items -->
       <div class="space-y-4">
         <div v-if="cart.shopStore" class="text-sm text-slate-500">
-          Shopping at <span class="font-semibold text-ink">{{ cart.shopStore.name }}</span>
+          {{ $t('cart.shoppingAt') }} <span class="font-semibold text-ink">{{ cart.shopStore.name }}</span>
         </div>
         <div v-for="item in items" :key="item.id" class="card flex gap-4 p-4">
           <img :src="productImage({ id: item.variant })" :alt="item.product_name" class="h-24 w-24 shrink-0 rounded-lg object-cover" @error="onImgError" />
@@ -133,9 +133,9 @@ onMounted(() => {
                   <Plus class="h-3.5 w-3.5" />
                 </button>
               </div>
-              <div class="text-right">
+              <div class="text-end">
                 <p class="font-bold">{{ item.line_total }} {{ currency }}</p>
-                <p class="text-xs text-slate-400">{{ item.unit_price }} each</p>
+                <p class="text-xs text-slate-400">{{ item.unit_price }} {{ $t('cart.each') }}</p>
               </div>
             </div>
           </div>
@@ -145,7 +145,7 @@ onMounted(() => {
       <!-- Summary -->
       <aside class="h-fit space-y-4 lg:sticky lg:top-24">
         <div class="card p-5">
-          <h3 class="font-semibold">Order summary</h3>
+          <h3 class="font-semibold">{{ $t('cart.orderSummary') }}</h3>
 
           <div class="mt-4">
             <div v-if="data.coupon_code" class="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
@@ -153,25 +153,25 @@ onMounted(() => {
               <button class="text-emerald-700 hover:text-emerald-900" :disabled="couponBusy" @click="removeCoupon"><X class="h-4 w-4" /></button>
             </div>
             <form v-else class="flex gap-2" @submit.prevent="applyCoupon">
-              <input v-model="coupon" placeholder="Coupon code" class="input" />
-              <button class="btn btn-outline btn-sm shrink-0" :disabled="couponBusy || !coupon.trim()">Apply</button>
+              <input v-model="coupon" :placeholder="$t('cart.coupon')" class="input" />
+              <button class="btn btn-outline btn-sm shrink-0" :disabled="couponBusy || !coupon.trim()">{{ $t('common.apply') }}</button>
             </form>
           </div>
 
           <dl class="mt-5 space-y-2 border-t border-slate-100 pt-4 text-sm">
-            <div class="flex justify-between"><dt class="text-slate-500">Subtotal</dt><dd class="font-medium">{{ data.subtotal }} {{ currency }}</dd></div>
-            <div v-if="Number(data.discount) > 0" class="flex justify-between text-emerald-600"><dt>Discount</dt><dd>−{{ data.discount }} {{ currency }}</dd></div>
+            <div class="flex justify-between"><dt class="text-slate-500">{{ $t('common.subtotal') }}</dt><dd class="font-medium">{{ data.subtotal }} {{ currency }}</dd></div>
+            <div v-if="Number(data.discount) > 0" class="flex justify-between text-emerald-600"><dt>{{ $t('common.discount') }}</dt><dd>−{{ data.discount }} {{ currency }}</dd></div>
             <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold">
-              <dt>Total</dt><dd>{{ data.total }} {{ currency }}</dd>
+              <dt>{{ $t('common.total') }}</dt><dd>{{ data.total }} {{ currency }}</dd>
             </div>
           </dl>
 
           <RouterLink :to="{ name: 'checkout' }" class="btn btn-primary btn-lg mt-5 w-full">
-            Checkout <ArrowRight class="h-4 w-4" />
+            {{ $t('cart.checkout') }} <ArrowRight class="h-4 w-4" />
           </RouterLink>
         </div>
         <RouterLink :to="{ name: 'products' }" class="block text-center text-sm font-medium text-primary-600 hover:underline">
-          Continue shopping
+          {{ $t('cart.continueShopping') }}
         </RouterLink>
       </aside>
     </div>

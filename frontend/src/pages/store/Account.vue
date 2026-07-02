@@ -17,8 +17,14 @@ import {
   Ticket,
   Download,
   Share2,
-  Copy
+  Copy,
+  Palette,
+  Sun,
+  Moon,
+  Languages
 } from 'lucide-vue-next';
+import { useI18n } from '@/i18n';
+import { useTheme } from '@/theme';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Spinner from '@/components/ui/Spinner.vue';
@@ -48,9 +54,12 @@ const tabs = [
   { key: 'rewards', label: 'Rewards', icon: Gift },
   { key: 'referrals', label: 'Referrals', icon: Share2 },
   { key: 'sessions', label: 'Sessions', icon: MonitorSmartphone },
+  { key: 'preferences', label: 'Preferences', icon: Palette },
   { key: 'security', label: 'Security', icon: ShieldCheck }
 ];
 const tab = ref('profile');
+const { locale, setLocale } = useI18n();
+const { theme, setTheme } = useTheme();
 
 const hasStore = computed(() => Boolean(cart.shopStore));
 const currency = computed(() => cart.shopStore?.currency || '');
@@ -382,7 +391,7 @@ onMounted(() => {
 
 <template>
   <div>
-    <PageHero title="My Account" :items="[{ label: 'Account' }]" />
+    <PageHero :title="$t('account.title')" :items="[{ label: $t('nav.account') }]" />
     <div class="container py-10">
 
     <div class="grid gap-8 lg:grid-cols-[240px_1fr]">
@@ -405,10 +414,10 @@ onMounted(() => {
             :class="tab === t.key ? 'bg-primary-50 text-primary-700' : 'text-slate-600 hover:bg-slate-100'"
             @click="selectTab(t.key)"
           >
-            <component :is="t.icon" class="h-5 w-5" /> {{ t.label }}
+            <component :is="t.icon" class="h-5 w-5" /> {{ $t('account.' + t.key) }}
           </button>
           <button class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50" @click="logout">
-            <LogOut class="h-5 w-5" /> Sign out
+            <LogOut class="h-5 w-5" /> {{ $t('account.signOut') }}
           </button>
         </nav>
       </aside>
@@ -665,6 +674,27 @@ onMounted(() => {
               <button class="btn btn-primary btn-sm mt-3" @click="savePrefs">Save preferences</button>
             </div>
           </template>
+        </section>
+
+        <!-- Preferences -->
+        <section v-else-if="tab === 'preferences'" class="card max-w-lg p-6">
+          <h2 class="section-title mb-5">{{ $t('account.preferences') }}</h2>
+          <div class="space-y-6">
+            <div>
+              <p class="label mb-2">{{ $t('account.language') }}</p>
+              <div class="flex gap-2">
+                <button class="btn btn-sm" :class="locale === 'ar' ? 'btn-primary' : 'btn-outline'" @click="setLocale('ar')"><Languages class="h-4 w-4" /> {{ $t('account.arabic') }}</button>
+                <button class="btn btn-sm" :class="locale === 'en' ? 'btn-primary' : 'btn-outline'" @click="setLocale('en')"><Languages class="h-4 w-4" /> {{ $t('account.english') }}</button>
+              </div>
+            </div>
+            <div>
+              <p class="label mb-2">{{ $t('account.theme') }}</p>
+              <div class="flex gap-2">
+                <button class="btn btn-sm" :class="theme === 'light' ? 'btn-primary' : 'btn-outline'" @click="setTheme('light')"><Sun class="h-4 w-4" /> {{ $t('account.light') }}</button>
+                <button class="btn btn-sm" :class="theme === 'dark' ? 'btn-primary' : 'btn-outline'" @click="setTheme('dark')"><Moon class="h-4 w-4" /> {{ $t('account.dark') }}</button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <!-- Security -->

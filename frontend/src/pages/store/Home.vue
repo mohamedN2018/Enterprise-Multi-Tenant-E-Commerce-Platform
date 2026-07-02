@@ -35,18 +35,18 @@ const tab = ref('all');
 const recent = ref(getRecentlyViewed());
 
 const testimonials = [
-  { name: 'Sarah M.', text: 'Fast shipping and the product quality exceeded my expectations. My go-to marketplace now!', role: 'Verified buyer' },
-  { name: 'Ahmed K.', text: 'Love the variety of independent stores. Found exactly what I was looking for at a great price.', role: 'Verified buyer' },
-  { name: 'Elena R.', text: 'Checkout was smooth and the wishlist feature is so handy. Highly recommend q-shop.', role: 'Verified buyer' }
+  { name: 'سارة م.', text: 'شحن سريع وجودة المنتج فاقت توقعاتي. أصبح سوقي المفضل!' },
+  { name: 'أحمد ك.', text: 'أحب تنوّع المتاجر المستقلة. وجدت بالضبط ما أبحث عنه بسعر رائع.' },
+  { name: 'إيلينا ر.', text: 'الدفع كان سلسًا وميزة المفضلة عملية جدًا. أنصح بـ q-shop بشدة.' }
 ];
 
 const services = [
-  { icon: RotateCcw, title: 'Free Return', text: '30 days money back guarantee!' },
-  { icon: Send, title: 'Free Shipping', text: 'Free shipping on all orders' },
-  { icon: LifeBuoy, title: 'Support 24/7', text: 'We support online 24 hrs a day' },
-  { icon: CreditCard, title: 'Gift Cards', text: 'Receive a gift on orders over $50' },
-  { icon: Lock, title: 'Secure Payment', text: 'We value your security' },
-  { icon: Headphones, title: 'Online Service', text: 'Free returns within 30 days' }
+  { icon: RotateCcw, key: 'freeReturn' },
+  { icon: Send, key: 'freeShipping' },
+  { icon: LifeBuoy, key: 'support' },
+  { icon: CreditCard, key: 'gift' },
+  { icon: Lock, key: 'secure' },
+  { icon: Headphones, key: 'online' }
 ];
 
 const featured = computed(() => deals.value[0] || newest.value[0] || null);
@@ -80,21 +80,19 @@ onMounted(async () => {
       <div class="absolute -bottom-32 left-1/3 h-80 w-80 rounded-full bg-secondary-500/20 blur-3xl"></div>
       <div class="container relative grid items-center gap-10 py-16 lg:grid-cols-2 lg:py-24">
         <div>
-          <span class="chip border-white/20 bg-white/10 text-white"><Sparkles class="h-3.5 w-3.5 text-primary-400" /> Welcome to q-shop</span>
+          <span class="chip border-white/20 bg-white/10 text-white"><Sparkles class="h-3.5 w-3.5 text-primary-400" /> {{ $t('home.heroBadge') }}</span>
           <h1 class="mt-5 font-heading text-4xl font-black leading-[1.1] lg:text-5xl">
-            Everything you love, from <span class="text-primary-500">independent stores</span>
+            {{ $t('home.heroTitle') }} <span class="text-primary-500">{{ $t('home.heroHighlight') }}</span>
           </h1>
-          <p class="mt-4 max-w-lg text-lg text-slate-300">
-            Shop thousands of products across electronics, fashion, home and more — one cart, secure checkout, and fast delivery from verified sellers.
-          </p>
+          <p class="mt-4 max-w-lg text-lg text-slate-300">{{ $t('home.heroSubtitle') }}</p>
           <div class="mt-8 flex flex-wrap gap-3">
-            <RouterLink :to="{ name: 'products' }" class="btn btn-primary btn-lg">Shop now <ArrowRight class="h-4 w-4" /></RouterLink>
-            <RouterLink :to="{ name: 'register' }" class="btn btn-light btn-lg"><Rocket class="h-4 w-4" /> Become a seller</RouterLink>
+            <RouterLink :to="{ name: 'products' }" class="btn btn-primary btn-lg">{{ $t('home.shopNow') }} <ArrowRight class="h-4 w-4" /></RouterLink>
+            <RouterLink :to="{ name: 'register' }" class="btn btn-light btn-lg"><Rocket class="h-4 w-4" /> {{ $t('home.becomeSeller') }}</RouterLink>
           </div>
           <div class="mt-10 flex gap-8">
-            <div><p class="font-heading text-2xl font-black">{{ stores.length || '10' }}+</p><p class="text-sm text-slate-400">Stores</p></div>
-            <div><p class="font-heading text-2xl font-black">{{ categories.length || '10' }}+</p><p class="text-sm text-slate-400">Categories</p></div>
-            <div><p class="flex items-center gap-1 font-heading text-2xl font-black"><ShieldCheck class="h-5 w-5 text-primary-400" /> 24/7</p><p class="text-sm text-slate-400">Support</p></div>
+            <div><p class="font-heading text-2xl font-black">{{ stores.length || '10' }}+</p><p class="text-sm text-slate-400">{{ $t('home.stores') }}</p></div>
+            <div><p class="font-heading text-2xl font-black">{{ categories.length || '10' }}+</p><p class="text-sm text-slate-400">{{ $t('home.categories') }}</p></div>
+            <div><p class="flex items-center gap-1 font-heading text-2xl font-black"><ShieldCheck class="h-5 w-5 text-primary-400" /> 24/7</p><p class="text-sm text-slate-400">{{ $t('home.support') }}</p></div>
           </div>
         </div>
 
@@ -104,14 +102,14 @@ onMounted(async () => {
           <RouterLink :to="featured ? { name: 'product', params: { id: featured.id } } : { name: 'products' }" class="relative block overflow-hidden rounded-2xl bg-white text-ink shadow-pop transition hover:-translate-y-1">
             <div class="relative">
               <img :src="featured ? productImage(featured, 800, 500) : heroImage('hero', 800, 500)" alt="" class="h-60 w-full object-cover" @error="onImgError" />
-              <span class="absolute left-4 top-4 rounded-full bg-secondary-500 px-3 py-1 text-xs font-bold text-white">Featured</span>
+              <span class="absolute left-4 top-4 rounded-full bg-secondary-500 px-3 py-1 text-xs font-bold text-white">{{ $t('home.onSale') }}</span>
             </div>
             <div class="p-5">
               <p class="text-xs font-medium text-primary-600">{{ featured?.store_slug || 'q-shop' }}</p>
-              <p class="clamp-1 font-heading text-lg font-bold">{{ featured?.name || 'Discover top picks' }}</p>
+              <p class="clamp-1 font-heading text-lg font-bold">{{ featured?.name || $t('home.ourProducts') }}</p>
               <div class="mt-3 flex items-center justify-between">
                 <span class="font-heading text-xl font-bold text-primary-600">{{ featured?.price }} {{ featured?.currency }}</span>
-                <span class="btn btn-primary btn-sm">View <ArrowRight class="h-4 w-4" /></span>
+                <span class="btn btn-primary btn-sm">{{ $t('common.view') }} <ArrowRight class="h-4 w-4" /></span>
               </div>
             </div>
           </RouterLink>
@@ -122,11 +120,11 @@ onMounted(async () => {
     <!-- Services strip -->
     <section class="border-y border-slate-100">
       <div class="container grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-        <div v-for="(s, i) in services" :key="s.title" class="flex items-center gap-3 p-5" :class="i % 2 === 0 ? 'border-r border-slate-100' : 'lg:border-r border-slate-100'">
+        <div v-for="(s, i) in services" :key="s.key" class="flex items-center gap-3 p-5" :class="i % 2 === 0 ? 'border-e border-slate-100' : 'lg:border-e border-slate-100'">
           <component :is="s.icon" class="h-7 w-7 shrink-0 text-primary-600" />
           <div>
-            <h6 class="font-heading text-sm font-bold uppercase text-ink">{{ s.title }}</h6>
-            <p class="text-xs text-muted">{{ s.text }}</p>
+            <h6 class="font-heading text-sm font-bold text-ink">{{ $t('home.svc.' + s.key) }}</h6>
+            <p class="text-xs text-muted">{{ $t('home.svc.' + s.key + 'Msg') }}</p>
           </div>
         </div>
       </div>
@@ -135,14 +133,14 @@ onMounted(async () => {
     <!-- Category strip -->
     <section v-if="categories.length" class="bg-lightbg py-10">
       <div class="container">
-        <h2 class="section-title mb-6 text-center">Shop by Category</h2>
+        <h2 class="section-title mb-6 text-center">{{ $t('home.shopByCategory') }}</h2>
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8">
           <button v-for="c in categories" :key="c.name" class="group flex flex-col items-center gap-2" @click="goCategory(c.name)">
             <span class="h-24 w-24 overflow-hidden rounded-full border-2 border-transparent transition group-hover:border-primary-600">
               <img :src="catImage(c.name)" :alt="c.name" class="h-full w-full object-cover" @error="onImgError" />
             </span>
             <span class="text-center text-sm font-medium text-ink group-hover:text-primary-600">{{ c.name }}</span>
-            <span class="text-xs text-muted">{{ c.product_count }} items</span>
+            <span class="text-xs text-muted">{{ c.product_count }} {{ $t('home.items') }}</span>
           </button>
         </div>
       </div>
@@ -151,8 +149,8 @@ onMounted(async () => {
     <!-- Featured stores -->
     <section v-if="stores.length" class="container py-10">
       <div class="mb-6 flex items-end justify-between">
-        <h2 class="section-title">Featured Stores</h2>
-        <RouterLink :to="{ name: 'stores' }" class="text-sm font-medium text-primary-600 hover:underline">View all</RouterLink>
+        <h2 class="section-title">{{ $t('home.featuredStores') }}</h2>
+        <RouterLink :to="{ name: 'stores' }" class="text-sm font-medium text-primary-600 hover:underline">{{ $t('home.viewAll') }}</RouterLink>
       </div>
       <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <RouterLink v-for="s in stores" :key="s.id" :to="{ name: 'store', params: { slug: s.slug } }" class="card group overflow-hidden transition hover:-translate-y-0.5 hover:shadow-pop">
@@ -161,7 +159,7 @@ onMounted(async () => {
             <img :src="storeLogo(s)" :alt="s.name" class="-mt-8 h-12 w-12 rounded-xl border-2 border-white object-cover shadow" @error="onImgError" />
             <div class="min-w-0">
               <p class="truncate font-heading font-semibold group-hover:text-primary-600">{{ s.name }}</p>
-              <p class="clamp-1 text-xs text-muted">{{ s.description || 'Independent store' }}</p>
+              <p class="clamp-1 text-xs text-muted">{{ s.description || $t('home.independentStore') }}</p>
             </div>
           </div>
         </RouterLink>
@@ -172,17 +170,17 @@ onMounted(async () => {
     <section class="container grid gap-4 py-10 lg:grid-cols-2">
       <RouterLink :to="{ name: 'products', query: { on_sale: 1 } }" class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-6 transition hover:shadow-pop">
         <div>
-          <p class="mb-2 text-muted">Find the best deals for you!</p>
-          <h3 class="font-heading text-xl font-bold text-primary-600">Today's Deals</h3>
-          <p class="font-heading text-4xl font-black text-secondary-500">40% <span class="font-normal text-primary-600">Off</span></p>
+          <p class="mb-2 text-muted">اكتشف أفضل العروض لك!</p>
+          <h3 class="font-heading text-xl font-bold text-primary-600">عروض اليوم</h3>
+          <p class="font-heading text-4xl font-black text-secondary-500">40% <span class="font-normal text-primary-600">خصم</span></p>
         </div>
         <img :src="heroImage('deal1', 220, 180)" alt="" class="h-28 w-28 rounded-lg object-cover" @error="onImgError" />
       </RouterLink>
       <RouterLink :to="{ name: 'stores' }" class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-6 transition hover:shadow-pop">
         <div>
-          <p class="mb-2 text-muted">Discover independent sellers!</p>
-          <h3 class="font-heading text-xl font-bold text-primary-600">Top Stores</h3>
-          <p class="font-heading text-4xl font-black text-secondary-500">10+ <span class="font-normal text-primary-600">Shops</span></p>
+          <p class="mb-2 text-muted">اكتشف بائعين مستقلين!</p>
+          <h3 class="font-heading text-xl font-bold text-primary-600">أفضل المتاجر</h3>
+          <p class="font-heading text-4xl font-black text-secondary-500">10+ <span class="font-normal text-primary-600">متجر</span></p>
         </div>
         <img :src="heroImage('deal2', 220, 180)" alt="" class="h-28 w-28 rounded-lg object-cover" @error="onImgError" />
       </RouterLink>
@@ -190,7 +188,7 @@ onMounted(async () => {
 
     <!-- Recently viewed -->
     <section v-if="recent.length" class="container py-8">
-      <h2 class="section-title mb-6">Recently Viewed</h2>
+      <h2 class="section-title mb-6">{{ $t('home.recentlyViewed') }}</h2>
       <div class="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
         <ProductCard v-for="p in recent" :key="p.id" :product="p" :adding="adding === p.id" @add="add" />
       </div>
@@ -199,10 +197,10 @@ onMounted(async () => {
     <!-- Our Products -->
     <section class="container py-8">
       <div class="mb-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
-        <h1 class="section-title">Our Products</h1>
+        <h1 class="section-title">{{ $t('home.ourProducts') }}</h1>
         <div class="flex flex-wrap gap-2">
-          <button class="rounded-full px-5 py-2 text-sm font-medium transition" :class="tab === 'all' ? 'bg-primary-600 text-white' : 'bg-lightbg text-ink hover:bg-primary-100'" @click="tab = 'all'">New Arrivals</button>
-          <button class="rounded-full px-5 py-2 text-sm font-medium transition" :class="tab === 'deals' ? 'bg-primary-600 text-white' : 'bg-lightbg text-ink hover:bg-primary-100'" @click="tab = 'deals'">On Sale</button>
+          <button class="rounded-full px-5 py-2 text-sm font-medium transition" :class="tab === 'all' ? 'bg-primary-600 text-white' : 'bg-lightbg text-ink hover:bg-primary-100'" @click="tab = 'all'">{{ $t('home.newArrivals') }}</button>
+          <button class="rounded-full px-5 py-2 text-sm font-medium transition" :class="tab === 'deals' ? 'bg-primary-600 text-white' : 'bg-lightbg text-ink hover:bg-primary-100'" @click="tab = 'deals'">{{ $t('home.onSale') }}</button>
         </div>
       </div>
 
@@ -215,26 +213,26 @@ onMounted(async () => {
       <div v-else-if="shown.length" class="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
         <ProductCard v-for="p in shown" :key="p.id" :product="p" :adding="adding === p.id" @add="add" />
       </div>
-      <EmptyState v-else title="No products yet" message="Check back soon for new arrivals." />
+      <EmptyState v-else :title="$t('shop.noProducts')" :message="$t('home.heroSubtitle')" />
 
       <div class="mt-10 text-center">
-        <RouterLink :to="{ name: 'products' }" class="btn btn-outline btn-lg">View all products <ArrowRight class="h-4 w-4" /></RouterLink>
+        <RouterLink :to="{ name: 'products' }" class="btn btn-outline btn-lg">{{ $t('home.viewAllProducts') }} <ArrowRight class="h-4 w-4" /></RouterLink>
       </div>
     </section>
 
     <!-- Testimonials -->
     <section class="bg-lightbg py-14">
       <div class="container">
-        <h2 class="section-title mb-8 text-center">What our customers say</h2>
+        <h2 class="section-title mb-8 text-center">{{ $t('home.testimonials') }}</h2>
         <div class="grid gap-6 md:grid-cols-3">
-          <div v-for="t in testimonials" :key="t.name" class="card p-6">
+          <div v-for="tm in testimonials" :key="tm.name" class="card p-6">
             <Quote class="h-8 w-8 text-primary-200" />
-            <p class="mt-3 text-muted">{{ t.text }}</p>
+            <p class="mt-3 text-muted">{{ tm.text }}</p>
             <div class="mt-4 flex items-center gap-3">
-              <span class="grid h-10 w-10 place-items-center rounded-full bg-primary-100 font-bold text-primary-700">{{ t.name.charAt(0) }}</span>
+              <span class="grid h-10 w-10 place-items-center rounded-full bg-primary-100 font-bold text-primary-700">{{ tm.name.charAt(0) }}</span>
               <div>
-                <p class="font-semibold">{{ t.name }}</p>
-                <p class="flex items-center gap-1 text-xs text-muted"><Star class="h-3 w-3 fill-primary-600 text-primary-600" /> {{ t.role }}</p>
+                <p class="font-semibold">{{ tm.name }}</p>
+                <p class="flex items-center gap-1 text-xs text-muted"><Star class="h-3 w-3 fill-primary-600 text-primary-600" /> {{ $t('home.verifiedBuyer') }}</p>
               </div>
             </div>
           </div>
@@ -244,15 +242,15 @@ onMounted(async () => {
 
     <!-- Seller CTA -->
     <section class="bg-ink">
-      <div class="container flex flex-col items-center justify-between gap-6 py-12 text-center lg:flex-row lg:text-left">
+      <div class="container flex flex-col items-center justify-between gap-6 py-12 text-center lg:flex-row lg:text-start">
         <div class="flex items-center gap-4">
           <span class="hidden h-14 w-14 place-items-center rounded-2xl bg-primary-600 text-white sm:grid"><StoreIcon class="h-7 w-7" /></span>
           <div>
-            <h2 class="font-heading text-2xl font-black text-white lg:text-3xl">Start selling on q-shop today</h2>
-            <p class="mt-2 text-slate-300">Open your store, reach thousands of shoppers, and grow your business.</p>
+            <h2 class="font-heading text-2xl font-black text-white lg:text-3xl">{{ $t('home.sellerCtaTitle') }}</h2>
+            <p class="mt-2 text-slate-300">{{ $t('home.sellerCtaText') }}</p>
           </div>
         </div>
-        <RouterLink :to="{ name: 'register' }" class="btn btn-primary btn-lg shrink-0"><Rocket class="h-5 w-5" /> Become a seller</RouterLink>
+        <RouterLink :to="{ name: 'register' }" class="btn btn-primary btn-lg shrink-0"><Rocket class="h-5 w-5" /> {{ $t('home.becomeSeller') }}</RouterLink>
       </div>
     </section>
   </div>
