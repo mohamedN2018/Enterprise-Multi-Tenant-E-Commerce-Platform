@@ -1,7 +1,7 @@
 # ===========================================================================
 # Production stack (Dokploy-ready).
 #
-#   frontend  ─ nginx: serves the React SPA + reverse-proxies /api,/admin,
+#   frontend  ─ nginx: serves the Vue SPA + reverse-proxies /api,/admin,
 #               /static,/media,/ws to the backend (single origin, no CORS).
 #               This is the ONLY service with a host port — attach your
 #               Dokploy domain to it (service "frontend", port 80).

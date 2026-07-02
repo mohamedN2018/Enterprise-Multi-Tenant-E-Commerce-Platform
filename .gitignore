@@ -231,3 +231,6 @@ frontend/node_modules/
 frontend/dist/
 frontend/.yarn/
 frontend/.env.local
+
+# Local design reference template (not part of the app)
+Electro-Bootstrap-1.0.0/

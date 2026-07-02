@@ -1,0 +1,75 @@
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
+import { CheckCircle2, Package, ArrowRight } from 'lucide-vue-next';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
+import Spinner from '@/components/ui/Spinner.vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
+import { useCartStore } from '@/stores/cart';
+import { shop } from '@/services/shop';
+
+const route = useRoute();
+const cart = useCartStore();
+
+const order = ref(null);
+const loading = ref(true);
+const failed = ref(false);
+
+const currency = computed(() => order.value?.currency || '');
+
+onMounted(async () => {
+  try {
+    const res = await shop.order(cart.headers, route.params.id);
+    order.value = res.data;
+  } catch {
+    failed.value = true;
+  } finally {
+    loading.value = false;
+  }
+});
+</script>
+
+<template>
+  <div class="container py-10">
+    <div v-if="loading" class="flex min-h-[40vh] items-center justify-center">
+      <Spinner :size="28" label="Loading order…" />
+    </div>
+
+    <EmptyState v-else-if="failed || !order" title="Order not found" message="We couldn't load this order.">
+      <RouterLink :to="{ name: 'account' }" class="btn btn-primary btn-sm">Go to my orders</RouterLink>
+    </EmptyState>
+
+    <div v-else class="mx-auto max-w-2xl">
+      <div class="card p-8 text-center">
+        <span class="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-600">
+          <CheckCircle2 class="h-9 w-9" />
+        </span>
+        <h1 class="mt-5 text-2xl font-bold">Thank you for your order!</h1>
+        <p class="mt-1 text-slate-500">Order <span class="font-semibold text-ink">#{{ order.number }}</span> has been placed.</p>
+        <div class="mt-3 flex justify-center"><StatusBadge :status="order.status" /></div>
+      </div>
+
+      <div class="card mt-6 p-6">
+        <h2 class="flex items-center gap-2 font-semibold"><Package class="h-5 w-5 text-primary-600" /> Order details</h2>
+        <ul class="mt-4 divide-y divide-slate-100">
+          <li v-for="item in order.items" :key="item.id" class="flex items-center justify-between py-3 text-sm">
+            <span class="text-slate-700">{{ item.product_name }} <span class="text-slate-400">× {{ item.quantity }}</span></span>
+            <span class="font-medium">{{ item.line_total }} {{ currency }}</span>
+          </li>
+        </ul>
+        <dl class="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm">
+          <div class="flex justify-between"><dt class="text-slate-500">Subtotal</dt><dd>{{ order.subtotal }} {{ currency }}</dd></div>
+          <div v-if="Number(order.discount_total) > 0" class="flex justify-between text-emerald-600"><dt>Discount</dt><dd>−{{ order.discount_total }} {{ currency }}</dd></div>
+          <div v-if="Number(order.tax_total) > 0" class="flex justify-between"><dt class="text-slate-500">Tax</dt><dd>{{ order.tax_total }} {{ currency }}</dd></div>
+          <div v-if="Number(order.shipping_total) > 0" class="flex justify-between"><dt class="text-slate-500">Shipping</dt><dd>{{ order.shipping_total }} {{ currency }}</dd></div>
+          <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>Total</dt><dd>{{ order.total }} {{ currency }}</dd></div>
+        </dl>
+      </div>
+
+      <div class="mt-6 flex justify-center gap-3">
+        <RouterLink :to="{ name: 'account' }" class="btn btn-outline">View my orders</RouterLink>
+        <RouterLink :to="{ name: 'products' }" class="btn btn-primary">Continue shopping <ArrowRight class="h-4 w-4" /></RouterLink>
+      </div>
+    </div>
+  </div>
+</template>

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # ===========================================================================
-# Frontend image: build the Vite/React admin, then serve it with nginx.
+# Frontend image: build the Vite/Vue 3 SPA, then serve it with nginx.
 # nginx also reverse-proxies /api, /admin, /static, /media, /ws to the backend,
 # so the whole app lives behind a single domain (no CORS).
 # Build context: ./frontend
