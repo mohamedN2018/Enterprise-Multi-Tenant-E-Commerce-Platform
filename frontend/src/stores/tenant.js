@@ -78,7 +78,13 @@ export const useTenantStore = defineStore('tenant', {
     // Guarantee a valid active store + resolved role before store-scoped calls.
     async ensureReady() {
       if (!this.stores.length) await this.refresh();
-      if (this.activeId && this.roleForStore !== this.activeId) await this.resolveRole();
+      const auth = useAuthStore();
+      // Superusers are platform admins even with no store of their own — resolve
+      // their role regardless of an active store; sellers resolve per active store.
+      const needRole =
+        (auth.user?.is_superuser && this.role !== 'platform') ||
+        (this.activeId && this.roleForStore !== this.activeId);
+      if (needRole) await this.resolveRole();
       return this.activeId || null;
     },
     select(id) {

@@ -115,6 +115,13 @@ class StoreSettings(BaseModel):
     )
     order_number_prefix = models.CharField(max_length=12, default="ORD")
 
+    # Team size cap: max employees the store may add. Set by a platform admin per
+    # the agreement; the seller requests raises. Enforced in MembershipService.
+    max_employees = models.PositiveIntegerField(
+        default=1,
+        help_text="Maximum employees this store may add (set by a platform admin).",
+    )
+
     # Extensible bag for forward-compatible settings.
     metadata = models.JSONField(default=dict, blank=True)
 

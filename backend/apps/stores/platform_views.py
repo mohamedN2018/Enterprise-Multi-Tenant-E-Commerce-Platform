@@ -1,0 +1,188 @@
+"""Platform (super-admin) API: oversee and manage every store and seller.
+
+These endpoints are the only place ownership can be assigned to another user and
+where per-seller / per-store limits are configured. Superuser-only.
+"""
+
+from __future__ import annotations
+
+from django.db.models import Count, Q
+from drf_spectacular.utils import extend_schema
+from rest_framework import status
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from apps.accounts.models import User
+from apps.accounts.repositories import UserRepository
+from apps.core.exceptions import NotFoundError, ValidationError
+from apps.core.mixins import BaseAPIView
+from apps.core.permissions import IsSuperAdmin
+from apps.core.responses import APIResponse
+from apps.stores.models import Store, StoreRole, StoreStatus
+from apps.stores.serializers import (
+    PlatformStoreCreateSerializer,
+    PlatformStoreSerializer,
+    PlatformStoreUpdateSerializer,
+    SellerSerializer,
+    SellerUpdateSerializer,
+)
+from apps.stores.services import StoreService
+
+
+def _stores_qs():
+    """All stores with team-size counts annotated (platform-wide)."""
+    return (
+        Store.objects.select_related("owner", "settings")
+        .annotate(
+            member_count=Count(
+                "memberships",
+                filter=Q(memberships__is_active=True, memberships__is_deleted=False),
+                distinct=True,
+            ),
+            employee_count=Count(
+                "memberships",
+                filter=Q(
+                    memberships__is_active=True,
+                    memberships__is_deleted=False,
+                    memberships__role=StoreRole.EMPLOYEE,
+                ),
+                distinct=True,
+            ),
+        )
+        .order_by("-created_at")
+    )
+
+
+class PlatformStoreListCreateView(BaseAPIView):
+    permission_classes = [IsSuperAdmin]
+
+    @extend_schema(responses={200: PlatformStoreSerializer(many=True)}, tags=["platform"])
+    def get(self, request: Request) -> Response:
+        stores = _stores_qs()
+        return APIResponse.success(PlatformStoreSerializer(stores, many=True).data)
+
+    @extend_schema(
+        request=PlatformStoreCreateSerializer,
+        responses={201: PlatformStoreSerializer},
+        tags=["platform"],
+    )
+    def post(self, request: Request) -> Response:
+        serializer = PlatformStoreCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        owner = UserRepository().get_by_email(data["owner_email"])
+        if owner is None:
+            raise ValidationError(
+                "No user found with this email. Ask the seller to register first.",
+                code="user_not_found",
+                errors={"owner_email": ["No user found with this email."]},
+            )
+
+        store = StoreService().create_store(
+            owner=owner,
+            data={
+                "name": data["name"],
+                "description": data.get("description", ""),
+                "currency": data.get("currency", "USD"),
+                "country": data.get("country", ""),
+            },
+        )
+        # Admin-created stores go live immediately unless told otherwise.
+        target_status = data.get("status", StoreStatus.ACTIVE)
+        if target_status != store.status:
+            store.status = target_status
+            store.save(update_fields=["status", "updated_at"])
+
+        fresh = _stores_qs().get(id=store.id)
+        return APIResponse.success(
+            PlatformStoreSerializer(fresh).data,
+            message="Store created for seller.",
+            status_code=status.HTTP_201_CREATED,
+        )
+
+
+class PlatformStoreDetailView(BaseAPIView):
+    permission_classes = [IsSuperAdmin]
+
+    def _get(self, store_id) -> Store:
+        store = Store.objects.filter(id=store_id).select_related("settings").first()
+        if store is None:
+            raise NotFoundError("Store not found.")
+        return store
+
+    @extend_schema(
+        request=PlatformStoreUpdateSerializer,
+        responses={200: PlatformStoreSerializer},
+        tags=["platform"],
+    )
+    def patch(self, request: Request, store_id) -> Response:
+        store = self._get(store_id)
+        serializer = PlatformStoreUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        svc = StoreService()
+        if "status" in data:
+            svc.update_store(store=store, data={"status": data["status"]})
+        if "is_verified" in data:
+            store.is_verified = data["is_verified"]
+            store.save(update_fields=["is_verified", "updated_at"])
+        if "max_employees" in data:
+            svc.update_settings(store=store, data={"max_employees": data["max_employees"]})
+
+        fresh = _stores_qs().get(id=store_id)
+        return APIResponse.success(PlatformStoreSerializer(fresh).data, message="Store updated.")
+
+    @extend_schema(tags=["platform"])
+    def delete(self, request: Request, store_id) -> Response:
+        store = self._get(store_id)
+        StoreService().delete_store(store=store)
+        return APIResponse.success(message="Store deleted.")
+
+
+class PlatformSellerListView(BaseAPIView):
+    permission_classes = [IsSuperAdmin]
+
+    @extend_schema(responses={200: SellerSerializer(many=True)}, tags=["platform"])
+    def get(self, request: Request) -> Response:
+        qs = User.objects.annotate(
+            store_count=Count(
+                "owned_stores",
+                filter=Q(owned_stores__is_deleted=False),
+                distinct=True,
+            )
+        ).order_by("-store_count", "email")
+
+        search = (request.query_params.get("search") or "").strip()
+        if search:
+            # Find any user by email (e.g. a newly-contracted seller with no store yet).
+            qs = qs.filter(email__icontains=search)
+        else:
+            # Default view: actual sellers (own at least one store), excluding admins.
+            qs = qs.filter(store_count__gt=0, is_superuser=False)
+
+        return APIResponse.success(SellerSerializer(qs, many=True).data)
+
+
+class PlatformSellerDetailView(BaseAPIView):
+    permission_classes = [IsSuperAdmin]
+
+    @extend_schema(
+        request=SellerUpdateSerializer, responses={200: SellerSerializer}, tags=["platform"]
+    )
+    def patch(self, request: Request, user_id) -> Response:
+        user = User.objects.filter(id=user_id).first()
+        if user is None:
+            raise NotFoundError("User not found.")
+        serializer = SellerUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user.max_stores = serializer.validated_data["max_stores"]
+        user.save(update_fields=["max_stores", "updated_at"])
+
+        fresh = User.objects.annotate(
+            store_count=Count(
+                "owned_stores", filter=Q(owned_stores__is_deleted=False), distinct=True
+            )
+        ).get(id=user.id)
+        return APIResponse.success(SellerSerializer(fresh).data, message="Seller limit updated.")

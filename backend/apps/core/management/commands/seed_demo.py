@@ -186,6 +186,12 @@ class Command(BaseCommand):
         owner = self._user(User, "owner@demo.com")
         buyer = self._user(User, "buyer@demo.com")
 
+        # The demo owner runs every seeded store, so lift its store cap to match
+        # (real sellers default to 1; a platform admin raises it per agreement).
+        if owner.max_stores < len(STORES):
+            owner.max_stores = len(STORES)
+            owner.save(update_fields=["max_stores", "updated_at"])
+
         demo_store = None
         for store_name, category_names in STORES:
             store = Store.all_objects.filter(name=store_name).first()

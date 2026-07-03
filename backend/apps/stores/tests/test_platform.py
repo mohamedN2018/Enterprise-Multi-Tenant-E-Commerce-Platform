@@ -1,0 +1,160 @@
+"""Platform (super-admin) API + per-seller / per-store limit tests."""
+
+from __future__ import annotations
+
+import pytest
+from django.urls import reverse
+
+from apps.stores.models import Store, StoreStatus
+
+pytestmark = pytest.mark.django_db
+
+STORE_LIST = reverse("v1:stores:store-list")
+PLATFORM_STORES = reverse("v1:platform:store-list")
+PLATFORM_SELLERS = reverse("v1:platform:seller-list")
+
+
+def _member_url(store_id):
+    return reverse("v1:stores:member-list", kwargs={"store_id": store_id})
+
+
+def _platform_store(store_id):
+    return reverse("v1:platform:store-detail", kwargs={"store_id": store_id})
+
+
+def _platform_seller(user_id):
+    return reverse("v1:platform:seller-detail", kwargs={"user_id": user_id})
+
+
+@pytest.fixture
+def superadmin(make_user):
+    admin = make_user(email="root@example.com")
+    admin.is_superuser = True
+    admin.is_staff = True
+    admin.save(update_fields=["is_superuser", "is_staff"])
+    return admin
+
+
+# --- Store limit ------------------------------------------------------------
+def test_store_limit_blocks_second_store(client_for, make_user):
+    seller = make_user()
+    client = client_for(seller)
+    assert client.post(STORE_LIST, {"name": "First"}, format="json").status_code == 201
+    resp = client.post(STORE_LIST, {"name": "Second"}, format="json")
+    assert resp.status_code == 400
+    assert resp.json()["error_code"] == "store_limit_reached"
+
+
+def test_admin_raises_store_limit_then_seller_creates_second(client_for, make_user, superadmin):
+    seller = make_user()
+    client_for(seller).post(STORE_LIST, {"name": "First"}, format="json")
+
+    resp = client_for(superadmin).patch(
+        _platform_seller(seller.id), {"max_stores": 2}, format="json"
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["max_stores"] == 2
+
+    # force_authenticate reuses the in-memory object; reload so it reflects the
+    # DB change (a real JWT request loads the user fresh each time).
+    seller.refresh_from_db()
+    second = client_for(seller).post(STORE_LIST, {"name": "Second"}, format="json")
+    assert second.status_code == 201
+
+
+# --- Admin creates a store for a contracted seller --------------------------
+def test_admin_creates_store_for_seller(client_for, make_user, superadmin):
+    seller = make_user(email="seller@example.com")
+    resp = client_for(superadmin).post(
+        PLATFORM_STORES,
+        {"owner_email": "seller@example.com", "name": "Assigned Shop"},
+        format="json",
+    )
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["owner_email"] == "seller@example.com"
+
+    store = Store.objects.get(id=data["id"])
+    assert store.owner_id == seller.id
+    assert store.status == StoreStatus.ACTIVE  # admin-created stores go live
+
+    # The seller now owns it and sees it in their own store list.
+    mine = client_for(seller).get(STORE_LIST)
+    assert mine.json()["meta"]["pagination"]["count"] == 1
+    assert mine.json()["data"][0]["id"] == str(store.id)
+
+
+def test_admin_create_for_unknown_email_fails(client_for, superadmin):
+    resp = client_for(superadmin).post(
+        PLATFORM_STORES, {"owner_email": "ghost@nowhere.com", "name": "X"}, format="json"
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error_code"] == "user_not_found"
+
+
+# --- Access control ---------------------------------------------------------
+def test_platform_requires_superuser(client_for, make_user):
+    seller = make_user()
+    assert client_for(seller).get(PLATFORM_STORES).status_code == 403
+    assert client_for(seller).get(PLATFORM_SELLERS).status_code == 403
+
+
+def test_platform_lists_all_stores(client_for, make_store, superadmin):
+    make_store(name="One")
+    make_store(name="Two")  # different owner
+    resp = client_for(superadmin).get(PLATFORM_STORES)
+    assert resp.status_code == 200
+    assert len(resp.json()["data"]) >= 2
+
+
+# --- Employee limit ---------------------------------------------------------
+def test_employee_limit_enforced(client_for, make_store, make_user):
+    store, owner = make_store()
+    make_user(email="e1@example.com")
+    make_user(email="e2@example.com")
+    make_user(email="m@example.com")
+    owner_client = client_for(owner)
+
+    ok = owner_client.post(
+        _member_url(store.id), {"email": "e1@example.com", "role": "employee"}, format="json"
+    )
+    assert ok.status_code == 201
+
+    blocked = owner_client.post(
+        _member_url(store.id), {"email": "e2@example.com", "role": "employee"}, format="json"
+    )
+    assert blocked.status_code == 400
+    assert blocked.json()["error_code"] == "employee_limit_reached"
+
+    # Managers are not capped by the employee limit.
+    mgr = owner_client.post(
+        _member_url(store.id), {"email": "m@example.com", "role": "manager"}, format="json"
+    )
+    assert mgr.status_code == 201
+
+
+def test_admin_raises_employee_limit(client_for, make_store, make_user, superadmin):
+    store, owner = make_store()
+    make_user(email="e1@example.com")
+    make_user(email="e2@example.com")
+
+    resp = client_for(superadmin).patch(
+        _platform_store(store.id), {"max_employees": 2}, format="json"
+    )
+    assert resp.status_code == 200
+    store.settings.refresh_from_db()
+    assert store.settings.max_employees == 2
+
+    owner_client = client_for(owner)
+    assert (
+        owner_client.post(
+            _member_url(store.id), {"email": "e1@example.com", "role": "employee"}, format="json"
+        ).status_code
+        == 201
+    )
+    assert (
+        owner_client.post(
+            _member_url(store.id), {"email": "e2@example.com", "role": "employee"}, format="json"
+        ).status_code
+        == 201
+    )

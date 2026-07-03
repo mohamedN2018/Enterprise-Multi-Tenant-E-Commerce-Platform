@@ -22,6 +22,14 @@ class StoreRepository(BaseRepository[Store]):
         """Stores the user is an active member of."""
         return Store.objects.filter(memberships__user=user, memberships__is_active=True).distinct()
 
+    def owned_count(self, user: User) -> int:
+        """Number of (non-deleted) stores this user owns."""
+        return Store.objects.filter(owner=user).count()
+
+    def all_stores(self) -> QuerySet[Store]:
+        """Every (non-deleted) store, across all tenants — platform admin only."""
+        return Store.objects.select_related("owner", "settings").order_by("-created_at")
+
 
 class StoreMembershipRepository(BaseRepository[StoreMembership]):
     model = StoreMembership
@@ -38,3 +46,11 @@ class StoreMembershipRepository(BaseRepository[StoreMembership]):
             .select_related("user", "invited_by")
             .order_by("role", "created_at")
         )
+
+    def employee_count(self, store: Store) -> int:
+        """Active employees (role='employee') in the store."""
+        from apps.stores.models import StoreRole
+
+        return StoreMembership.objects.filter(
+            store=store, role=StoreRole.EMPLOYEE, is_active=True
+        ).count()

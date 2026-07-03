@@ -39,6 +39,12 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
     verified_at = models.DateTimeField(null=True, blank=True, editable=False)
     # Forward hook for 2FA / passkey enrolment (full implementation is a later feature).
     two_factor_enabled = models.BooleanField(default=False)
+    # How many stores this seller may own. Set by a platform (super) admin per the
+    # signed agreement; enforced when a store is created (self-service or admin-assigned).
+    max_stores = models.PositiveIntegerField(
+        default=1,
+        help_text="Maximum number of stores this seller may own (set by a platform admin).",
+    )
 
     objects = UserManager()
     all_objects = AllObjectsManager()

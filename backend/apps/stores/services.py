@@ -43,7 +43,13 @@ class StoreService(BaseService):
         self.membership_repo = membership_repo or StoreMembershipRepository()
 
     @atomic
-    def create_store(self, *, owner, data: dict) -> Store:
+    def create_store(self, *, owner, data: dict, enforce_limit: bool = True) -> Store:
+        if enforce_limit and self.store_repo.owned_count(owner) >= owner.max_stores:
+            raise ValidationError(
+                f"Store limit reached ({owner.max_stores}). "
+                "Contact the platform admin to raise it.",
+                code="store_limit_reached",
+            )
         slug = data.get("slug") or self._unique_slug(data["name"])
         store = self.store_repo.create(
             name=data["name"],
@@ -123,6 +129,9 @@ class MembershipService(BaseService):
         existing = self.repo.get_membership(store=store, user=user)
         if existing is not None:
             if existing.is_deleted:
+                # Re-activating a former member counts as adding an employee again.
+                if role == StoreRole.EMPLOYEE:
+                    self._assert_employee_capacity(store)
                 existing.restore()
                 existing.role = role
                 existing.is_active = True
@@ -132,9 +141,20 @@ class MembershipService(BaseService):
             raise ConflictError(
                 "This user is already a member of the store.", code="already_member"
             )
+        if role == StoreRole.EMPLOYEE:
+            self._assert_employee_capacity(store)
         return self.repo.create(
             store=store, user=user, role=role, is_active=True, invited_by=invited_by
         )
+
+    def _assert_employee_capacity(self, store: Store) -> None:
+        cap = store.settings.max_employees
+        if self.repo.employee_count(store) >= cap:
+            raise ValidationError(
+                f"Employee limit reached ({cap}). Ask the platform admin to raise it.",
+                code="employee_limit_reached",
+                errors={"role": [f"Employee limit reached ({cap})."]},
+            )
 
     @atomic
     def change_role(

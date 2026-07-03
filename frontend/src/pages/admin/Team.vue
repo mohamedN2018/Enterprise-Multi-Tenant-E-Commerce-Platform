@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { UserPlus, Trash2, Users, Pencil } from 'lucide-vue-next';
+import { UserPlus, Trash2, Users } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -31,14 +31,13 @@ const columns = computed(() => [
   { key: 'actions', label: '', align: 'right' }
 ]);
 
-// Employee limit lives in store settings.metadata (admin-set per agreement).
+// Employee cap is set by the platform admin (server field); read-only here.
 const maxEmployees = computed(() => {
-  const v = settings.value?.metadata?.max_employees;
-  const n = Number(v);
-  return Number.isFinite(n) && n > 0 ? n : null;
+  const n = Number(settings.value?.max_employees);
+  return Number.isFinite(n) && n > 0 ? n : 1;
 });
 const employeeCount = computed(() => members.value.filter((m) => m.role === 'employee').length);
-const limitReached = computed(() => maxEmployees.value != null && employeeCount.value >= maxEmployees.value);
+const limitReached = computed(() => employeeCount.value >= maxEmployees.value);
 
 const load = async () => {
   loading.value = true;
@@ -110,32 +109,6 @@ const doRemove = async () => {
   }
 };
 
-// Platform admin sets the agreed employee cap.
-const showLimit = ref(false);
-const savingLimit = ref(false);
-const limitForm = ref(0);
-const openLimit = () => {
-  limitForm.value = maxEmployees.value || 0;
-  showLimit.value = true;
-};
-const saveLimit = async () => {
-  savingLimit.value = true;
-  try {
-    const metadata = { ...(settings.value?.metadata || {}) };
-    const n = Number(limitForm.value);
-    if (Number.isFinite(n) && n > 0) metadata.max_employees = n;
-    else delete metadata.max_employees;
-    const res = await seller.updateStoreSettings(storeId.value, { metadata });
-    settings.value = res.data || { ...settings.value, metadata };
-    ui.success(t('team.limitSaved'));
-    showLimit.value = false;
-  } catch (e) {
-    ui.error(errorMessage(e));
-  } finally {
-    savingLimit.value = false;
-  }
-};
-
 onMounted(load);
 </script>
 
@@ -144,9 +117,8 @@ onMounted(load);
     <PageHeader :title="$t('team.title')" :subtitle="$t('team.subtitle')">
       <template #actions>
         <span class="chip border-slate-200 bg-slate-100 text-slate-600">
-          <Users class="h-3.5 w-3.5" /> {{ $t('team.employees') }}: {{ employeeCount }}<template v-if="maxEmployees != null"> / {{ maxEmployees }}</template>
+          <Users class="h-3.5 w-3.5" /> {{ $t('team.employees') }}: <span dir="ltr">{{ employeeCount }} / {{ maxEmployees }}</span>
         </span>
-        <button v-if="tenant.isPlatform" class="btn btn-ghost btn-sm" @click="openLimit"><Pencil class="h-4 w-4" /> {{ $t('team.editLimit') }}</button>
         <span v-if="!tenant.canAdminTeam" class="chip border-slate-200 bg-slate-100 text-slate-600">{{ $t('team.ownersManageRoles') }}</span>
         <button v-if="tenant.canManageMembers" class="btn btn-primary btn-sm" :disabled="!tenant.hasStores" @click="showInvite = true">
           <UserPlus class="h-4 w-4" /> {{ $t('team.addMember') }}
@@ -217,22 +189,6 @@ onMounted(load);
           <button class="btn btn-ghost" @click="confirmRemove = null">{{ $t('common.cancel') }}</button>
           <button class="btn btn-danger" :disabled="removing" @click="doRemove">
             <Spinner v-if="removing" :size="18" /><span v-else>{{ $t('team.remove') }}</span>
-          </button>
-        </div>
-      </template>
-    </Modal>
-
-    <!-- Platform admin: set agreed employee cap -->
-    <Modal v-model="showLimit" :title="$t('team.employeeLimit')" size="sm">
-      <form id="limit-form" class="grid gap-3" @submit.prevent="saveLimit">
-        <FormField v-model="limitForm" :label="$t('team.maxEmployees')" type="number" min="0" :hint="$t('team.setByAdmin')" />
-        <p class="text-xs text-slate-400">{{ $t('team.employees') }}: {{ employeeCount }}</p>
-      </form>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <button class="btn btn-ghost" @click="showLimit = false">{{ $t('common.cancel') }}</button>
-          <button form="limit-form" type="submit" class="btn btn-primary" :disabled="savingLimit">
-            <Spinner v-if="savingLimit" :size="18" /><span v-else>{{ $t('team.saveLimit') }}</span>
           </button>
         </div>
       </template>
