@@ -111,7 +111,7 @@ onMounted(async () => {
             </button>
             <div
               v-if="accountOpen"
-              class="absolute right-0 z-40 mt-2 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-pop"
+              class="absolute end-0 z-40 mt-2 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-pop dark:border-slate-700 dark:bg-slate-800"
               @click="accountOpen = false"
             >
               <template v-if="auth.isAuthenticated">
@@ -132,19 +132,17 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Sticky header: main header + category nav follow on scroll -->
-    <div class="sticky top-0 z-40 bg-white shadow-sm dark:bg-slate-900">
     <!-- Main header: logo + search + actions -->
-    <div class="border-b border-slate-100">
+    <div class="border-b border-slate-100 bg-white dark:bg-slate-900">
       <div class="container flex flex-wrap items-center gap-3 py-3 lg:gap-4 lg:py-4">
         <RouterLink :to="{ name: 'home' }" class="flex shrink-0 items-center">
           <img src="/brand/qtech-logo.png" alt="q-shop" class="h-9 w-auto lg:h-12" />
         </RouterLink>
 
         <form class="order-3 flex w-full flex-1 lg:order-none lg:w-auto" @submit.prevent="search">
-          <div class="flex w-full items-center rounded-full border border-slate-200 pl-4">
-            <input v-model="term" type="text" :placeholder="t('nav.searchPlaceholder')" class="w-full border-0 bg-transparent py-2.5 text-sm focus:outline-none" />
-            <select v-model="cat" class="hidden border-l border-slate-200 bg-transparent px-3 py-2.5 text-sm text-ink focus:outline-none sm:block" style="width: 160px">
+          <div class="flex w-full items-center rounded-full border border-slate-200 ps-4 dark:border-slate-700">
+            <input v-model="term" type="text" :placeholder="t('nav.searchPlaceholder')" class="w-full border-0 bg-transparent py-2.5 text-sm text-ink focus:outline-none" />
+            <select v-model="cat" class="hidden border-s border-slate-200 bg-transparent px-3 py-2.5 text-sm text-ink focus:outline-none sm:block dark:border-slate-700" style="width: 160px">
               <option value="">{{ t('common.all') }}</option>
               <option v-for="c in categories" :key="c.name" :value="c.name">{{ c.name }}</option>
             </select>
@@ -172,15 +170,15 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Orange category nav bar -->
-    <div class="bg-primary-600">
+    <!-- Orange category nav bar (sticky: follows on scroll) -->
+    <div class="sticky top-0 z-40 bg-primary-600 shadow-md">
       <div class="container flex items-stretch">
         <!-- All categories -->
         <div class="relative hidden w-64 shrink-0 lg:block">
           <button class="flex h-full w-full items-center gap-2 py-3.5 text-lg font-medium text-white" @click="catOpen = !catOpen">
             <Menu class="h-5 w-5" /> {{ t('nav.allCategories') }} <ChevronDown class="ms-auto h-4 w-4" />
           </button>
-          <div v-if="catOpen" class="absolute left-0 top-full z-40 w-64 rounded-b-lg bg-lightbg py-1 shadow-pop">
+          <div v-if="catOpen" class="absolute start-0 top-full z-40 w-64 rounded-b-lg bg-lightbg py-1 shadow-pop dark:border dark:border-slate-700">
             <button
               v-for="c in categories"
               :key="c.name"
@@ -222,10 +220,9 @@ onMounted(async () => {
           <RouterLink :to="{ name: 'account' }" class="block py-2 font-medium text-white" @click="mobileNav = false">{{ t('nav.account') }}</RouterLink>
           <RouterLink v-if="!auth.isAuthenticated" :to="{ name: 'login' }" class="block py-2 font-medium text-white" @click="mobileNav = false">{{ t('nav.login') }}</RouterLink>
           <p class="mt-2 border-t border-white/10 pt-2 text-xs font-semibold uppercase text-white/70">{{ t('nav.categories') }}</p>
-          <button v-for="c in categories" :key="c.name" class="block w-full py-1.5 text-left text-sm text-white/90" @click="goCategory(c.name)">{{ c.name }}</button>
+          <button v-for="c in categories" :key="c.name" class="block w-full py-1.5 text-start text-sm text-white/90" @click="goCategory(c.name)">{{ c.name }}</button>
         </div>
       </div>
-    </div>
     </div>
 
     <!-- Content -->

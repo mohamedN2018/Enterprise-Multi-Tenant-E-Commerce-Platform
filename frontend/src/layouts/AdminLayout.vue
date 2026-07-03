@@ -134,10 +134,10 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-100 text-ink">
+  <div class="min-h-screen bg-slate-100 text-ink dark:!bg-slate-950">
     <!-- Sidebar -->
     <aside
-      class="fixed inset-y-0 start-0 z-40 flex w-64 flex-col border-e border-slate-200 bg-white transition-transform lg:translate-x-0"
+      class="fixed inset-y-0 start-0 z-40 flex w-64 flex-col border-e border-slate-200 bg-white transition-transform lg:translate-x-0 dark:border-slate-800 dark:bg-slate-900"
       :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'"
     >
       <div class="flex h-16 items-center gap-2 border-b border-slate-100 px-4">
@@ -219,7 +219,7 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
 
     <!-- Main -->
     <div class="lg:ps-64">
-      <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur lg:px-8">
+      <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur lg:px-8 dark:border-slate-800 dark:bg-slate-900/90">
         <button
           class="grid h-10 w-10 place-items-center rounded-lg hover:bg-slate-100 lg:hidden"
           @click="sidebarOpen = true"

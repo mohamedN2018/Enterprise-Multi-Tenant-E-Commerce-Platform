@@ -30,9 +30,15 @@ import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
 import { t } from '@/i18n';
+import { useTheme } from '@/theme';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
+const { theme } = useTheme();
+
+// Theme-aware chart colors so charts stay readable in dark mode.
+const axisColor = computed(() => (theme.value === 'dark' ? '#94a3b8' : '#9a9a9a'));
+const gridColor = computed(() => (theme.value === 'dark' ? '#334155' : '#f1f1f1'));
 
 const loading = ref(true);
 const refreshing = ref(false);
@@ -100,10 +106,10 @@ const revenueOptions = computed(() => ({
   stroke: { curve: 'smooth', width: 2 },
   colors: ['#F28B00'],
   fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.05 } },
-  xaxis: { categories: (dash.value?.revenue_series || []).map((r) => r.date.slice(5)), labels: { style: { colors: '#9a9a9a' } }, axisBorder: { show: false }, axisTicks: { show: false } },
-  yaxis: { labels: { style: { colors: '#9a9a9a' } } },
-  grid: { borderColor: '#f1f1f1' },
-  tooltip: { y: { formatter: (v) => `${v} ${currency.value}` } }
+  xaxis: { categories: (dash.value?.revenue_series || []).map((r) => r.date.slice(5)), labels: { style: { colors: axisColor.value } }, axisBorder: { show: false }, axisTicks: { show: false } },
+  yaxis: { labels: { style: { colors: axisColor.value } } },
+  grid: { borderColor: gridColor.value },
+  tooltip: { theme: theme.value, y: { formatter: (v) => `${v} ${currency.value}` } }
 }));
 
 const statusSeries = computed(() => {
@@ -114,7 +120,7 @@ const statusOptions = computed(() => ({
   chart: { type: 'donut' },
   labels: [t('dash.confirmed'), t('dash.pendingSuffix'), t('dash.cancelled')],
   colors: ['#10b981', '#F28B00', '#F92400'],
-  legend: { position: 'bottom' },
+  legend: { position: 'bottom', labels: { colors: axisColor.value } },
   dataLabels: { enabled: false },
   stroke: { width: 0 }
 }));
@@ -126,9 +132,9 @@ const eventsOptions = computed(() => ({
   plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: '55%' } },
   colors: ['#6366f1'],
   dataLabels: { enabled: false },
-  xaxis: { categories: eventEntries.value.map(([k]) => String(k).replace(/_/g, ' ')), labels: { style: { colors: '#9a9a9a' } } },
-  yaxis: { labels: { style: { colors: '#484848' } } },
-  grid: { borderColor: '#f1f1f1' }
+  xaxis: { categories: eventEntries.value.map(([k]) => String(k).replace(/_/g, ' ')), labels: { style: { colors: axisColor.value } } },
+  yaxis: { labels: { style: { colors: axisColor.value } } },
+  grid: { borderColor: gridColor.value }
 }));
 
 const topMax = computed(() => Math.max(1, ...(dash.value?.top_products || []).map((t) => Number(t.units))));

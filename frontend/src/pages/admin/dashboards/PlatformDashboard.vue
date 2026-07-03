@@ -24,9 +24,13 @@ import { useTenantStore } from '@/stores/tenant';
 import { storefront } from '@/services/storefront';
 import http from '@/services/http';
 import { t } from '@/i18n';
+import { useTheme } from '@/theme';
 
 const router = useRouter();
 const tenant = useTenantStore();
+const { theme } = useTheme();
+const axisColor = computed(() => (theme.value === 'dark' ? '#94a3b8' : '#9a9a9a'));
+const gridColor = computed(() => (theme.value === 'dark' ? '#334155' : '#f1f1f1'));
 
 const loading = ref(true);
 const stats = ref({ stores: 0, products: 0, categories: 0 });
@@ -55,10 +59,10 @@ const chartOptions = computed(() => ({
   plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: '60%' } },
   colors: ['#F28B00'],
   dataLabels: { enabled: false },
-  xaxis: { categories: leaderboard.value.map((s) => s.name), labels: { style: { colors: '#9a9a9a' } } },
-  yaxis: { labels: { style: { colors: '#484848' } } },
-  grid: { borderColor: '#f1f1f1' },
-  tooltip: { y: { formatter: (v) => `${v} ${currency.value}` } }
+  xaxis: { categories: leaderboard.value.map((s) => s.name), labels: { style: { colors: axisColor.value } } },
+  yaxis: { labels: { style: { colors: axisColor.value } } },
+  grid: { borderColor: gridColor.value },
+  tooltip: { theme: theme.value, y: { formatter: (v) => `${v} ${currency.value}` } }
 }));
 
 const load = async () => {
