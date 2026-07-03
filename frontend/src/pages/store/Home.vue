@@ -14,7 +14,9 @@ import {
   Store as StoreIcon,
   LayoutGrid,
   Quote,
-  Rocket
+  Rocket,
+  Flame,
+  ChevronLeft
 } from 'lucide-vue-next';
 import ProductCard from '@/components/ProductCard.vue';
 import ProductCarousel from '@/components/ProductCarousel.vue';
@@ -44,6 +46,7 @@ const bestSellers = computed(() =>
 );
 const moreToConsider = computed(() => pool.value.slice(0, 12));
 const alsoBought = computed(() => pool.value.slice(6, 18));
+const heroBest = computed(() => bestSellers.value.slice(0, 4));
 
 const services = [
   { icon: RotateCcw, key: 'freeReturn' },
@@ -85,65 +88,101 @@ onMounted(async () => {
     <section class="relative overflow-hidden bg-gradient-to-br from-ink via-ink to-primary-900 text-white">
       <div class="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-primary-600/30 blur-3xl"></div>
       <div class="absolute -bottom-32 left-1/3 h-80 w-80 rounded-full bg-secondary-500/20 blur-3xl"></div>
-      <div class="container relative grid items-center gap-10 pb-8 pt-14 lg:grid-cols-2 lg:pb-10 lg:pt-20">
-        <div>
-          <span class="chip border-white/20 bg-white/10 text-white"><Sparkles class="h-3.5 w-3.5 text-primary-400" /> {{ $t('home.heroBadge') }}</span>
-          <h1 class="mt-5 font-heading text-4xl font-black leading-[1.1] lg:text-5xl">
-            {{ $t('home.heroTitle') }} <span class="text-primary-500">{{ $t('home.heroHighlight') }}</span>
-          </h1>
-          <p class="mt-4 max-w-lg text-lg text-slate-300">{{ $t('home.heroSubtitle') }}</p>
-          <div class="mt-8 flex flex-wrap gap-3">
-            <RouterLink :to="{ name: 'products' }" class="btn btn-primary btn-lg">{{ $t('home.shopNow') }} <ArrowRight class="h-4 w-4" /></RouterLink>
-            <RouterLink :to="{ name: 'seller-login' }" class="btn btn-light btn-lg"><Rocket class="h-4 w-4" /> {{ $t('home.becomeSeller') }}</RouterLink>
-          </div>
-          <div class="mt-10 flex gap-8">
-            <div><p class="font-heading text-2xl font-black">{{ stores.length || '10' }}+</p><p class="text-sm text-slate-400">{{ $t('home.stores') }}</p></div>
-            <div><p class="font-heading text-2xl font-black">{{ categories.length || '10' }}+</p><p class="text-sm text-slate-400">{{ $t('home.categories') }}</p></div>
-            <div><p class="flex items-center gap-1 font-heading text-2xl font-black"><ShieldCheck class="h-5 w-5 text-primary-400" /> 24/7</p><p class="text-sm text-slate-400">{{ $t('home.support') }}</p></div>
-          </div>
-        </div>
-
-        <!-- Featured product card -->
-        <div class="relative mx-auto w-full max-w-sm lg:max-w-md">
-          <div class="absolute -inset-4 rounded-3xl bg-white/5 blur-xl"></div>
-          <RouterLink :to="featured ? { name: 'product', params: { id: featured.id } } : { name: 'products' }" class="relative block overflow-hidden rounded-2xl bg-white text-ink shadow-pop transition hover:-translate-y-1">
-            <div class="relative">
-              <img :src="featured ? productImage(featured, 800, 500) : heroImage('hero', 800, 500)" alt="" class="h-60 w-full object-cover" @error="onImgError" />
-              <span class="absolute left-4 top-4 rounded-full bg-secondary-500 px-3 py-1 text-xs font-bold text-white">{{ $t('home.onSale') }}</span>
+      <div class="container relative grid gap-6 pb-10 pt-10 lg:grid-cols-[250px_1fr] lg:pb-14 lg:pt-14">
+        <!-- Categories sidebar (beside the hero) -->
+        <aside v-if="categories.length" class="hidden lg:block">
+          <div class="overflow-hidden rounded-2xl border border-white/15 bg-white/10 backdrop-blur">
+            <div class="flex items-center gap-2 border-b border-white/10 px-4 py-3 font-heading text-sm font-bold text-white">
+              <LayoutGrid class="h-4 w-4 text-primary-400" /> {{ $t('nav.allCategories') }}
             </div>
-            <div class="p-5">
-              <p class="text-xs font-medium text-primary-600">{{ featured?.store_slug || 'q-shop' }}</p>
-              <p class="clamp-1 font-heading text-lg font-bold">{{ featured?.name || $t('home.ourProducts') }}</p>
-              <div class="mt-3 flex items-center justify-between">
-                <span class="font-heading text-xl font-bold text-primary-600">{{ featured?.price }} {{ featured?.currency }}</span>
-                <span class="btn btn-primary btn-sm">{{ $t('common.view') }} <ArrowRight class="h-4 w-4" /></span>
+            <ul class="hero-scroll max-h-[380px] overflow-y-auto py-1">
+              <li v-for="c in categories" :key="c.name">
+                <button class="flex w-full items-center gap-3 px-4 py-2.5 text-start text-sm text-white/90 transition hover:bg-white/10 hover:text-white" @click="goCategory(c.name)">
+                  <span class="h-8 w-8 shrink-0 overflow-hidden rounded-full ring-1 ring-white/20">
+                    <img :src="catImage(c.name, 64)" :alt="c.name" class="h-full w-full object-cover" @error="onImgError" />
+                  </span>
+                  <span class="min-w-0 flex-1 truncate">{{ c.name }}</span>
+                  <span class="text-xs text-white/50">{{ c.product_count }}</span>
+                  <ChevronLeft class="h-4 w-4 shrink-0 text-white/40 rtl:rotate-180" />
+                </button>
+              </li>
+            </ul>
+          </div>
+        </aside>
+
+        <!-- Hero main: text + best sellers -->
+        <div class="grid items-center gap-8 lg:grid-cols-2">
+          <div>
+            <span class="chip border-white/20 bg-white/10 text-white"><Sparkles class="h-3.5 w-3.5 text-primary-400" /> {{ $t('home.heroBadge') }}</span>
+            <h1 class="mt-5 font-heading text-4xl font-black leading-[1.1] lg:text-5xl">
+              {{ $t('home.heroTitle') }} <span class="text-primary-500">{{ $t('home.heroHighlight') }}</span>
+            </h1>
+            <p class="mt-4 max-w-lg text-lg text-slate-300">{{ $t('home.heroSubtitle') }}</p>
+            <div class="mt-8 flex flex-wrap gap-3">
+              <RouterLink :to="{ name: 'products' }" class="btn btn-primary btn-lg">{{ $t('home.shopNow') }} <ArrowRight class="h-4 w-4 rtl:rotate-180" /></RouterLink>
+              <RouterLink :to="{ name: 'seller-login' }" class="btn btn-light btn-lg"><Rocket class="h-4 w-4" /> {{ $t('home.becomeSeller') }}</RouterLink>
+            </div>
+            <div class="mt-10 flex gap-8">
+              <div><p class="font-heading text-2xl font-black">{{ stores.length || '10' }}+</p><p class="text-sm text-slate-400">{{ $t('home.stores') }}</p></div>
+              <div><p class="font-heading text-2xl font-black">{{ categories.length || '10' }}+</p><p class="text-sm text-slate-400">{{ $t('home.categories') }}</p></div>
+              <div><p class="flex items-center gap-1 font-heading text-2xl font-black"><ShieldCheck class="h-5 w-5 text-primary-400" /> 24/7</p><p class="text-sm text-slate-400">{{ $t('home.support') }}</p></div>
+            </div>
+          </div>
+
+          <!-- Best sellers showcase -->
+          <div class="relative">
+            <div class="absolute -inset-4 rounded-3xl bg-white/5 blur-xl"></div>
+            <div class="relative rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+              <div class="mb-3 flex items-center justify-between">
+                <p class="flex items-center gap-2 font-heading text-base font-bold text-white"><Flame class="h-5 w-5 text-secondary-400" /> {{ $t('home.bestSellers') }}</p>
+                <RouterLink :to="{ name: 'products' }" class="text-xs font-medium text-primary-300 hover:text-primary-200">{{ $t('home.viewAll') }}</RouterLink>
+              </div>
+              <div v-if="loading" class="space-y-2">
+                <div v-for="n in 4" :key="n" class="skeleton h-16 rounded-xl"></div>
+              </div>
+              <div v-else class="space-y-2">
+                <RouterLink
+                  v-for="(p, i) in heroBest"
+                  :key="p.id"
+                  :to="{ name: 'product', params: { id: p.id } }"
+                  class="flex items-center gap-3 rounded-xl bg-white/5 p-2 transition hover:bg-white/15"
+                >
+                  <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary-500 text-xs font-bold text-white">{{ i + 1 }}</span>
+                  <img :src="productImage(p, 120, 120)" :alt="p.name" class="h-12 w-12 shrink-0 rounded-lg object-cover" @error="onImgError" />
+                  <div class="min-w-0 flex-1">
+                    <p class="clamp-1 text-sm font-medium text-white">{{ p.name }}</p>
+                    <p class="clamp-1 text-xs text-white/60">{{ p.store_slug }}</p>
+                  </div>
+                  <span class="shrink-0 font-heading text-sm font-bold text-primary-300">{{ p.price }} {{ p.currency }}</span>
+                </RouterLink>
+                <p v-if="!heroBest.length" class="py-6 text-center text-sm text-white/60">{{ $t('home.ourProducts') }}</p>
               </div>
             </div>
-          </RouterLink>
+          </div>
         </div>
-      </div>
 
-      <!-- Categories inside the hero -->
-      <div v-if="categories.length" class="container relative pb-12 lg:pb-16">
-        <div class="mb-4 flex items-center justify-between">
-          <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-white/70">
-            <LayoutGrid class="h-4 w-4 text-primary-400" /> {{ $t('home.shopByCategory') }}
-          </p>
-          <RouterLink :to="{ name: 'products' }" class="text-sm font-medium text-primary-400 hover:text-primary-300">{{ $t('home.viewAll') }}</RouterLink>
-        </div>
-        <div class="hero-scroll flex gap-3 overflow-x-auto pb-1">
-          <button
-            v-for="c in categories"
-            :key="c.name"
-            class="group flex shrink-0 items-center gap-3 rounded-full border border-white/15 bg-white/10 py-2 pe-4 ps-2 backdrop-blur transition hover:border-primary-400 hover:bg-white/20"
-            @click="goCategory(c.name)"
-          >
-            <span class="h-9 w-9 shrink-0 overflow-hidden rounded-full ring-2 ring-white/20">
-              <img :src="catImage(c.name, 80)" :alt="c.name" class="h-full w-full object-cover" @error="onImgError" />
-            </span>
-            <span class="whitespace-nowrap text-sm font-medium text-white">{{ c.name }}</span>
-            <span class="rounded-full bg-white/15 px-2 py-0.5 text-[11px] text-white/80">{{ c.product_count }}</span>
-          </button>
+        <!-- Categories strip (mobile fallback) -->
+        <div v-if="categories.length" class="lg:hidden">
+          <div class="mb-3 flex items-center justify-between">
+            <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-white/70">
+              <LayoutGrid class="h-4 w-4 text-primary-400" /> {{ $t('home.shopByCategory') }}
+            </p>
+            <RouterLink :to="{ name: 'products' }" class="text-sm font-medium text-primary-400 hover:text-primary-300">{{ $t('home.viewAll') }}</RouterLink>
+          </div>
+          <div class="hero-scroll flex gap-3 overflow-x-auto pb-1">
+            <button
+              v-for="c in categories"
+              :key="c.name"
+              class="flex shrink-0 items-center gap-3 rounded-full border border-white/15 bg-white/10 py-2 pe-4 ps-2 backdrop-blur transition hover:border-primary-400 hover:bg-white/20"
+              @click="goCategory(c.name)"
+            >
+              <span class="h-9 w-9 shrink-0 overflow-hidden rounded-full ring-2 ring-white/20">
+                <img :src="catImage(c.name, 80)" :alt="c.name" class="h-full w-full object-cover" @error="onImgError" />
+              </span>
+              <span class="whitespace-nowrap text-sm font-medium text-white">{{ c.name }}</span>
+              <span class="rounded-full bg-white/15 px-2 py-0.5 text-[11px] text-white/80">{{ c.product_count }}</span>
+            </button>
+          </div>
         </div>
       </div>
     </section>
