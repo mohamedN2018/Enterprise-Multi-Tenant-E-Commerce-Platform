@@ -12,6 +12,7 @@ import { useTenantStore } from '@/stores/tenant';
 import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
+import { useValidation, required, positive } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -73,7 +74,9 @@ const load = async () => {
 const groupModal = ref(false);
 const groupBusy = ref(false);
 const groupForm = ref({ name: '', code: '', description: '', priority: 0, is_default: false });
+const { errors: groupErrors, run: runGroup, clear: clearGroup } = useValidation(() => groupForm.value, { name: [required()] });
 const createGroup = async () => {
+  if (!runGroup()) return;
   groupBusy.value = true;
   try {
     const payload = { ...groupForm.value };
@@ -94,11 +97,13 @@ const createGroup = async () => {
 const ruleModal = ref(false);
 const ruleBusy = ref(false);
 const ruleForm = ref({ variant_id: '', customer_group_id: '', min_quantity: 1, rule_type: 'fixed', value: 0, is_active: true });
+const { errors: ruleErrors, run: runRule, clear: clearRule } = useValidation(() => ruleForm.value, { variant_id: [required()], value: [positive()] });
 const openRule = () => {
   ruleForm.value = { variant_id: variantOptions.value[0]?.id || '', customer_group_id: '', min_quantity: 1, rule_type: 'fixed', value: 0, is_active: true };
   ruleModal.value = true;
 };
 const createRule = async () => {
+  if (!runRule()) return;
   ruleBusy.value = true;
   try {
     const payload = { ...ruleForm.value };
@@ -165,8 +170,8 @@ onMounted(async () => {
 
     <!-- Group modal -->
     <Modal v-model="groupModal" :title="$t('pricingPage.newGroup')">
-      <form id="group-form" class="grid gap-4" @submit.prevent="createGroup">
-        <FormField v-model="groupForm.name" :label="$t('common.name')" placeholder="VIP" required />
+      <form id="group-form" class="grid gap-4" novalidate @submit.prevent="createGroup">
+        <FormField v-model="groupForm.name" :label="$t('common.name')" placeholder="VIP" required :error="groupErrors.name" @update:model-value="clearGroup('name')" />
         <div class="grid grid-cols-2 gap-4">
           <FormField v-model="groupForm.code" :label="$t('pricingPage.code')" placeholder="VIP" />
           <FormField v-model.number="groupForm.priority" :label="$t('pricingPage.priority')" type="number" />
@@ -184,12 +189,13 @@ onMounted(async () => {
 
     <!-- Rule modal -->
     <Modal v-model="ruleModal" :title="$t('pricingPage.newRule')">
-      <form id="rule-form" class="grid gap-4" @submit.prevent="createRule">
+      <form id="rule-form" class="grid gap-4" novalidate @submit.prevent="createRule">
         <div>
           <label class="label">{{ $t('pricingPage.variant') }}</label>
-          <select v-model="ruleForm.variant_id" class="input" required>
+          <select v-model="ruleForm.variant_id" class="input" required @change="clearRule('variant_id')">
             <option v-for="v in variantOptions" :key="v.id" :value="v.id">{{ v.label }}</option>
           </select>
+          <p v-if="ruleErrors.variant_id" class="mt-1 text-xs text-rose-600">{{ ruleErrors.variant_id }}</p>
         </div>
         <div>
           <label class="label">{{ $t('pricingPage.customerGroup') }}</label>
@@ -207,7 +213,7 @@ onMounted(async () => {
               <option value="percentage">{{ $t('pricingPage.percentage') }}</option>
             </select>
           </div>
-          <FormField v-model.number="ruleForm.value" :label="$t('pricingPage.value')" type="number" step="0.01" required />
+          <FormField v-model.number="ruleForm.value" :label="$t('pricingPage.value')" type="number" step="0.01" required :error="ruleErrors.value" @update:model-value="clearRule('value')" />
         </div>
       </form>
       <template #footer>

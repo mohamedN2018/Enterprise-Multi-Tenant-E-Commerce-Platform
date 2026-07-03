@@ -13,6 +13,7 @@ import { useTenantStore } from '@/stores/tenant';
 import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
+import { useValidation, required } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -115,7 +116,9 @@ const load = async () => {
 const supModal = ref(false);
 const supBusy = ref(false);
 const supForm = ref({ name: '', code: '', email: '', phone: '', address: '' });
+const { errors: supErrors, run: runSup, clear: clearSup } = useValidation(() => supForm.value, { name: [required()] });
 const createSupplier = async () => {
+  if (!runSup()) return;
   supBusy.value = true;
   try {
     const payload = { ...supForm.value };
@@ -136,6 +139,7 @@ const createSupplier = async () => {
 const poModal = ref(false);
 const poBusy = ref(false);
 const poForm = ref({ supplier_id: '', warehouse_id: '', expected_date: '', notes: '' });
+const { errors: poErrors, run: runPo, clear: clearPo } = useValidation(() => poForm.value, { supplier_id: [required()], warehouse_id: [required()] });
 const poLines = ref([]);
 const openPO = () => {
   poForm.value = { supplier_id: suppliers.value[0]?.id || '', warehouse_id: warehouses.value[0]?.id || '', expected_date: '', notes: '' };
@@ -145,6 +149,7 @@ const openPO = () => {
 const addLine = () => poLines.value.push({ variant_id: variantOptions.value[0]?.id || '', quantity_ordered: 1, unit_cost: 0 });
 const removeLine = (i) => poLines.value.splice(i, 1);
 const createPO = async () => {
+  if (!runPo()) return;
   poBusy.value = true;
   try {
     const payload = { supplier_id: poForm.value.supplier_id, warehouse_id: poForm.value.warehouse_id, notes: poForm.value.notes, lines: poLines.value };
@@ -164,11 +169,13 @@ const createPO = async () => {
 const serModal = ref(false);
 const serBusy = ref(false);
 const serForm = ref({ variant_id: '', warehouse_id: '', serials: '' });
+const { errors: serErrors, run: runSer, clear: clearSer } = useValidation(() => serForm.value, { variant_id: [required()], warehouse_id: [required()] });
 const openSerials = () => {
   serForm.value = { variant_id: variantOptions.value[0]?.id || '', warehouse_id: warehouses.value[0]?.id || '', serials: '' };
   serModal.value = true;
 };
 const registerSerials = async () => {
+  if (!runSer()) return;
   serBusy.value = true;
   try {
     await seller.registerSerials({
@@ -190,11 +197,13 @@ const registerSerials = async () => {
 const bomModal = ref(false);
 const bomBusy = ref(false);
 const bomForm = ref({ output_variant_id: '', name: '' });
+const { errors: bomErrors, run: runBom, clear: clearBom } = useValidation(() => bomForm.value, { name: [required()], output_variant_id: [required()] });
 const openBom = () => {
   bomForm.value = { output_variant_id: variantOptions.value[0]?.id || '', name: '' };
   bomModal.value = true;
 };
 const createBom = async () => {
+  if (!runBom()) return;
   bomBusy.value = true;
   try {
     await seller.createBom(bomForm.value);
@@ -211,12 +220,14 @@ const compModal = ref(false);
 const compBusy = ref(false);
 const compBom = ref(null);
 const compForm = ref({ component_variant_id: '', quantity: 1 });
+const { errors: compErrors, run: runComp, clear: clearComp } = useValidation(() => compForm.value, { component_variant_id: [required()] });
 const openComp = (bom) => {
   compBom.value = bom;
   compForm.value = { component_variant_id: variantOptions.value[0]?.id || '', quantity: 1 };
   compModal.value = true;
 };
 const addComponent = async () => {
+  if (!runComp()) return;
   compBusy.value = true;
   try {
     await seller.addBomComponent(compBom.value.id, compForm.value);
@@ -234,11 +245,13 @@ const addComponent = async () => {
 const woModal = ref(false);
 const woBusy = ref(false);
 const woForm = ref({ bom_id: '', warehouse_id: '', quantity: 1 });
+const { errors: woErrors, run: runWo, clear: clearWo } = useValidation(() => woForm.value, { bom_id: [required()], warehouse_id: [required()] });
 const openWo = () => {
   woForm.value = { bom_id: boms.value[0]?.id || '', warehouse_id: warehouses.value[0]?.id || '', quantity: 1 };
   woModal.value = true;
 };
 const createWo = async () => {
+  if (!runWo()) return;
   woBusy.value = true;
   try {
     await seller.createWorkOrder(woForm.value);
@@ -376,8 +389,8 @@ onMounted(async () => {
 
     <!-- Supplier modal -->
     <Modal v-model="supModal" :title="$t('procurementPage.newSupplier')">
-      <form id="sup-form" class="grid gap-4" @submit.prevent="createSupplier">
-        <div class="grid grid-cols-2 gap-4"><FormField v-model="supForm.name" :label="$t('common.name')" required /><FormField v-model="supForm.code" :label="$t('procurementPage.code')" /></div>
+      <form id="sup-form" class="grid gap-4" novalidate @submit.prevent="createSupplier">
+        <div class="grid grid-cols-2 gap-4"><FormField v-model="supForm.name" :label="$t('common.name')" required :error="supErrors.name" @update:model-value="clearSup('name')" /><FormField v-model="supForm.code" :label="$t('procurementPage.code')" /></div>
         <div class="grid grid-cols-2 gap-4"><FormField v-model="supForm.email" :label="$t('common.email')" type="email" /><FormField v-model="supForm.phone" :label="$t('common.phone')" /></div>
         <FormField v-model="supForm.address" :label="$t('procurementPage.address')" />
       </form>
@@ -386,10 +399,10 @@ onMounted(async () => {
 
     <!-- PO modal -->
     <Modal v-model="poModal" :title="$t('procurementPage.newPurchaseOrder')" size="lg">
-      <form id="po-form" class="grid gap-4" @submit.prevent="createPO">
+      <form id="po-form" class="grid gap-4" novalidate @submit.prevent="createPO">
         <div class="grid gap-4 sm:grid-cols-3">
-          <div><label class="label">{{ $t('procurementPage.supplier') }}</label><select v-model="poForm.supplier_id" class="input" required><option v-for="s in suppliers" :key="s.id" :value="s.id">{{ s.name }}</option></select></div>
-          <div><label class="label">{{ $t('procurementPage.warehouse') }}</label><select v-model="poForm.warehouse_id" class="input" required><option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option></select></div>
+          <div><label class="label">{{ $t('procurementPage.supplier') }}</label><select v-model="poForm.supplier_id" class="input" required @change="clearPo('supplier_id')"><option v-for="s in suppliers" :key="s.id" :value="s.id">{{ s.name }}</option></select><p v-if="poErrors.supplier_id" class="mt-1 text-xs text-rose-600">{{ poErrors.supplier_id }}</p></div>
+          <div><label class="label">{{ $t('procurementPage.warehouse') }}</label><select v-model="poForm.warehouse_id" class="input" required @change="clearPo('warehouse_id')"><option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option></select><p v-if="poErrors.warehouse_id" class="mt-1 text-xs text-rose-600">{{ poErrors.warehouse_id }}</p></div>
           <FormField v-model="poForm.expected_date" :label="$t('procurementPage.expectedDate')" type="date" />
         </div>
         <div>
@@ -408,9 +421,9 @@ onMounted(async () => {
 
     <!-- Serials modal -->
     <Modal v-model="serModal" :title="$t('procurementPage.registerSerials')">
-      <form id="ser-form" class="grid gap-4" @submit.prevent="registerSerials">
-        <div><label class="label">{{ $t('procurementPage.variant') }}</label><select v-model="serForm.variant_id" class="input" required><option v-for="v in variantOptions" :key="v.id" :value="v.id">{{ v.label }}</option></select></div>
-        <div><label class="label">{{ $t('procurementPage.warehouse') }}</label><select v-model="serForm.warehouse_id" class="input" required><option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option></select></div>
+      <form id="ser-form" class="grid gap-4" novalidate @submit.prevent="registerSerials">
+        <div><label class="label">{{ $t('procurementPage.variant') }}</label><select v-model="serForm.variant_id" class="input" required @change="clearSer('variant_id')"><option v-for="v in variantOptions" :key="v.id" :value="v.id">{{ v.label }}</option></select><p v-if="serErrors.variant_id" class="mt-1 text-xs text-rose-600">{{ serErrors.variant_id }}</p></div>
+        <div><label class="label">{{ $t('procurementPage.warehouse') }}</label><select v-model="serForm.warehouse_id" class="input" required @change="clearSer('warehouse_id')"><option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option></select><p v-if="serErrors.warehouse_id" class="mt-1 text-xs text-rose-600">{{ serErrors.warehouse_id }}</p></div>
         <div><label class="label">{{ $t('procurementPage.serialNumbersLabel') }}</label><textarea v-model="serForm.serials" rows="4" class="input" placeholder="SN-001&#10;SN-002"></textarea></div>
       </form>
       <template #footer><div class="flex justify-end gap-2"><button class="btn btn-ghost" @click="serModal = false">{{ $t('common.cancel') }}</button><button form="ser-form" type="submit" class="btn btn-primary" :disabled="serBusy"><Spinner v-if="serBusy" :size="18" /><span v-else>{{ $t('procurementPage.register') }}</span></button></div></template>
@@ -418,17 +431,17 @@ onMounted(async () => {
 
     <!-- BOM modal -->
     <Modal v-model="bomModal" :title="$t('procurementPage.newBillOfMaterials')">
-      <form id="bom-form" class="grid gap-4" @submit.prevent="createBom">
-        <FormField v-model="bomForm.name" :label="$t('common.name')" required />
-        <div><label class="label">{{ $t('procurementPage.outputVariant') }}</label><select v-model="bomForm.output_variant_id" class="input" required><option v-for="v in variantOptions" :key="v.id" :value="v.id">{{ v.label }}</option></select></div>
+      <form id="bom-form" class="grid gap-4" novalidate @submit.prevent="createBom">
+        <FormField v-model="bomForm.name" :label="$t('common.name')" required :error="bomErrors.name" @update:model-value="clearBom('name')" />
+        <div><label class="label">{{ $t('procurementPage.outputVariant') }}</label><select v-model="bomForm.output_variant_id" class="input" required @change="clearBom('output_variant_id')"><option v-for="v in variantOptions" :key="v.id" :value="v.id">{{ v.label }}</option></select><p v-if="bomErrors.output_variant_id" class="mt-1 text-xs text-rose-600">{{ bomErrors.output_variant_id }}</p></div>
       </form>
       <template #footer><div class="flex justify-end gap-2"><button class="btn btn-ghost" @click="bomModal = false">{{ $t('common.cancel') }}</button><button form="bom-form" type="submit" class="btn btn-primary" :disabled="bomBusy"><Spinner v-if="bomBusy" :size="18" /><span v-else>{{ $t('common.create') }}</span></button></div></template>
     </Modal>
 
     <!-- BOM component modal -->
     <Modal v-model="compModal" :title="compBom ? t('procurementPage.addComponentTo', { name: compBom.name }) : t('procurementPage.addComponent')">
-      <form id="comp-form" class="grid gap-4" @submit.prevent="addComponent">
-        <div><label class="label">{{ $t('procurementPage.componentVariant') }}</label><select v-model="compForm.component_variant_id" class="input" required><option v-for="v in variantOptions" :key="v.id" :value="v.id">{{ v.label }}</option></select></div>
+      <form id="comp-form" class="grid gap-4" novalidate @submit.prevent="addComponent">
+        <div><label class="label">{{ $t('procurementPage.componentVariant') }}</label><select v-model="compForm.component_variant_id" class="input" required @change="clearComp('component_variant_id')"><option v-for="v in variantOptions" :key="v.id" :value="v.id">{{ v.label }}</option></select><p v-if="compErrors.component_variant_id" class="mt-1 text-xs text-rose-600">{{ compErrors.component_variant_id }}</p></div>
         <FormField v-model.number="compForm.quantity" :label="$t('common.quantity')" type="number" />
       </form>
       <template #footer><div class="flex justify-end gap-2"><button class="btn btn-ghost" @click="compModal = false">{{ $t('common.cancel') }}</button><button form="comp-form" type="submit" class="btn btn-primary" :disabled="compBusy"><Spinner v-if="compBusy" :size="18" /><span v-else>{{ $t('common.add') }}</span></button></div></template>
@@ -436,9 +449,9 @@ onMounted(async () => {
 
     <!-- Work order modal -->
     <Modal v-model="woModal" :title="$t('procurementPage.newWorkOrder')">
-      <form id="wo-form" class="grid gap-4" @submit.prevent="createWo">
-        <div><label class="label">{{ $t('procurementPage.bom') }}</label><select v-model="woForm.bom_id" class="input" required><option v-for="b in boms" :key="b.id" :value="b.id">{{ b.name }}</option></select></div>
-        <div><label class="label">{{ $t('procurementPage.warehouse') }}</label><select v-model="woForm.warehouse_id" class="input" required><option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option></select></div>
+      <form id="wo-form" class="grid gap-4" novalidate @submit.prevent="createWo">
+        <div><label class="label">{{ $t('procurementPage.bom') }}</label><select v-model="woForm.bom_id" class="input" required @change="clearWo('bom_id')"><option v-for="b in boms" :key="b.id" :value="b.id">{{ b.name }}</option></select><p v-if="woErrors.bom_id" class="mt-1 text-xs text-rose-600">{{ woErrors.bom_id }}</p></div>
+        <div><label class="label">{{ $t('procurementPage.warehouse') }}</label><select v-model="woForm.warehouse_id" class="input" required @change="clearWo('warehouse_id')"><option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option></select><p v-if="woErrors.warehouse_id" class="mt-1 text-xs text-rose-600">{{ woErrors.warehouse_id }}</p></div>
         <FormField v-model.number="woForm.quantity" :label="$t('common.quantity')" type="number" />
       </form>
       <template #footer><div class="flex justify-end gap-2"><button class="btn btn-ghost" @click="woModal = false">{{ $t('common.cancel') }}</button><button form="wo-form" type="submit" class="btn btn-primary" :disabled="woBusy"><Spinner v-if="woBusy" :size="18" /><span v-else>{{ $t('common.create') }}</span></button></div></template>

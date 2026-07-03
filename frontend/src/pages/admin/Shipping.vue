@@ -12,6 +12,7 @@ import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
 import { t } from '@/i18n';
+import { useValidation, required, numberMin } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -46,7 +47,9 @@ const load = async () => {
 const zoneModal = ref(false);
 const zoneBusy = ref(false);
 const zoneForm = ref({ name: '', code: '', countries: '', is_default: false });
+const { errors: zoneErrors, run: runZone, clear: clearZone } = useValidation(() => zoneForm.value, { name: [required()] });
 const createZone = async () => {
+  if (!runZone()) return;
   zoneBusy.value = true;
   try {
     const payload = {
@@ -72,12 +75,14 @@ const methodModal = ref(false);
 const methodBusy = ref(false);
 const methodZone = ref(null);
 const methodForm = ref({ name: '', price: 0, per_kg: 0, free_over: '', is_active: true });
+const { errors: methodErrors, run: runMethod, clear: clearMethod } = useValidation(() => methodForm.value, { name: [required()], price: [numberMin(0)] });
 const openMethod = (zone) => {
   methodZone.value = zone;
   methodForm.value = { name: '', price: 0, per_kg: 0, free_over: '', is_active: true };
   methodModal.value = true;
 };
 const createMethod = async () => {
+  if (!runMethod()) return;
   methodBusy.value = true;
   try {
     const payload = { ...methodForm.value };
@@ -152,8 +157,8 @@ onMounted(async () => {
 
     <!-- Zone modal -->
     <Modal v-model="zoneModal" :title="$t('shippingPage.newZone')">
-      <form id="zone-form" class="grid gap-4" @submit.prevent="createZone">
-        <FormField v-model="zoneForm.name" :label="$t('shippingPage.zoneName')" placeholder="Domestic" required />
+      <form id="zone-form" class="grid gap-4" novalidate @submit.prevent="createZone">
+        <FormField v-model="zoneForm.name" :label="$t('shippingPage.zoneName')" placeholder="Domestic" required :error="zoneErrors.name" @update:model-value="clearZone('name')" />
         <div class="grid grid-cols-2 gap-4">
           <FormField v-model="zoneForm.code" :label="$t('shippingPage.code')" placeholder="DOM" />
           <FormField v-model="zoneForm.countries" :label="$t('shippingPage.countries')" placeholder="US, CA" />
@@ -170,10 +175,10 @@ onMounted(async () => {
 
     <!-- Method modal -->
     <Modal v-model="methodModal" :title="$t('shippingPage.addMethod') + (methodZone ? ` · ${methodZone.name}` : '')">
-      <form id="method-form" class="grid gap-4" @submit.prevent="createMethod">
-        <FormField v-model="methodForm.name" :label="$t('shippingPage.methodName')" placeholder="Standard" required />
+      <form id="method-form" class="grid gap-4" novalidate @submit.prevent="createMethod">
+        <FormField v-model="methodForm.name" :label="$t('shippingPage.methodName')" placeholder="Standard" required :error="methodErrors.name" @update:model-value="clearMethod('name')" />
         <div class="grid grid-cols-3 gap-4">
-          <FormField v-model.number="methodForm.price" :label="$t('common.price')" type="number" step="0.01" />
+          <FormField v-model.number="methodForm.price" :label="$t('common.price')" type="number" step="0.01" :error="methodErrors.price" @update:model-value="clearMethod('price')" />
           <FormField v-model.number="methodForm.per_kg" :label="$t('shippingPage.perKg')" type="number" step="0.01" />
           <FormField v-model="methodForm.free_over" :label="$t('shippingPage.freeOverLabel')" type="number" step="0.01" placeholder="—" />
         </div>

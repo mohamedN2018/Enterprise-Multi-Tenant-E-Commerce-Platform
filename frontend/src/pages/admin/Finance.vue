@@ -12,6 +12,7 @@ import { useTenantStore } from '@/stores/tenant';
 import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
+import { useValidation, required, positive } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -43,10 +44,20 @@ const load = async () => {
 const modal = ref(null); // 'zone' | 'currency' | 'fx'
 const busy = ref(false);
 const zoneForm = ref({ name: '', code: '', countries: '', is_default: false });
+const { errors: zoneErrors, run: runZone, clear: clearZone } = useValidation(() => zoneForm.value, { name: [required()] });
 const curForm = ref({ code: '', name: '', symbol: '', is_active: true });
+const { errors: curErrors, run: runCur, clear: clearCur } = useValidation(() => curForm.value, { code: [required()], name: [required()] });
 const fxForm = ref({ base_code: '', target_code: '', rate: 1 });
+const { errors: fxErrors, run: runFx, clear: clearFx } = useValidation(() => fxForm.value, { base_code: [required()], target_code: [required()], rate: [positive()] });
 
 const submit = async () => {
+  if (modal.value === 'zone') {
+    if (!runZone()) return;
+  } else if (modal.value === 'currency') {
+    if (!runCur()) return;
+  } else {
+    if (!runFx()) return;
+  }
   busy.value = true;
   try {
     if (modal.value === 'zone') {
@@ -135,27 +146,27 @@ onMounted(async () => {
     </DataTable>
 
     <Modal :model-value="!!modal" :title="{ zone: $t('financePage.newZone'), currency: $t('financePage.newCurrency'), fx: $t('financePage.newFx') }[modal] || ''" @update:model-value="modal = null">
-      <form v-if="modal === 'zone'" id="fin-form" class="grid gap-4" @submit.prevent="submit">
-        <FormField v-model="zoneForm.name" :label="$t('financePage.zoneName')" placeholder="EU" required />
+      <form v-if="modal === 'zone'" id="fin-form" class="grid gap-4" novalidate @submit.prevent="submit">
+        <FormField v-model="zoneForm.name" :label="$t('financePage.zoneName')" placeholder="EU" required :error="zoneErrors.name" @update:model-value="clearZone('name')" />
         <div class="grid grid-cols-2 gap-4">
           <FormField v-model="zoneForm.code" :label="$t('financePage.code')" />
           <FormField v-model="zoneForm.countries" :label="$t('financePage.countriesComma')" placeholder="DE, FR" />
         </div>
         <label class="flex items-center gap-2 text-sm"><input v-model="zoneForm.is_default" type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" /> {{ $t('financePage.defaultZone') }}</label>
       </form>
-      <form v-else-if="modal === 'currency'" id="fin-form" class="grid gap-4" @submit.prevent="submit">
+      <form v-else-if="modal === 'currency'" id="fin-form" class="grid gap-4" novalidate @submit.prevent="submit">
         <div class="grid grid-cols-3 gap-4">
-          <FormField v-model="curForm.code" :label="$t('financePage.code')" placeholder="EUR" maxlength="3" required />
+          <FormField v-model="curForm.code" :label="$t('financePage.code')" placeholder="EUR" maxlength="3" required :error="curErrors.code" @update:model-value="clearCur('code')" />
           <FormField v-model="curForm.symbol" :label="$t('financePage.symbol')" placeholder="€" />
-          <FormField v-model="curForm.name" :label="$t('common.name')" placeholder="Euro" required />
+          <FormField v-model="curForm.name" :label="$t('common.name')" placeholder="Euro" required :error="curErrors.name" @update:model-value="clearCur('name')" />
         </div>
         <label class="flex items-center gap-2 text-sm"><input v-model="curForm.is_active" type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" /> {{ $t('common.active') }}</label>
       </form>
-      <form v-else id="fin-form" class="grid gap-4" @submit.prevent="submit">
+      <form v-else id="fin-form" class="grid gap-4" novalidate @submit.prevent="submit">
         <div class="grid grid-cols-3 gap-4">
-          <FormField v-model="fxForm.base_code" :label="$t('financePage.base')" placeholder="USD" maxlength="3" required />
-          <FormField v-model="fxForm.target_code" :label="$t('financePage.target')" placeholder="EUR" maxlength="3" required />
-          <FormField v-model.number="fxForm.rate" :label="$t('financePage.rate')" type="number" step="0.0001" required />
+          <FormField v-model="fxForm.base_code" :label="$t('financePage.base')" placeholder="USD" maxlength="3" required :error="fxErrors.base_code" @update:model-value="clearFx('base_code')" />
+          <FormField v-model="fxForm.target_code" :label="$t('financePage.target')" placeholder="EUR" maxlength="3" required :error="fxErrors.target_code" @update:model-value="clearFx('target_code')" />
+          <FormField v-model.number="fxForm.rate" :label="$t('financePage.rate')" type="number" step="0.0001" required :error="fxErrors.rate" @update:model-value="clearFx('rate')" />
         </div>
       </form>
       <template #footer>

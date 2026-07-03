@@ -14,6 +14,7 @@ import { usePaginated } from '@/composables/usePaginated';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
 import { t } from '@/i18n';
+import { useValidation, required, positive } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -60,6 +61,11 @@ const blank = () => ({
 const form = ref(blank());
 const isDiscount = computed(() => ['flash_sale', 'order_discount'].includes(form.value.campaign_type));
 const isBxgy = computed(() => form.value.campaign_type === 'buy_x_get_y');
+const { errors, run, clear } = useValidation(() => form.value, () => ({
+  name: [required()],
+  ...(isDiscount.value ? { discount_value: [positive()] } : {}),
+  ...(isBxgy.value ? { buy_quantity: [positive()], get_quantity: [positive()], get_discount_percent: [positive()] } : {})
+}));
 
 const openCreate = () => {
   editing.value = null;
@@ -72,6 +78,7 @@ const openEdit = (c) => {
   showModal.value = true;
 };
 const save = async () => {
+  if (!run()) return;
   saving.value = true;
   try {
     const p = { name: form.value.name, description: form.value.description, campaign_type: form.value.campaign_type, priority: form.value.priority, stackable: form.value.stackable, is_active: form.value.is_active };
@@ -144,8 +151,8 @@ onMounted(async () => {
     <div v-if="totalPages > 1" class="mt-6"><Pagination :page="page" :page-size="20" :total="total" @update:page="changePage" /></div>
 
     <Modal v-model="showModal" :title="editing ? $t('campaignsPage.editCampaign') : $t('campaignsPage.newCampaign')">
-      <form id="camp-form" class="grid gap-4" @submit.prevent="save">
-        <FormField v-model="form.name" :label="$t('common.name')" required />
+      <form id="camp-form" class="grid gap-4" novalidate @submit.prevent="save">
+        <FormField v-model="form.name" :label="$t('common.name')" required :error="errors.name" @update:model-value="clear('name')" />
         <div>
           <label class="label">{{ $t('common.type') }}</label>
           <select v-model="form.campaign_type" class="input"><option v-for="t in TYPES" :key="t.value" :value="t.value">{{ t.label }}</option></select>
@@ -155,12 +162,12 @@ onMounted(async () => {
             <label class="label">{{ $t('campaignsPage.discountType') }}</label>
             <select v-model="form.discount_type" class="input"><option value="percentage">{{ $t('campaignsPage.percentage') }}</option><option value="fixed">{{ $t('campaignsPage.fixed') }}</option></select>
           </div>
-          <FormField v-model.number="form.discount_value" :label="$t('campaignsPage.discountValue')" type="number" step="0.01" />
+          <FormField v-model.number="form.discount_value" :label="$t('campaignsPage.discountValue')" type="number" step="0.01" :error="errors.discount_value" @update:model-value="clear('discount_value')" />
         </div>
         <div v-if="isBxgy" class="grid grid-cols-3 gap-4">
-          <FormField v-model.number="form.buy_quantity" :label="$t('campaignsPage.buyQty')" type="number" />
-          <FormField v-model.number="form.get_quantity" :label="$t('campaignsPage.getQty')" type="number" />
-          <FormField v-model.number="form.get_discount_percent" :label="$t('campaignsPage.getPercentOff')" type="number" />
+          <FormField v-model.number="form.buy_quantity" :label="$t('campaignsPage.buyQty')" type="number" :error="errors.buy_quantity" @update:model-value="clear('buy_quantity')" />
+          <FormField v-model.number="form.get_quantity" :label="$t('campaignsPage.getQty')" type="number" :error="errors.get_quantity" @update:model-value="clear('get_quantity')" />
+          <FormField v-model.number="form.get_discount_percent" :label="$t('campaignsPage.getPercentOff')" type="number" :error="errors.get_discount_percent" @update:model-value="clear('get_discount_percent')" />
         </div>
         <div class="grid grid-cols-2 gap-4">
           <FormField v-model.number="form.priority" :label="$t('campaignsPage.priority')" type="number" />

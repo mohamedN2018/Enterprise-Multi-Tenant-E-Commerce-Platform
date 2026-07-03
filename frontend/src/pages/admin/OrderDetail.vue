@@ -12,6 +12,7 @@ import { useTenantStore } from '@/stores/tenant';
 import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
+import { useValidation, required } from '@/utils/validators';
 import { t } from '@/i18n';
 
 const route = useRoute();
@@ -70,11 +71,13 @@ const print = () => window.print();
 const trackModal = ref(false);
 const trackNumber = ref('');
 const trackBusy = ref(false);
+const { errors, run, clear } = useValidation(() => ({ trackNumber: trackNumber.value }), { trackNumber: [required()] });
 const openTrack = () => {
   trackNumber.value = order.value?.tracking_number || '';
   trackModal.value = true;
 };
 const saveTracking = async () => {
+  if (!run()) return;
   trackBusy.value = true;
   try {
     await seller.setOrderTracking(order.value.id, { tracking_number: trackNumber.value });
@@ -199,7 +202,7 @@ onMounted(load);
       </div>
 
       <Modal v-model="trackModal" :title="$t('orderDetailPage.setTracking')" size="sm">
-        <FormField v-model="trackNumber" :label="$t('orderDetailPage.trackingNumber')" placeholder="e.g. 1Z999AA10123456784" required />
+        <FormField v-model="trackNumber" :label="$t('orderDetailPage.trackingNumber')" placeholder="e.g. 1Z999AA10123456784" required :error="errors.trackNumber" @update:model-value="clear('trackNumber')" />
         <template #footer>
           <div class="flex justify-end gap-2">
             <button class="btn btn-ghost" @click="trackModal = false">{{ $t('common.cancel') }}</button>

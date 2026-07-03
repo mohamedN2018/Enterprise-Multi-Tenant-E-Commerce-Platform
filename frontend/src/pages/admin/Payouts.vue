@@ -12,6 +12,7 @@ import { useTenantStore } from '@/stores/tenant';
 import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
+import { useValidation, positive } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -60,11 +61,13 @@ const load = async () => {
 const modal = ref(false);
 const busy = ref(false);
 const amount = ref(0);
+const { errors, run, clear } = useValidation(() => ({ amount: amount.value }), { amount: [positive()] });
 const openRequest = () => {
   amount.value = Number(account.value?.balance || 0);
   modal.value = true;
 };
 const requestPayout = async () => {
+  if (!run()) return;
   busy.value = true;
   try {
     await seller.requestPayout({ amount: amount.value });
@@ -145,7 +148,7 @@ onMounted(load);
 
     <Modal v-model="modal" :title="$t('payoutsPage.requestPayout')" size="sm">
       <p class="mb-3 text-sm text-muted">{{ $t('payoutsPage.availableBalance') }}: <span class="font-semibold text-ink">{{ account?.balance || '0.00' }} {{ currency }}</span></p>
-      <FormField v-model.number="amount" :label="$t('payoutsPage.amount')" type="number" step="0.01" required />
+      <FormField v-model.number="amount" :label="$t('payoutsPage.amount')" type="number" step="0.01" required :error="errors.amount" @update:model-value="clear('amount')" />
       <template #footer>
         <div class="flex justify-end gap-2">
           <button class="btn btn-ghost" @click="modal = false">{{ $t('common.cancel') }}</button>
