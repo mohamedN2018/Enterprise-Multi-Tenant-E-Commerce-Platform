@@ -32,13 +32,19 @@ import {
   ShieldCheck,
   Globe,
   Star,
-  Bell
+  Bell,
+  Volume2,
+  VolumeX
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useTenantStore } from '@/stores/tenant';
 import NotificationBell from '@/components/ui/NotificationBell.vue';
 import { t } from '@/i18n';
 import { useTheme } from '@/theme';
+import { useOrderAlerts, orderSoundMuted, toggleOrderSound } from '@/composables/useOrderAlerts';
+
+// Ping the seller (sound + toast) the moment a new order lands.
+useOrderAlerts();
 
 const { theme } = useTheme();
 
@@ -230,6 +236,14 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
           <Menu class="h-5 w-5" />
         </button>
         <div class="ms-auto flex items-center gap-3">
+          <button
+            class="grid h-10 w-10 place-items-center rounded-lg text-ink hover:bg-slate-100 dark:hover:bg-slate-800"
+            :title="orderSoundMuted ? $t('orderAlerts.soundOff') : $t('orderAlerts.soundOn')"
+            :aria-label="orderSoundMuted ? $t('orderAlerts.soundOff') : $t('orderAlerts.soundOn')"
+            @click="toggleOrderSound"
+          >
+            <component :is="orderSoundMuted ? VolumeX : Volume2" class="h-5 w-5" :class="orderSoundMuted ? 'text-slate-400' : 'text-primary-600'" />
+          </button>
           <NotificationBell />
           <span class="hidden text-sm text-slate-500 sm:inline">{{ auth.user?.email }}</span>
           <span class="grid h-9 w-9 place-items-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">

@@ -156,6 +156,10 @@ export default {
       title: 'الطلبات', subtitle: 'تتبّع طلبات العملاء وتنفيذها.', exportCsv: 'تصدير CSV', order: 'الطلب',
       items: 'العناصر', noOrders: 'لا توجد طلبات بعد', noOrdersMsg: 'ستظهر هنا الطلبات التي يقدّمها العملاء.', view: 'عرض'
     },
+    orderAlerts: {
+      newOrder: 'طلب جديد #{n} 🎉', newOrders: 'وصلك {n} طلبات جديدة 🎉',
+      soundOn: 'صوت الطلبات مُفعّل', soundOff: 'صوت الطلبات مكتوم'
+    },
     orderDetailPage: {
       title: 'الطلب', loading: 'جارٍ تحميل الطلب…', notFound: 'الطلب غير موجود', notFoundMsg: 'تعذّر تحميل هذا الطلب.',
       backToOrders: 'العودة إلى الطلبات', placedOn: 'تم الطلب في', customer: 'العميل', items: 'العناصر',
@@ -494,6 +498,10 @@ export default {
     ordersPage: {
       title: 'Orders', subtitle: 'Track and fulfil customer orders.', exportCsv: 'Export CSV', order: 'Order',
       items: 'Items', noOrders: 'No orders yet', noOrdersMsg: 'Orders placed by customers will appear here.', view: 'View'
+    },
+    orderAlerts: {
+      newOrder: 'New order #{n} 🎉', newOrders: '{n} new orders just arrived 🎉',
+      soundOn: 'Order sound on', soundOff: 'Order sound muted'
     },
     orderDetailPage: {
       title: 'Order', loading: 'Loading order…', notFound: 'Order not found', notFoundMsg: "We couldn't load this order.",
