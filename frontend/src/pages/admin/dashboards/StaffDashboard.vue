@@ -71,7 +71,7 @@ onMounted(async () => {
       </PageHeader>
 
       <!-- Operational snapshot -->
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <div v-for="m in metrics" :key="m.label" class="card p-5">
           <span class="grid h-11 w-11 place-items-center rounded-lg" :class="m.tone"><component :is="m.icon" class="h-5 w-5" /></span>
           <p class="mt-3 font-heading text-2xl font-bold">{{ m.value }}</p>
@@ -81,7 +81,7 @@ onMounted(async () => {
 
       <!-- Shortcuts -->
       <h3 class="mb-3 mt-8 font-heading text-lg font-semibold">{{ $t('dash.quickAccess') }}</h3>
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <RouterLink v-for="s in shortcuts" :key="s.label" :to="s.to" class="card group flex items-center justify-between p-5 transition hover:shadow-pop">
           <div class="flex items-center gap-3">
             <span class="grid h-11 w-11 place-items-center rounded-lg bg-primary-50 text-primary-600"><component :is="s.icon" class="h-5 w-5" /></span>

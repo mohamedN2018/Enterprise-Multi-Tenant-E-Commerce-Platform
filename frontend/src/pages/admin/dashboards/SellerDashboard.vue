@@ -118,7 +118,7 @@ const statusSeries = computed(() => {
 });
 const statusOptions = computed(() => ({
   chart: { type: 'donut' },
-  labels: [t('dash.confirmed'), t('dash.pendingSuffix'), t('dash.cancelled')],
+  labels: [t('status.confirmed'), t('status.pending'), t('status.cancelled')],
   colors: ['#10b981', '#F28B00', '#F92400'],
   legend: { position: 'bottom', labels: { colors: axisColor.value } },
   dataLabels: { enabled: false },
@@ -202,26 +202,26 @@ onMounted(async () => {
 
       <!-- Period performance band -->
       <div class="mb-6 overflow-hidden rounded-xl bg-gradient-to-r from-ink to-primary-900 text-white">
-        <div class="flex flex-wrap items-center justify-between gap-4 p-5">
-          <div class="flex flex-wrap items-center gap-8">
+        <div class="flex flex-col gap-4 p-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div class="grid grid-cols-2 gap-4 sm:flex sm:flex-wrap sm:items-center sm:gap-8">
             <div>
               <p class="text-xs uppercase tracking-wide text-white/60">{{ $t('dash.revenueLast', { n: period }) }}</p>
-              <p class="font-heading text-2xl font-black">{{ periodLoading ? '…' : `${periodSummary?.orders?.revenue ?? '0.00'} ${currency}` }}</p>
+              <p class="font-heading text-xl font-black sm:text-2xl">{{ periodLoading ? '…' : `${periodSummary?.orders?.revenue ?? '0.00'} ${currency}` }}</p>
             </div>
             <div>
               <p class="text-xs uppercase tracking-wide text-white/60">{{ $t('dash.orders') }}</p>
-              <p class="font-heading text-2xl font-black">{{ periodLoading ? '…' : periodSummary?.orders?.count ?? 0 }}</p>
+              <p class="font-heading text-xl font-black sm:text-2xl">{{ periodLoading ? '…' : periodSummary?.orders?.count ?? 0 }}</p>
             </div>
             <div>
               <p class="text-xs uppercase tracking-wide text-white/60">{{ $t('dash.confirmed') }}</p>
-              <p class="font-heading text-2xl font-black">{{ periodLoading ? '…' : periodSummary?.orders?.confirmed ?? 0 }}</p>
+              <p class="font-heading text-xl font-black sm:text-2xl">{{ periodLoading ? '…' : periodSummary?.orders?.confirmed ?? 0 }}</p>
             </div>
             <div>
               <p class="text-xs uppercase tracking-wide text-white/60">{{ $t('dash.events') }}</p>
-              <p class="flex items-center gap-1 font-heading text-2xl font-black"><Activity class="h-5 w-5 text-primary-400" /> {{ periodLoading ? '…' : periodSummary?.total_events ?? 0 }}</p>
+              <p class="flex items-center gap-1 font-heading text-xl font-black sm:text-2xl"><Activity class="h-5 w-5 text-primary-400" /> {{ periodLoading ? '…' : periodSummary?.total_events ?? 0 }}</p>
             </div>
           </div>
-          <div class="flex gap-2">
+          <div class="flex shrink-0 gap-2">
             <button v-for="d in [7, 30, 90]" :key="d" class="rounded-full px-4 py-1.5 text-sm font-medium transition" :class="period === d ? 'bg-white text-ink' : 'bg-white/10 text-white hover:bg-white/20'" @click="setPeriod(d)">{{ d }}{{ $t('dash.dayShort') }}</button>
           </div>
         </div>
@@ -235,28 +235,28 @@ onMounted(async () => {
       </div>
 
       <!-- Needs attention -->
-      <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <RouterLink v-for="a in attention" :key="a.label" :to="a.to" class="card flex items-center justify-between p-5 transition hover:shadow-pop">
-          <div class="flex items-center gap-3">
-            <span class="grid h-11 w-11 place-items-center rounded-lg" :class="a.tone"><component :is="a.icon" class="h-5 w-5" /></span>
-            <div><p class="font-heading text-2xl font-bold">{{ a.value }}</p><p class="text-sm text-muted">{{ a.label }}</p></div>
+      <div class="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <RouterLink v-for="a in attention" :key="a.label" :to="a.to" class="card flex items-center justify-between gap-2 p-4 transition hover:shadow-pop sm:p-5">
+          <div class="flex items-center gap-2 sm:gap-3">
+            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg sm:h-11 sm:w-11" :class="a.tone"><component :is="a.icon" class="h-5 w-5" /></span>
+            <div class="min-w-0"><p class="font-heading text-xl font-bold sm:text-2xl">{{ a.value }}</p><p class="text-xs text-muted sm:text-sm">{{ a.label }}</p></div>
           </div>
-          <ArrowRight class="h-5 w-5 text-slate-300" />
+          <ArrowRight class="hidden h-5 w-5 shrink-0 text-slate-300 rtl:rotate-180 sm:block" />
         </RouterLink>
       </div>
 
       <!-- KPIs -->
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div v-for="k in kpis" :key="k.label" class="card relative overflow-hidden p-5">
-          <span class="absolute inset-y-0 left-0 w-1" :class="k.accent"></span>
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div v-for="k in kpis" :key="k.label" class="card relative overflow-hidden p-4 sm:p-5">
+          <span class="absolute inset-y-0 start-0 w-1" :class="k.accent"></span>
           <div class="flex items-start justify-between">
             <span class="grid h-10 w-10 place-items-center rounded-lg" :class="k.tone"><component :is="k.icon" class="h-5 w-5" /></span>
             <span v-if="k.trend != null" class="flex items-center gap-0.5 text-xs font-semibold" :class="k.trend >= 0 ? 'text-emerald-600' : 'text-secondary-500'">
               <component :is="k.trend >= 0 ? TrendingUp : TrendingDown" class="h-3.5 w-3.5" /> {{ Math.abs(k.trend) }}%
             </span>
           </div>
-          <p class="mt-3 font-heading text-2xl font-bold">{{ k.value }}</p>
-          <p class="text-sm text-muted">{{ k.label }}</p>
+          <p class="mt-3 font-heading text-xl font-bold sm:text-2xl">{{ k.value }}</p>
+          <p class="text-xs text-muted sm:text-sm">{{ k.label }}</p>
           <p v-if="k.sub" class="mt-0.5 text-xs text-slate-400">{{ k.sub }}</p>
         </div>
       </div>

@@ -135,7 +135,7 @@ onMounted(load);
       </PageHeader>
 
       <!-- KPIs -->
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <div v-for="k in kpis" :key="k.label" class="card p-5">
           <span class="grid h-10 w-10 place-items-center rounded-lg" :class="k.tone"><component :is="k.icon" class="h-5 w-5" /></span>
           <p class="mt-3 font-heading text-2xl font-bold">{{ k.value }}</p>
@@ -159,7 +159,7 @@ onMounted(load);
       </div>
 
       <!-- Rollup -->
-      <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <div class="card flex items-center gap-4 p-5">
           <span class="grid h-12 w-12 place-items-center rounded-lg bg-emerald-50 text-emerald-600"><DollarSign class="h-6 w-6" /></span>
           <div><p class="font-heading text-2xl font-bold">{{ rollup.revenue }} {{ currency }}</p><p class="text-sm text-muted">{{ $t('dash.totalRevenue') }}</p></div>
