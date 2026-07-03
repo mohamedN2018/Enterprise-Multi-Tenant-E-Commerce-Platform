@@ -24,7 +24,8 @@ export default {
       login: 'تسجيل الدخول', register: 'إنشاء حساب', logout: 'تسجيل الخروج', dashboard: 'لوحة التحكم',
       myCart: 'سلتي', allCategories: 'كل الأقسام', wishlist: 'المفضلة', compare: 'مقارنة',
       searchPlaceholder: 'ابحث عن منتج…', yourCart: 'سلتك', viewCart: 'عرض السلة', checkout: 'الدفع',
-      cartEmpty: 'سلتك فارغة.', menu: 'القائمة', categories: 'الأقسام'
+      cartEmpty: 'سلتك فارغة.', menu: 'القائمة', categories: 'الأقسام',
+      seeAllResults: 'عرض كل النتائج لـ «{q}»', noSearchResults: 'لا توجد نتائج مطابقة', searchHint: 'اكتب حرفين على الأقل للبحث'
     },
     home: {
       heroBadge: 'أهلاً بك في q-shop', heroTitle: 'كل ما تحب، من', heroHighlight: 'متاجر مستقلة',
@@ -347,7 +348,8 @@ export default {
       contact: 'Contact', callUs: 'Call Us', myAccount: 'My Account', login: 'Login', register: 'Register',
       logout: 'Log Out', dashboard: 'Dashboard', myCart: 'My Cart', allCategories: 'All Categories',
       wishlist: 'Wishlist', compare: 'Compare', searchPlaceholder: 'Search Looking For?', yourCart: 'Your cart',
-      viewCart: 'View cart', checkout: 'Checkout', cartEmpty: 'Your cart is empty.', menu: 'Menu', categories: 'Categories'
+      viewCart: 'View cart', checkout: 'Checkout', cartEmpty: 'Your cart is empty.', menu: 'Menu', categories: 'Categories',
+      seeAllResults: 'See all results for “{q}”', noSearchResults: 'No matching results', searchHint: 'Type at least 2 characters to search'
     },
     home: {
       heroBadge: 'Welcome to q-shop', heroTitle: 'Everything you love, from', heroHighlight: 'independent stores',

@@ -29,6 +29,7 @@ import { storefront } from '@/services/storefront';
 import { useI18n } from '@/i18n';
 import { useTheme } from '@/theme';
 import CartFlyout from '@/components/CartFlyout.vue';
+import SearchBox from '@/components/SearchBox.vue';
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -36,12 +37,11 @@ const cart = useCartStore();
 const { t, locale, setLocale } = useI18n();
 const { theme, toggleTheme } = useTheme();
 
-const term = ref('');
-const cat = ref('');
 const categories = ref([]);
 const catOpen = ref(false);
 const accountOpen = ref(false);
 const mobileNav = ref(false);
+const searchOpen = ref(false);
 
 const nav = [
   { key: 'home', to: { name: 'home' } },
@@ -52,14 +52,6 @@ const nav = [
 const cartCount = computed(() => cart.count);
 const cartTotal = computed(() => cart.cart?.total || '0.00');
 const currency = computed(() => cart.shopStore?.currency || 'USD');
-
-const search = () => {
-  const q = {};
-  if (term.value.trim()) q.search = term.value.trim();
-  if (cat.value) q.category = cat.value;
-  router.push({ name: 'products', query: q });
-  mobileNav.value = false;
-};
 
 const goCategory = (name) => {
   catOpen.value = false;
@@ -74,6 +66,7 @@ watch(
     mobileNav.value = false;
     catOpen.value = false;
     accountOpen.value = false;
+    searchOpen.value = false;
   }
 );
 
@@ -145,32 +138,34 @@ onMounted(async () => {
 
     <!-- Main header: logo + search + actions -->
     <div class="border-b border-slate-100 bg-white dark:bg-slate-900">
-      <div class="container flex flex-wrap items-center gap-3 py-3 lg:gap-4 lg:py-4">
+      <div class="container flex items-center gap-3 py-3 lg:gap-4 lg:py-4">
         <RouterLink :to="{ name: 'home' }" class="flex shrink-0 items-center">
           <img :src="theme === 'dark' ? '/brand/dark-logo.png' : '/brand/qtech-logo.png'" alt="q-shop" class="h-9 w-auto lg:h-12" />
         </RouterLink>
 
-        <form class="order-3 flex w-full flex-1 lg:order-none lg:w-auto" @submit.prevent="search">
-          <div class="flex w-full items-center rounded-full border border-slate-200 ps-4 dark:border-slate-700">
-            <input v-model="term" type="text" :placeholder="t('nav.searchPlaceholder')" class="w-full border-0 bg-transparent py-2.5 text-sm text-ink focus:outline-none" />
-            <select v-model="cat" class="hidden border-s border-slate-200 bg-transparent px-3 py-2.5 text-sm text-ink focus:outline-none sm:block dark:border-slate-700" style="width: 160px">
-              <option value="">{{ t('common.all') }}</option>
-              <option v-for="c in categories" :key="c.name" :value="c.name">{{ c.name }}</option>
-            </select>
-            <button type="submit" class="btn btn-primary rounded-full px-6"><Search class="h-4 w-4" /></button>
-          </div>
-        </form>
+        <!-- Desktop interactive search -->
+        <div class="hidden lg:block lg:flex-1 lg:max-w-2xl">
+          <SearchBox />
+        </div>
 
         <div class="ms-auto flex items-center gap-2 lg:gap-3">
-          <RouterLink :to="{ name: 'products' }" class="hidden h-11 w-11 place-items-center rounded-full border border-slate-200 text-ink hover:border-primary-500 hover:text-primary-600 sm:grid" :title="t('nav.compare')">
+          <!-- Mobile: tap the icon to open the search -->
+          <button
+            class="grid h-11 w-11 place-items-center rounded-full border border-slate-200 text-ink transition hover:border-primary-500 hover:text-primary-600 lg:hidden dark:border-slate-700"
+            :title="t('common.search')"
+            @click="searchOpen = !searchOpen"
+          >
+            <component :is="searchOpen ? X : Search" class="h-4 w-4" />
+          </button>
+          <RouterLink :to="{ name: 'products' }" class="hidden h-11 w-11 place-items-center rounded-full border border-slate-200 text-ink hover:border-primary-500 hover:text-primary-600 sm:grid dark:border-slate-700" :title="t('nav.compare')">
             <Shuffle class="h-4 w-4" />
           </RouterLink>
-          <RouterLink :to="{ name: 'account' }" class="grid h-11 w-11 place-items-center rounded-full border border-slate-200 text-ink hover:border-primary-500 hover:text-primary-600" :title="t('nav.wishlist')">
+          <RouterLink :to="{ name: 'account' }" class="grid h-11 w-11 place-items-center rounded-full border border-slate-200 text-ink hover:border-primary-500 hover:text-primary-600 dark:border-slate-700" :title="t('nav.wishlist')">
             <Heart class="h-4 w-4" />
           </RouterLink>
           <div class="relative">
             <button class="flex items-center gap-2 text-ink hover:text-primary-600" :title="t('nav.myCart')" @click="cart.openDrawer()">
-              <span class="relative grid h-11 w-11 place-items-center rounded-full border border-slate-200">
+              <span class="relative grid h-11 w-11 place-items-center rounded-full border border-slate-200 dark:border-slate-700">
                 <ShoppingCart class="h-4 w-4" />
                 <span v-if="cartCount" class="absolute -end-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-secondary-500 px-1 text-[11px] font-bold text-white">{{ cartCount }}</span>
               </span>
@@ -178,6 +173,11 @@ onMounted(async () => {
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- Mobile search bar (opens on tap) -->
+      <div v-if="searchOpen" class="container pb-3 lg:hidden">
+        <SearchBox autofocus @navigate="searchOpen = false" />
       </div>
     </div>
 
