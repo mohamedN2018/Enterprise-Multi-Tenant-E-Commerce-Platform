@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { Store as StoreIcon, Plus } from 'lucide-vue-next';
+import { Store as StoreIcon, Plus, Globe } from 'lucide-vue-next';
+import { useRouter } from 'vue-router';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import Modal from '@/components/ui/Modal.vue';
@@ -17,6 +18,7 @@ import { t } from '@/i18n';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
+const router = useRouter();
 
 const ready = ref(false);
 
@@ -27,26 +29,19 @@ const dashboardComponent = computed(() => {
   return SellerDashboard;
 });
 
+// Contracted sellers open their own store (they become its owner). The super
+// admin does not create stores — they only oversee.
 const showCreate = ref(false);
 const creating = ref(false);
-const form = ref({ name: '', currency: 'USD', country: '', description: '', owner_email: '' });
+const form = ref({ name: '', currency: 'USD', country: '', description: '' });
 
 const createStore = async () => {
   creating.value = true;
   try {
-    const { owner_email, ...storePayload } = form.value;
-    const res = await seller.createStore(storePayload);
-    // Platform provisioning: optionally hand the store to a seller as owner.
-    if (owner_email && owner_email.trim()) {
-      try {
-        await seller.addMember(res.data.id, { user_email: owner_email.trim(), role: 'owner' });
-      } catch (e) {
-        ui.error(errorMessage(e));
-      }
-    }
+    const res = await seller.createStore(form.value);
     ui.success(t('admin.storeCreated'));
     showCreate.value = false;
-    form.value = { name: '', currency: 'USD', country: '', description: '', owner_email: '' };
+    form.value = { name: '', currency: 'USD', country: '', description: '' };
     await tenant.refresh();
     tenant.select(res.data.id);
     await tenant.resolveRole();
@@ -69,25 +64,27 @@ onMounted(async () => {
 
     <!-- No store yet -->
     <div v-else-if="!tenant.hasStores">
-      <!-- Platform admin: provision a store for a seller -->
+      <!-- Super admin: oversight only — cannot create stores -->
       <template v-if="tenant.isPlatform">
-        <PageHeader :title="$t('admin.provisionStore')" :subtitle="$t('admin.provisionSubtitle')" />
-        <EmptyState :icon="StoreIcon" :title="$t('admin.noStores')" :message="$t('admin.provisionSubtitle')">
-          <button class="btn btn-primary" @click="showCreate = true"><Plus class="h-4 w-4" /> {{ $t('admin.provisionStore') }}</button>
+        <PageHeader :title="$t('admin.overseeTitle')" :subtitle="$t('admin.platform')" />
+        <EmptyState :icon="Globe" :title="$t('admin.overseeTitle')" :message="$t('admin.overseeMsg')">
+          <button class="btn btn-primary" @click="router.push({ name: 'admin-platform' })"><Globe class="h-4 w-4" /> {{ $t('admin.goToPlatform') }}</button>
         </EmptyState>
       </template>
-      <!-- Seller with no store: no self-registration; contact admin -->
+      <!-- Contracted seller: open your own store -->
       <template v-else>
-        <PageHeader :title="$t('admin.welcomeSeller')" />
-        <EmptyState :icon="StoreIcon" :title="$t('admin.contactAdminTitle')" :message="$t('admin.contactAdminMsg')" />
+        <PageHeader :title="$t('admin.welcomeSeller')" :subtitle="$t('admin.welcomeSellerSub')" />
+        <EmptyState :icon="StoreIcon" :title="$t('admin.noStoreYet')" :message="$t('admin.noStoreYetMsg')">
+          <button class="btn btn-primary" @click="showCreate = true"><Plus class="h-4 w-4" /> {{ $t('admin.openStore') }}</button>
+        </EmptyState>
       </template>
     </div>
 
     <!-- Role-specific dashboard -->
     <component :is="dashboardComponent" v-else />
 
-    <!-- Provision store modal (platform admin only) -->
-    <Modal v-model="showCreate" :title="$t('admin.createNewStore')">
+    <!-- Open store modal (contracted sellers) -->
+    <Modal v-model="showCreate" :title="$t('admin.openStore')">
       <form id="create-store" class="grid gap-4" @submit.prevent="createStore">
         <FormField v-model="form.name" :label="$t('admin.storeName')" placeholder="Acme Supplies" required />
         <div class="grid grid-cols-2 gap-4">
@@ -95,13 +92,12 @@ onMounted(async () => {
           <FormField v-model="form.country" :label="$t('admin.countryIso')" placeholder="US" maxlength="2" />
         </div>
         <FormField v-model="form.description" :label="$t('common.description')" :placeholder="$t('admin.whatSell')" />
-        <FormField v-model="form.owner_email" :label="$t('admin.assignOwnerEmail')" type="email" placeholder="seller@example.com" :hint="$t('admin.assignOwnerHint')" />
       </form>
       <template #footer>
         <div class="flex justify-end gap-2">
           <button class="btn btn-ghost" @click="showCreate = false">{{ $t('common.cancel') }}</button>
           <button form="create-store" type="submit" class="btn btn-primary" :disabled="creating">
-            <Spinner v-if="creating" :size="18" /><span v-else>{{ $t('admin.createStore') }}</span>
+            <Spinner v-if="creating" :size="18" /><span v-else>{{ $t('admin.openStore') }}</span>
           </button>
         </div>
       </template>

@@ -2,20 +2,56 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { Bell, CheckCheck } from 'lucide-vue-next';
 import { useTenantStore } from '@/stores/tenant';
+import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
+import { t } from '@/i18n';
 
 const tenant = useTenantStore();
+const ui = useUiStore();
 
 const open = ref(false);
 const unread = ref(0);
 const items = ref([]);
 const loading = ref(false);
+let prevUnread = null;
+
+// Short "ping" via the Web Audio API — no asset needed. Browsers only allow
+// this after a user gesture; if blocked, it silently no-ops.
+const playPing = () => {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.36);
+    osc.onended = () => ctx.close();
+  } catch {
+    /* ignore */
+  }
+};
 
 const loadUnread = async () => {
   if (!tenant.activeId) return;
   try {
     const res = await seller.notificationsUnread();
-    unread.value = res.data?.unread || 0;
+    const n = res.data?.unread || 0;
+    // New notification arrived since the last poll → ping + toast.
+    if (prevUnread !== null && n > prevUnread) {
+      const delta = n - prevUnread;
+      playPing();
+      ui.info(delta === 1 ? t('notificationsPage.newNotification') : t('notificationsPage.newNotifications', { n: delta }));
+    }
+    prevUnread = n;
+    unread.value = n;
   } catch {
     unread.value = 0;
   }

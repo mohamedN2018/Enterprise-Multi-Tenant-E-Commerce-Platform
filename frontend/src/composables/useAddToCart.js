@@ -38,6 +38,11 @@ export function useAddToCart() {
       router.push({ name: 'login', query: { redirect: route.fullPath } });
       return false;
     }
+    // The super admin oversees the marketplace and does not place orders.
+    if (auth.user?.is_superuser) {
+      ui.info(t('product.superAdminNoShop'));
+      return false;
+    }
     adding.value = product.id;
     try {
       scopeToStore(product);
