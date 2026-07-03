@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { MapPin, BadgeCheck, Package } from 'lucide-vue-next';
 import ProductCard from '@/components/ProductCard.vue';
+import ProductCarousel from '@/components/ProductCarousel.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import Spinner from '@/components/ui/Spinner.vue';
@@ -17,6 +18,7 @@ const { add, adding } = useAddToCart();
 const store = ref(null);
 const loadingStore = ref(true);
 const notFound = ref(false);
+const recommended = ref([]);
 
 const { items, page, total, totalPages, loading, load } = usePaginated((params) =>
   storefront.storeProducts(route.params.slug, params)
@@ -36,6 +38,10 @@ const loadStore = async (slug) => {
     const res = await storefront.store(slug);
     store.value = res.data;
     await load();
+    storefront
+      .products({ page_size: 16 })
+      .then((r) => (recommended.value = r.data?.results || r.data || []))
+      .catch(() => (recommended.value = []));
   } catch {
     notFound.value = true;
   } finally {
@@ -92,6 +98,11 @@ watch(() => route.params.slug, (slug) => slug && loadStore(slug), { immediate: t
           <div v-if="totalPages > 1" class="mt-10"><Pagination :page="page" :page-size="20" :total="total" @update:page="changePage" /></div>
         </template>
         <EmptyState v-else :icon="Package" :title="$t('shop.noProducts')" :message="$t('stores.noProducts')" />
+
+        <!-- Recommendations -->
+        <div v-if="recommended.length" class="mt-12">
+          <ProductCarousel :title="$t('rec.moreToConsider')" :products="recommended" :adding-id="adding" @add="add" />
+        </div>
       </section>
     </template>
   </div>

@@ -5,9 +5,12 @@ import { Minus, Plus, Trash2, ShoppingBag, Tag, ArrowRight, X } from 'lucide-vue
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import PageHero from '@/components/ui/PageHero.vue';
+import ProductCarousel from '@/components/ProductCarousel.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useCartStore } from '@/stores/cart';
 import { useUiStore } from '@/stores/ui';
+import { useAddToCart } from '@/composables/useAddToCart';
+import { storefront } from '@/services/storefront';
 import { errorMessage } from '@/services/http';
 import { productImage, onImgError } from '@/utils/media';
 
@@ -15,6 +18,8 @@ const router = useRouter();
 const auth = useAuthStore();
 const cart = useCartStore();
 const ui = useUiStore();
+const { add, adding } = useAddToCart();
+const recommended = ref([]);
 
 const coupon = ref('');
 const busyItem = ref(null);
@@ -73,8 +78,14 @@ const removeCoupon = async () => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   if (auth.isAuthenticated) cart.refreshCart();
+  try {
+    const r = await storefront.products({ page_size: 16 });
+    recommended.value = r.data?.results || r.data || [];
+  } catch {
+    recommended.value = [];
+  }
 });
 </script>
 
@@ -174,6 +185,11 @@ onMounted(() => {
           {{ $t('cart.continueShopping') }}
         </RouterLink>
       </aside>
+    </div>
+
+    <!-- Recommendations -->
+    <div v-if="recommended.length" class="mt-12">
+      <ProductCarousel :title="$t('rec.alsoBought')" :products="recommended" :adding-id="adding" @add="add" />
     </div>
     </div>
   </div>

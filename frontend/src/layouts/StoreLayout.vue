@@ -41,10 +41,7 @@ const cat = ref('');
 const categories = ref([]);
 const catOpen = ref(false);
 const accountOpen = ref(false);
-const cartOpen = ref(false);
 const mobileNav = ref(false);
-
-const cartItems = computed(() => cart.cart?.items || []);
 
 const nav = [
   { key: 'home', to: { name: 'home' } },

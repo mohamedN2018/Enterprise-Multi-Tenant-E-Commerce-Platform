@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Search, SlidersHorizontal, X } from 'lucide-vue-next';
 import ProductCard from '@/components/ProductCard.vue';
+import ProductCarousel from '@/components/ProductCarousel.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import PageHero from '@/components/ui/PageHero.vue';
@@ -15,6 +16,7 @@ const router = useRouter();
 const { add, adding } = useAddToCart();
 
 const categories = ref([]);
+const recommended = ref([]);
 const term = ref(route.query.search || '');
 const mobileFilters = ref(false);
 
@@ -74,6 +76,12 @@ onMounted(async () => {
   const cat = await storefront.categories();
   categories.value = cat.data || [];
   fetch();
+  try {
+    const r = await storefront.products({ page_size: 16 });
+    recommended.value = r.data?.results || r.data || [];
+  } catch {
+    recommended.value = [];
+  }
 });
 </script>
 
@@ -146,6 +154,11 @@ onMounted(async () => {
             <button class="btn btn-primary btn-sm" @click="clearAll">{{ $t('shop.clearFilters') }}</button>
           </EmptyState>
         </div>
+      </div>
+
+      <!-- Recommendations -->
+      <div v-if="recommended.length" class="mt-14">
+        <ProductCarousel :title="$t('rec.highlyRated')" :products="recommended" :adding-id="adding" @add="add" />
       </div>
     </div>
   </div>
