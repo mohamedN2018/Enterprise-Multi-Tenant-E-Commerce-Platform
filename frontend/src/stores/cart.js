@@ -14,12 +14,18 @@ const loadShop = () => {
 // Storefront cart: server-side cart scoped to the shopped store (checkout is
 // per-store). The store is sent explicitly as X-Store-Id on every cart call.
 export const useCartStore = defineStore('cart', {
-  state: () => ({ shopStore: loadShop(), cart: null, loading: false }),
+  state: () => ({ shopStore: loadShop(), cart: null, loading: false, drawerOpen: false }),
   getters: {
     count: (s) => s.cart?.item_count || 0,
     headers: (s) => (s.shopStore ? { 'X-Store-Id': s.shopStore.id } : {})
   },
   actions: {
+    openDrawer() {
+      this.drawerOpen = true;
+    },
+    closeDrawer() {
+      this.drawerOpen = false;
+    },
     setShopStore(store) {
       const slim = store
         ? { id: store.id, slug: store.slug, name: store.name, currency: store.currency }

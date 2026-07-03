@@ -53,7 +53,8 @@ export default {
       notFound: 'المنتج غير موجود', notFoundMsg: 'ربما تم حذف هذا المنتج أو لم يعد متاحًا.',
       browseProducts: 'تصفّح المنتجات', noDescription: 'لا يوجد وصف لهذا المنتج.',
       detail: 'التفاصيل', shopDetail: 'تفاصيل المنتج', loading: 'جارٍ تحميل المنتج…', out: 'غير متوفر',
-      reviewsCount: 'تقييم', signInReviewToast: 'من فضلك سجّل الدخول لكتابة تقييم.', reviewSubmitted: 'تم إرسال تقييمك للمراجعة. شكرًا لك!'
+      reviewsCount: 'تقييم', signInReviewToast: 'من فضلك سجّل الدخول لكتابة تقييم.', reviewSubmitted: 'تم إرسال تقييمك للمراجعة. شكرًا لك!',
+      signInToShop: 'من فضلك سجّل الدخول لبدء التسوّق.', addedToCart: 'تمت الإضافة إلى السلة.', unavailableToast: 'هذا المنتج غير متاح حاليًا.'
     },
     shop: {
       title: 'المتجر', productsFound: 'منتج', categories: 'الأقسام', filter: 'تصفية', onSaleOnly: 'العروض فقط',
@@ -80,6 +81,17 @@ export default {
       postal: 'الرمز البريدي', saveAddress: 'حفظ العنوان', preparing: 'جارٍ تجهيز الدفع…', emptyCart: 'سلتك فارغة',
       emptyCartMsg: 'أضف عناصر للسلة قبل إتمام الدفع.', browseProducts: 'تصفّح المنتجات', orderPlaced: 'تم تأكيد الطلب بنجاح!',
       addressSaved: 'تم حفظ العنوان.'
+    },
+    flyout: {
+      addedTitle: 'تمت الإضافة إلى سلتك', cartTitle: 'سلة التسوق', empty: 'سلتك فارغة',
+      emptyMsg: 'أضف منتجات وستظهر هنا.', subtotal: 'الإجمالي الفرعي', viewCart: 'عرض السلة', checkout: 'إتمام الشراء',
+      freeShipDone: 'رائع! طلبك مؤهّل للشحن المجاني 🎉', freeShipRemain: 'أضِف {amount} للحصول على شحن مجاني',
+      continueShopping: 'مواصلة التسوق', items: 'منتج', item: 'منتج', remove: 'إزالة', startShopping: 'ابدأ التسوق', each: 'للوحدة'
+    },
+    rec: {
+      moreToConsider: 'منتجات أخرى قد تعجبك', seeMore: 'عرض المزيد', alsoViewed: 'عملاء شاهدوا هذه المنتجات أيضًا',
+      bestSellers: 'الأكثر مبيعًا في هذا القسم', shoppedFor: 'عملاء تسوّقوا لهذا المنتج',
+      alsoBought: 'عملاء اشتروا أيضًا هذه المنتجات المميّزة', highlyRated: 'منتجات عالية التقييم', inspiredBy: 'مستوحى من تصفّحك'
     },
     order: {
       confirmation: 'تأكيد الطلب', order: 'الطلب', loading: 'جارٍ تحميل الطلب…', notFound: 'الطلب غير موجود',
@@ -332,7 +344,8 @@ export default {
       notFound: 'Product not found', notFoundMsg: 'This product may have been removed or is no longer available.',
       browseProducts: 'Browse products', noDescription: 'No description provided for this product.',
       detail: 'Detail', shopDetail: 'Shop Detail', loading: 'Loading product…', out: 'out',
-      reviewsCount: 'reviews', signInReviewToast: 'Please sign in to write a review.', reviewSubmitted: 'Review submitted for moderation. Thank you!'
+      reviewsCount: 'reviews', signInReviewToast: 'Please sign in to write a review.', reviewSubmitted: 'Review submitted for moderation. Thank you!',
+      signInToShop: 'Please sign in to start shopping.', addedToCart: 'Added to cart.', unavailableToast: 'This product is currently unavailable.'
     },
     shop: {
       title: 'Shop', productsFound: 'products found', categories: 'Categories', filter: 'Filter', onSaleOnly: 'On sale only',
@@ -359,6 +372,17 @@ export default {
       postal: 'Postal code', saveAddress: 'Save address', preparing: 'Preparing checkout…', emptyCart: 'Your cart is empty',
       emptyCartMsg: 'Add items to your cart before checking out.', browseProducts: 'Browse products', orderPlaced: 'Order placed successfully!',
       addressSaved: 'Address saved.'
+    },
+    flyout: {
+      addedTitle: 'Added to your cart', cartTitle: 'Shopping cart', empty: 'Your cart is empty',
+      emptyMsg: 'Add products and they will show up here.', subtotal: 'Subtotal', viewCart: 'View cart', checkout: 'Checkout',
+      freeShipDone: 'Nice! Your order qualifies for FREE shipping 🎉', freeShipRemain: 'Add {amount} to get FREE shipping',
+      continueShopping: 'Continue shopping', items: 'items', item: 'item', remove: 'Remove', startShopping: 'Start shopping', each: 'each'
+    },
+    rec: {
+      moreToConsider: 'More items to consider', seeMore: 'See more', alsoViewed: 'Customers who viewed this also viewed',
+      bestSellers: 'Best sellers in this category', shoppedFor: 'Customers who shopped for this item',
+      alsoBought: 'Customers also bought these highly rated items', highlyRated: 'Highly rated products', inspiredBy: 'Inspired by your browsing'
     },
     order: {
       confirmation: 'Order Confirmation', order: 'Order', loading: 'Loading order…', notFound: 'Order not found',

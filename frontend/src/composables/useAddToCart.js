@@ -5,6 +5,7 @@ import { useCartStore } from '@/stores/cart';
 import { useUiStore } from '@/stores/ui';
 import { storefront } from '@/services/storefront';
 import { errorMessage } from '@/services/http';
+import { t } from '@/i18n';
 
 // Adds a storefront product to the (store-scoped) cart. Resolves the default
 // purchasable variant when the caller only has a list-level product.
@@ -33,7 +34,7 @@ export function useAddToCart() {
 
   const add = async (product, { variant = null, quantity = 1 } = {}) => {
     if (!auth.isAuthenticated) {
-      ui.info('Please sign in to start shopping.');
+      ui.info(t('product.signInToShop'));
       router.push({ name: 'login', query: { redirect: route.fullPath } });
       return false;
     }
@@ -47,11 +48,12 @@ export function useAddToCart() {
         chosen = pickVariant(detail.variants);
       }
       if (!chosen) {
-        ui.error('This product is currently unavailable.');
+        ui.error(t('product.unavailableToast'));
         return false;
       }
       await cart.addItem(chosen.id, quantity);
-      ui.success('Added to cart.');
+      ui.success(t('product.addedToCart'));
+      cart.openDrawer();
       return true;
     } catch (e) {
       ui.error(errorMessage(e));

@@ -5,6 +5,7 @@ import { Minus, Plus, ShoppingCart, Store as StoreIcon, Check, Truck, ShieldChec
 import StarRating from '@/components/ui/StarRating.vue';
 import PageHero from '@/components/ui/PageHero.vue';
 import ProductCard from '@/components/ProductCard.vue';
+import ProductCarousel from '@/components/ProductCarousel.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import { storefront } from '@/services/storefront';
@@ -56,7 +57,16 @@ const product = ref(null);
 const reviews = ref([]);
 const summary = ref(null);
 const related = ref([]);
+const recommended = ref([]);
 const loading = ref(true);
+
+// Cross-store recommendation rails (Amazon-style).
+const alsoBought = computed(() =>
+  [...recommended.value]
+    .sort((a, b) => Number(b.rating ?? b.average_rating ?? 0) - Number(a.rating ?? a.average_rating ?? 0))
+    .slice(0, 12)
+);
+const shoppedFor = computed(() => recommended.value.slice(0, 12));
 const notFound = ref(false);
 const selectedVariant = ref(null);
 const qty = ref(1);
@@ -92,13 +102,15 @@ const load = async (id) => {
     pushRecentlyViewed(product.value);
     const variants = product.value.variants || [];
     selectedVariant.value = variants.find((v) => v.is_default) || variants[0] || null;
-    const [rev, rel] = await Promise.all([
+    const [rev, rel, rec] = await Promise.all([
       storefront.productReviews(id),
-      storefront.products({ store: product.value.store_slug, page_size: 5 })
+      storefront.products({ store: product.value.store_slug, page_size: 5 }),
+      storefront.products({ page_size: 20 })
     ]);
     reviews.value = rev.data?.results || [];
     summary.value = rev.data?.summary || null;
     related.value = (rel.data?.results || rel.data || []).filter((x) => x.id !== id).slice(0, 4);
+    recommended.value = (rec.data?.results || rec.data || []).filter((x) => x.id !== id);
   } catch {
     notFound.value = true;
   } finally {
@@ -267,6 +279,12 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
           <div class="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
             <ProductCard v-for="rp in related" :key="rp.id" :product="rp" :adding="adding === rp.id" @add="add" />
           </div>
+        </div>
+
+        <!-- Recommendation rails -->
+        <div v-if="alsoBought.length" class="mt-14 space-y-12">
+          <ProductCarousel :title="$t('rec.alsoBought')" :products="alsoBought" :adding-id="adding" @add="add" />
+          <ProductCarousel v-if="shoppedFor.length" :title="$t('rec.shoppedFor')" :products="shoppedFor" :adding-id="adding" @add="add" />
         </div>
       </template>
     </div>

@@ -18,6 +18,7 @@ import {
   Rocket
 } from 'lucide-vue-next';
 import ProductCard from '@/components/ProductCard.vue';
+import ProductCarousel from '@/components/ProductCarousel.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import { storefront } from '@/services/storefront';
 import { useAddToCart } from '@/composables/useAddToCart';
@@ -31,9 +32,19 @@ const categories = ref([]);
 const stores = ref([]);
 const newest = ref([]);
 const deals = ref([]);
+const pool = ref([]);
 const loading = ref(true);
 const tab = ref('all');
 const recent = ref(getRecentlyViewed());
+
+// Amazon-style recommendation rails derived from the product pool.
+const bestSellers = computed(() =>
+  [...pool.value]
+    .sort((a, b) => Number(b.rating ?? b.average_rating ?? 0) - Number(a.rating ?? a.average_rating ?? 0) || Number(b.review_count ?? 0) - Number(a.review_count ?? 0))
+    .slice(0, 12)
+);
+const moreToConsider = computed(() => pool.value.slice(0, 12));
+const alsoBought = computed(() => pool.value.slice(6, 18));
 
 const testimonials = [
   { name: 'سارة م.', text: 'شحن سريع وجودة المنتج فاقت توقعاتي. أصبح سوقي المفضل!' },
@@ -57,16 +68,18 @@ const goCategory = (name) => router.push({ name: 'products', query: { category: 
 
 onMounted(async () => {
   try {
-    const [cat, st, nw, dl] = await Promise.all([
+    const [cat, st, nw, dl, pl] = await Promise.all([
       storefront.categories(),
       storefront.stores({ page_size: 6 }),
       storefront.products({ page_size: 8 }),
-      storefront.products({ on_sale: 1, page_size: 8 })
+      storefront.products({ on_sale: 1, page_size: 8 }),
+      storefront.products({ page_size: 24 })
     ]);
     categories.value = (cat.data || []).slice(0, 8);
     stores.value = st.data?.results || st.data || [];
     newest.value = nw.data?.results || nw.data || [];
     deals.value = dl.data?.results || dl.data || [];
+    pool.value = pl.data?.results || pl.data || [];
   } finally {
     loading.value = false;
   }
@@ -203,6 +216,11 @@ onMounted(async () => {
       </div>
     </section>
 
+    <!-- Recommendation rail: more to consider -->
+    <div v-if="moreToConsider.length" class="container py-6">
+      <ProductCarousel :title="$t('rec.moreToConsider')" :products="moreToConsider" :adding-id="adding" @add="add" />
+    </div>
+
     <!-- Our Products -->
     <section class="container py-8">
       <div class="mb-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
@@ -225,9 +243,15 @@ onMounted(async () => {
       <EmptyState v-else :title="$t('shop.noProducts')" :message="$t('home.heroSubtitle')" />
 
       <div class="mt-10 text-center">
-        <RouterLink :to="{ name: 'products' }" class="btn btn-outline btn-lg">{{ $t('home.viewAllProducts') }} <ArrowRight class="h-4 w-4" /></RouterLink>
+        <RouterLink :to="{ name: 'products' }" class="btn btn-outline btn-lg">{{ $t('home.viewAllProducts') }} <ArrowRight class="h-4 w-4 rtl:rotate-180" /></RouterLink>
       </div>
     </section>
+
+    <!-- Recommendation rails: best sellers + also bought -->
+    <div v-if="bestSellers.length" class="container space-y-10 py-8">
+      <ProductCarousel :title="$t('rec.bestSellers')" :products="bestSellers" :adding-id="adding" @add="add" />
+      <ProductCarousel v-if="alsoBought.length" :title="$t('rec.alsoBought')" :products="alsoBought" :adding-id="adding" @add="add" />
+    </div>
 
     <!-- Testimonials -->
     <section class="bg-lightbg py-14">
