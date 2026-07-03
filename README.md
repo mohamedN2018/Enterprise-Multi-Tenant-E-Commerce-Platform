@@ -83,6 +83,45 @@ Without Docker: run the backend from `backend/` (`pip install -r requirements/de
 > `VITE_API_URL=https://api.yourdomain` and `CORS_ALLOWED_ORIGINS=https://app.yourdomain`,
 > and rebuild the frontend.
 
+### Troubleshooting
+
+**Deploy fails with `all predefined address pools have been fully subnetted`.**
+This is a **Docker host** condition, not a problem with this repo: the daemon has
+run out of network subnets to hand out. Every Compose deploy creates a bridge
+network, and repeated/failed deploys leave orphaned ones behind until the default
+address pool is exhausted. Fix it on the Dokploy **server** (SSH in):
+
+```bash
+# Immediate fix — remove unused networks (frees the pool):
+docker network prune -f
+docker system prune -f          # optional: also clears dangling images/containers
+
+# Then redeploy from the Dokploy UI.
+```
+
+If it keeps recurring (a busy host with many apps), enlarge the pool once in
+`/etc/docker/daemon.json` and restart Docker:
+
+```json
+{
+  "default-address-pools": [
+    { "base": "172.17.0.0/16", "size": 24 },
+    { "base": "172.20.0.0/14", "size": 24 }
+  ]
+}
+```
+```bash
+sudo systemctl restart docker   # pick ranges that don't overlap your LAN
+```
+
+**Django admin (`/django-admin/`) login returns 403 / CSRF failed.** Add your
+HTTPS domain to `CSRF_TRUSTED_ORIGINS` (scheme included), e.g.
+`CSRF_TRUSTED_ORIGINS=https://shop.example.com`. The storefront/API use JWT and are
+unaffected; this only matters for the Django admin behind Dokploy's TLS proxy.
+
+**`DisallowedHost` errors.** Add the domain to `DJANGO_ALLOWED_HOSTS`
+(comma-separated, no scheme), keeping `backend` in the list for internal proxying.
+
 ## Testing & quality (backend)
 
 ```bash
