@@ -1,33 +1,40 @@
 # ===========================================================================
 # Production stack (Dokploy-ready).
 #
-#   frontend  ─ nginx: serves the Vue SPA + reverse-proxies /api,/admin,
-#               /static,/media,/ws to the backend (single origin, no CORS).
-#               This is the ONLY service with a host port — attach your
-#               Dokploy domain to it (service "frontend", port 80).
-#   backend   ─ Django/DRF under Gunicorn+Uvicorn (internal only).
-#   worker    ─ Celery worker.      beat ─ Celery beat scheduler.
-#   db        ─ PostgreSQL 16.      redis ─ cache / broker / channels.
+#   qshop-frontend ─ nginx: serves the Vue SPA + reverse-proxies /api,/django-
+#                    admin,/static,/media,/ws,/health to the backend (single
+#                    origin, no CORS). The ONLY service with a host port —
+#                    attach your Dokploy domain to it (port 80).
+#   qshop-backend  ─ Django/DRF under Gunicorn+Uvicorn (internal only).
+#   qshop-worker   ─ Celery worker.   qshop-beat ─ Celery beat scheduler.
+#   qshop-db       ─ PostgreSQL 16.   qshop-redis ─ cache / broker / channels.
 #
-# Configure via .env (see .env.example). For local dev with hot-reload use
-# docker-compose.dev.yml instead.
+# In Dokploy set the Compose Path to  ./docker-compose.yml  (NOT the .dev one).
+#
+# Networking: every service joins Dokploy's existing "dokploy-network" instead
+# of creating a new per-app bridge network. This deliberately creates ZERO new
+# networks, so it can never hit the daemon's "all predefined address pools have
+# been fully subnetted" error. Service names are uniquely prefixed (qshop-*) so
+# they don't clash with other apps sharing that network.
+#
+# Configure via .env (see .env.example). For local dev use docker-compose.dev.yml.
 # ===========================================================================
-name: marketplace
+name: qshop
 
 x-backend: &backend
   build:
     context: ./backend
-  image: marketplace-backend:latest
+  image: qshop-backend:latest
   env_file: .env
   restart: unless-stopped
   depends_on:
-    db:
+    qshop-db:
       condition: service_healthy
-    redis:
+    qshop-redis:
       condition: service_healthy
 
 services:
-  db:
+  qshop-db:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-marketplace}
@@ -42,7 +49,7 @@ services:
       timeout: 5s
       retries: 10
 
-  redis:
+  qshop-redis:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
@@ -54,7 +61,7 @@ services:
       timeout: 3s
       retries: 10
 
-  backend:
+  qshop-backend:
     <<: *backend
     # entrypoint waits for the DB, migrates, collectstatic; CMD = Gunicorn (from Dockerfile)
     volumes:
@@ -66,29 +73,31 @@ services:
       retries: 10
       start_period: 40s
 
-  worker:
+  qshop-worker:
     <<: *backend
     entrypoint: []
     command: ["celery", "-A", "config", "worker", "--loglevel=info"]
     volumes:
       - media:/app/media
 
-  beat:
+  qshop-beat:
     <<: *backend
     entrypoint: []
     command: ["celery", "-A", "config", "beat", "--loglevel=info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
 
-  frontend:
+  qshop-frontend:
     build:
       context: ./frontend
       args:
         # Relative API base → SPA calls the same origin; nginx proxies to backend.
         VITE_API_URL: ${VITE_API_URL:-/api/v1}
-    image: marketplace-frontend:latest
+    image: qshop-frontend:latest
     restart: unless-stopped
     depends_on:
-      backend:
+      qshop-backend:
         condition: service_started
+    # Single, app-unique host port. With a Dokploy domain you can drop this and
+    # let Traefik route to container port 80 over dokploy-network.
     ports:
       - "${FRONTEND_PORT:-8080}:80"
 
@@ -96,3 +105,10 @@ volumes:
   pgdata:
   redisdata:
   media:
+
+# Reuse Dokploy's existing shared network — no new subnet is allocated.
+# Override the name via DOKPLOY_NETWORK if your Dokploy uses a different one.
+networks:
+  default:
+    external: true
+    name: ${DOKPLOY_NETWORK:-dokploy-network}

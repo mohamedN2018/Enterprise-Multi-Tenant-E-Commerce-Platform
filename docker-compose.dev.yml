@@ -5,6 +5,8 @@
 #   docker compose -f docker-compose.dev.yml up
 #
 # Backend code is bind-mounted for autoreload; frontend runs Vite on :3000.
+# Service names match the production stack (qshop-*) so a single .env works for
+# both. This dev stack creates its own local network (no dokploy-network needed).
 # ===========================================================================
 name: marketplace-dev
 
@@ -12,7 +14,7 @@ x-django-env: &django-env
   env_file: .env
 
 services:
-  db:
+  qshop-db:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-marketplace}
@@ -28,7 +30,7 @@ services:
       timeout: 5s
       retries: 10
 
-  redis:
+  qshop-redis:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
@@ -41,7 +43,7 @@ services:
       timeout: 3s
       retries: 10
 
-  web:
+  qshop-web:
     build:
       context: ./backend
       args:
@@ -53,12 +55,12 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      db:
+      qshop-db:
         condition: service_healthy
-      redis:
+      qshop-redis:
         condition: service_healthy
 
-  worker:
+  qshop-worker:
     build:
       context: ./backend
       args:
@@ -69,12 +71,12 @@ services:
     volumes:
       - ./backend:/app
     depends_on:
-      db:
+      qshop-db:
         condition: service_healthy
-      redis:
+      qshop-redis:
         condition: service_healthy
 
-  beat:
+  qshop-beat:
     build:
       context: ./backend
       args:
@@ -85,12 +87,12 @@ services:
     volumes:
       - ./backend:/app
     depends_on:
-      db:
+      qshop-db:
         condition: service_healthy
-      redis:
+      qshop-redis:
         condition: service_healthy
 
-  frontend:
+  qshop-frontend:
     image: node:20-slim
     working_dir: /app
     command: ["sh", "-lc", "npm install --no-audit --no-fund && npm run start -- --host 0.0.0.0"]
@@ -101,7 +103,7 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - web
+      - qshop-web
 
 volumes:
   pgdata:

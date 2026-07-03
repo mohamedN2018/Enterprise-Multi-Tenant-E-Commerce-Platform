@@ -41,13 +41,15 @@ docker-compose.dev.yml  Local dev stack (hot-reload)
 ## Quickstart — production stack (Docker)
 
 ```bash
-cp .env.example .env          # set DJANGO_SECRET_KEY, passwords, your domain
-docker compose up --build -d  # db, redis, backend, worker, beat, frontend
-docker compose exec backend python manage.py seed_demo   # optional demo data
+cp .env.example .env               # set DJANGO_SECRET_KEY, passwords, your domain
+docker network create dokploy-network 2>/dev/null || true   # the shared network (Dokploy already has it)
+docker compose up --build -d       # qshop-db, qshop-redis, qshop-backend, qshop-worker, qshop-beat, qshop-frontend
+docker compose exec qshop-backend python manage.py seed_demo   # optional demo data
 ```
 
 Then open `http://localhost:8080` (the frontend; change with `FRONTEND_PORT`).
 Demo login after `seed_demo`: `owner@demo.com` / `Demo12345!`.
+On Dokploy the `dokploy-network` already exists, so skip the `network create` step.
 
 Backend routes (proxied through the frontend, or reachable internally):
 `/api/v1/` · `/api/docs/` (Swagger) · `/health/` · `/django-admin/` (Django admin;
@@ -66,18 +68,28 @@ Without Docker: run the backend from `backend/` (`pip install -r requirements/de
 
 ## Deploy on Dokploy
 
-1. **Create → Compose** in Dokploy, pointing at this repository. It uses
-   `docker-compose.yml` (the default).
-2. **Environment:** paste the variables from `.env.example`. At minimum set a strong
-   `DJANGO_SECRET_KEY`, `POSTGRES_PASSWORD` (and the matching `DATABASE_URL`), and add
-   your domain to `DJANGO_ALLOWED_HOSTS`. Keep `DJANGO_SECURE_SSL_REDIRECT=False`
-   (Dokploy/Traefik terminates TLS and proxies HTTP internally).
-3. **Domain:** attach your domain to the **`frontend`** service, container port **80**.
-   The frontend nginx proxies API/admin traffic to the backend, so this single domain
-   serves the whole app.
+1. **Create → Compose** in Dokploy, pointing at this repository. **Set the Compose
+   Path to `./docker-compose.yml`** — NOT `docker-compose.dev.yml` (that one is
+   local-only: it publishes host ports 5432/6379/8000/3000 and runs dev settings).
+2. **Environment:** paste the variables from `.env.example` (or your filled `.env`).
+   At minimum set a strong `DJANGO_SECRET_KEY`, `POSTGRES_PASSWORD` (and the matching
+   `DATABASE_URL`), and add your domain to `DJANGO_ALLOWED_HOSTS` **and**
+   `CSRF_TRUSTED_ORIGINS`. Keep `DJANGO_SECURE_SSL_REDIRECT=False` (Dokploy/Traefik
+   terminates TLS and proxies HTTP internally).
+3. **Domain:** attach your domain to the **`qshop-frontend`** service, container
+   port **80**. The frontend nginx proxies API/admin traffic to the backend, so this
+   single domain serves the whole app.
 4. Deploy. The backend entrypoint waits for Postgres, runs migrations and
    `collectstatic` automatically. Seed demo data (optional) from the Dokploy terminal:
    `python manage.py seed_demo`.
+
+> **No new Docker network is created.** Every service joins Dokploy's existing
+> `dokploy-network` (set `DOKPLOY_NETWORK` if yours differs), and service names are
+> uniquely prefixed `qshop-*` so they never clash with other apps on that network.
+> This is what sidesteps the `all predefined address pools have been fully subnetted`
+> error without touching the host. Only `qshop-frontend` publishes a host port
+> (`FRONTEND_PORT`, default 8080) — pick an app-unique value, or drop it entirely and
+> route through the Dokploy domain.
 
 > Split-domain alternative: give the backend its own domain, set
 > `VITE_API_URL=https://api.yourdomain` and `CORS_ALLOWED_ORIGINS=https://app.yourdomain`,
