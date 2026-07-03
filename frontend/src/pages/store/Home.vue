@@ -63,22 +63,26 @@ const shown = computed(() => (tab.value === 'deals' ? deals.value : newest.value
 const goCategory = (name) => router.push({ name: 'products', query: { category: name } });
 
 onMounted(async () => {
-  try {
-    const [cat, st, nw, dl, pl] = await Promise.all([
-      storefront.categories(),
-      storefront.stores({ page_size: 6 }),
-      storefront.products({ page_size: 8 }),
-      storefront.products({ on_sale: 1, page_size: 8 }),
-      storefront.products({ page_size: 24 })
-    ]);
-    categories.value = (cat.data || []).slice(0, 8);
-    stores.value = st.data?.results || st.data || [];
-    newest.value = nw.data?.results || nw.data || [];
-    deals.value = dl.data?.results || dl.data || [];
-    pool.value = pl.data?.results || pl.data || [];
-  } finally {
-    loading.value = false;
-  }
+  // allSettled (not all): a single failing/empty endpoint must not blank the
+  // whole page — each section populates independently.
+  const results = await Promise.allSettled([
+    storefront.categories(),
+    storefront.stores({ page_size: 6 }),
+    storefront.products({ page_size: 8 }),
+    storefront.products({ on_sale: 1, page_size: 8 }),
+    storefront.products({ page_size: 24 })
+  ]);
+  const data = (i) => (results[i].status === 'fulfilled' ? results[i].value?.data : null);
+  const list = (i) => {
+    const d = data(i);
+    return d?.results || (Array.isArray(d) ? d : []) || [];
+  };
+  categories.value = (Array.isArray(data(0)) ? data(0) : data(0)?.results || []).slice(0, 8);
+  stores.value = list(1);
+  newest.value = list(2);
+  deals.value = list(3);
+  pool.value = list(4);
+  loading.value = false;
 });
 </script>
 
@@ -140,7 +144,7 @@ onMounted(async () => {
               <div v-if="loading" class="space-y-2">
                 <div v-for="n in 4" :key="n" class="skeleton h-16 rounded-xl"></div>
               </div>
-              <div v-else class="space-y-2">
+              <div v-else-if="heroBest.length" class="space-y-2">
                 <RouterLink
                   v-for="(p, i) in heroBest"
                   :key="p.id"
@@ -155,7 +159,15 @@ onMounted(async () => {
                   </div>
                   <span class="shrink-0 font-heading text-sm font-bold text-primary-300">{{ p.price }} {{ p.currency }}</span>
                 </RouterLink>
-                <p v-if="!heroBest.length" class="py-6 text-center text-sm text-white/60">{{ $t('home.ourProducts') }}</p>
+              </div>
+              <!-- No products yet: keep the panel looking intentional. -->
+              <div v-else class="flex flex-col items-center gap-3 px-4 py-8 text-center">
+                <span class="grid h-12 w-12 place-items-center rounded-full bg-white/10">
+                  <Flame class="h-6 w-6 text-secondary-400" />
+                </span>
+                <p class="text-sm font-medium text-white/80">{{ $t('home.noProductsYet') }}</p>
+                <p class="text-xs text-white/50">{{ $t('home.noProductsYetMsg') }}</p>
+                <RouterLink :to="{ name: 'products' }" class="btn btn-light btn-sm mt-1">{{ $t('home.viewAll') }}</RouterLink>
               </div>
             </div>
           </div>
