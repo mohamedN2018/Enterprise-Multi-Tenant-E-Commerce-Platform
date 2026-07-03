@@ -12,6 +12,7 @@ import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
 import { t } from '@/i18n';
+import { useValidation, required } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -131,8 +132,10 @@ const submit = async () => {
 const whModal = ref(false);
 const whBusy = ref(false);
 const whForm = ref({ name: '', code: '', city: '', country: '', is_default: false });
+const { errors: whErrors, run: runWh, clear: clearWh } = useValidation(() => whForm.value, { name: [required()], code: [required()] });
 
 const createWh = async () => {
+  if (!runWh()) return;
   whBusy.value = true;
   try {
     await seller.createWarehouse(whForm.value);
@@ -255,10 +258,10 @@ onMounted(async () => {
 
     <!-- New warehouse -->
     <Modal v-model="whModal" :title="$t('inventoryPage.newWarehouseTitle')">
-      <form id="wh-form" class="grid gap-4" @submit.prevent="createWh">
-        <FormField v-model="whForm.name" :label="$t('common.name')" placeholder="Main Warehouse" required />
+      <form id="wh-form" class="grid gap-4" novalidate @submit.prevent="createWh">
+        <FormField v-model="whForm.name" :label="$t('common.name')" placeholder="Main Warehouse" :error="whErrors.name" @update:model-value="clearWh('name')" />
         <div class="grid grid-cols-2 gap-4">
-          <FormField v-model="whForm.code" :label="$t('inventoryPage.code')" placeholder="WH-2" required />
+          <FormField v-model="whForm.code" :label="$t('inventoryPage.code')" placeholder="WH-2" :error="whErrors.code" @update:model-value="clearWh('code')" />
           <FormField v-model="whForm.city" :label="$t('common.city')" />
         </div>
         <FormField v-model="whForm.country" :label="$t('admin.countryIso')" maxlength="2" placeholder="US" />

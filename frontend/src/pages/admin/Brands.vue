@@ -14,6 +14,7 @@ import { useUiStore } from '@/stores/ui';
 import { usePaginated } from '@/composables/usePaginated';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
+import { useValidation, required } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -35,6 +36,7 @@ const editing = ref(null);
 const saving = ref(false);
 const blank = () => ({ name: '', description: '', is_active: true });
 const form = ref(blank());
+const { errors, run, clear } = useValidation(() => form.value, { name: [required()] });
 
 const openCreate = () => {
   editing.value = null;
@@ -47,6 +49,7 @@ const openEdit = (b) => {
   showModal.value = true;
 };
 const save = async () => {
+  if (!run()) return;
   saving.value = true;
   try {
     if (editing.value) {
@@ -113,8 +116,8 @@ onMounted(async () => {
     <div v-if="totalPages > 1" class="mt-6"><Pagination :page="page" :page-size="20" :total="total" @update:page="changePage" /></div>
 
     <Modal v-model="showModal" :title="editing ? $t('brandsPage.editBrand') : $t('brandsPage.newBrand')">
-      <form id="brand-form" class="grid gap-4" @submit.prevent="save">
-        <FormField v-model="form.name" :label="$t('common.name')" required />
+      <form id="brand-form" class="grid gap-4" novalidate @submit.prevent="save">
+        <FormField v-model="form.name" :label="$t('common.name')" :error="errors.name" @update:model-value="clear('name')" />
         <div>
           <label class="label">{{ $t('common.description') }}</label>
           <textarea v-model="form.description" rows="2" class="input"></textarea>

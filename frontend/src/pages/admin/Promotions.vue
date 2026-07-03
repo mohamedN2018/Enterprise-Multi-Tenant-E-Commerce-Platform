@@ -15,6 +15,7 @@ import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
 import { downloadCsv } from '@/utils/csv';
 import { t } from '@/i18n';
+import { useValidation, required, positive } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -68,6 +69,7 @@ const blank = () => ({
   is_active: true
 });
 const form = ref(blank());
+const { errors, run, clear } = useValidation(() => form.value, { code: [required()], value: [positive()] });
 
 const openCreate = () => {
   editing.value = null;
@@ -99,6 +101,7 @@ const clean = (payload) => {
 };
 
 const save = async () => {
+  if (!run()) return;
   saving.value = true;
   try {
     const payload = clean(form.value);
@@ -180,9 +183,9 @@ onMounted(async () => {
     </div>
 
     <Modal v-model="showModal" :title="editing ? $t('promotionsPage.editCoupon') : $t('promotionsPage.newCoupon')">
-      <form id="coupon-form" class="grid gap-4" @submit.prevent="save">
+      <form id="coupon-form" class="grid gap-4" novalidate @submit.prevent="save">
         <div class="grid grid-cols-2 gap-4">
-          <FormField v-model="form.code" :label="$t('promotionsPage.code')" placeholder="SAVE10" required />
+          <FormField v-model="form.code" :label="$t('promotionsPage.code')" placeholder="SAVE10" :error="errors.code" @update:model-value="clear('code')" />
           <div>
             <label class="label">{{ $t('promotionsPage.discountType') }}</label>
             <select v-model="form.discount_type" class="input">
@@ -193,7 +196,7 @@ onMounted(async () => {
         </div>
         <FormField v-model="form.description" :label="$t('common.description')" :placeholder="$t('promotionsPage.optional')" />
         <div class="grid grid-cols-2 gap-4">
-          <FormField v-model.number="form.value" :label="$t('promotionsPage.value')" type="number" step="0.01" required />
+          <FormField v-model.number="form.value" :label="$t('promotionsPage.value')" type="number" step="0.01" :error="errors.value" @update:model-value="clear('value')" />
           <FormField v-model="form.min_spend" :label="$t('promotionsPage.minSpend')" type="number" step="0.01" placeholder="0" />
         </div>
         <div class="grid grid-cols-2 gap-4">

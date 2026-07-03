@@ -15,6 +15,7 @@ import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
 import { computed } from 'vue';
 import { t } from '@/i18n';
+import { useValidation, required } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -39,6 +40,7 @@ const editing = ref(null);
 const saving = ref(false);
 const blank = () => ({ name: '', description: '', position: 0, is_active: true });
 const form = ref(blank());
+const { errors, run, clear } = useValidation(() => form.value, { name: [required()] });
 
 const openCreate = () => {
   editing.value = null;
@@ -51,6 +53,7 @@ const openEdit = (c) => {
   showModal.value = true;
 };
 const save = async () => {
+  if (!run()) return;
   saving.value = true;
   try {
     if (editing.value) {
@@ -124,8 +127,8 @@ onMounted(async () => {
     </div>
 
     <Modal v-model="showModal" :title="editing ? $t('categoriesPage.editCategory') : $t('categoriesPage.newCategory')">
-      <form id="category-form" class="grid gap-4" @submit.prevent="save">
-        <FormField v-model="form.name" :label="$t('common.name')" required />
+      <form id="category-form" class="grid gap-4" novalidate @submit.prevent="save">
+        <FormField v-model="form.name" :label="$t('common.name')" :error="errors.name" @update:model-value="clear('name')" />
         <div>
           <label class="label">{{ $t('common.description') }}</label>
           <textarea v-model="form.description" rows="2" class="input"></textarea>

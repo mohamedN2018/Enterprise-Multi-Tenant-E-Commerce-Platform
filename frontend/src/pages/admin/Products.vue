@@ -15,6 +15,7 @@ import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
 import { downloadCsv } from '@/utils/csv';
 import { t } from '@/i18n';
+import { useValidation, required, positive } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -102,6 +103,7 @@ const editing = ref(null);
 const saving = ref(false);
 const blank = () => ({ name: '', description: '', product_type: 'physical', status: 'draft', category: '', brand: '' });
 const form = ref(blank());
+const { errors: pErrors, run: runProduct, clear: clearProduct } = useValidation(() => form.value, { name: [required()] });
 
 const openCreate = () => {
   editing.value = null;
@@ -122,6 +124,7 @@ const openEdit = (p) => {
 };
 
 const save = async () => {
+  if (!runProduct()) return;
   saving.value = true;
   try {
     const payload = { ...form.value };
@@ -145,9 +148,10 @@ const save = async () => {
 
 // --- Variant quick-add (within edit) --------------------------------------
 const variantForm = ref({ name: '', sku: '', price: '', compare_at_price: '', stock_quantity: 0, is_default: false });
+const { errors: vErrors, run: runVariant, clear: clearVariant } = useValidation(() => variantForm.value, { sku: [required()], price: [positive()] });
 const addingVariant = ref(false);
 const addVariant = async () => {
-  if (!editing.value) return;
+  if (!editing.value || !runVariant()) return;
   addingVariant.value = true;
   try {
     const payload = { ...variantForm.value };
@@ -305,8 +309,8 @@ onMounted(async () => {
 
     <!-- Create / edit modal -->
     <Modal v-model="showModal" :title="editing ? $t('prod.editProduct') : $t('prod.newProduct')" size="lg">
-      <form id="product-form" class="grid gap-4" @submit.prevent="save">
-        <FormField v-model="form.name" :label="$t('common.name')" required />
+      <form id="product-form" class="grid gap-4" novalidate @submit.prevent="save">
+        <FormField v-model="form.name" :label="$t('common.name')" :error="pErrors.name" @update:model-value="clearProduct('name')" />
         <div>
           <label class="label">{{ $t('common.description') }}</label>
           <textarea v-model="form.description" rows="3" class="input"></textarea>
@@ -359,10 +363,10 @@ onMounted(async () => {
             </div>
           </li>
         </ul>
-        <form class="grid grid-cols-2 gap-3 sm:grid-cols-4" @submit.prevent="addVariant">
+        <form class="grid grid-cols-2 gap-3 sm:grid-cols-4" novalidate @submit.prevent="addVariant">
           <FormField v-model="variantForm.name" :label="$t('common.name')" :placeholder="$t('prod.defaultVariant')" class="col-span-2 sm:col-span-1" />
-          <FormField v-model="variantForm.sku" :label="$t('common.sku')" required />
-          <FormField v-model="variantForm.price" :label="$t('common.price')" type="number" step="0.01" required />
+          <FormField v-model="variantForm.sku" :label="$t('common.sku')" :error="vErrors.sku" @update:model-value="clearVariant('sku')" />
+          <FormField v-model="variantForm.price" :label="$t('common.price')" type="number" step="0.01" :error="vErrors.price" @update:model-value="clearVariant('price')" />
           <FormField v-model.number="variantForm.stock_quantity" :label="$t('common.stock')" type="number" />
           <div class="col-span-2 sm:col-span-4">
             <button type="submit" class="btn btn-outline btn-sm" :disabled="addingVariant">

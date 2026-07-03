@@ -12,6 +12,7 @@ import { useTenantStore } from '@/stores/tenant';
 import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
+import { useValidation, required } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -45,7 +46,9 @@ const load = async () => {
 const attrModal = ref(false);
 const attrBusy = ref(false);
 const attrForm = ref({ name: '', code: '', is_variant: true, sort_order: 0 });
+const { errors: aErrors, run: runAttr, clear: clearAttr } = useValidation(() => attrForm.value, { name: [required()] });
 const createAttr = async () => {
+  if (!runAttr()) return;
   attrBusy.value = true;
   try {
     const payload = { ...attrForm.value };
@@ -66,12 +69,14 @@ const valModal = ref(false);
 const valBusy = ref(false);
 const valAttr = ref(null);
 const valForm = ref({ value: '', label: '', sort_order: 0 });
+const { errors: vErrors, run: runVal, clear: clearVal } = useValidation(() => valForm.value, { value: [required()] });
 const openVal = (attr) => {
   valAttr.value = attr;
   valForm.value = { value: '', label: '', sort_order: 0 };
   valModal.value = true;
 };
 const createVal = async () => {
+  if (!runVal()) return;
   valBusy.value = true;
   try {
     await seller.createAttributeValue(valAttr.value.id, valForm.value);
@@ -126,9 +131,9 @@ onMounted(async () => {
 
     <!-- Attribute modal -->
     <Modal v-model="attrModal" :title="$t('attributesPage.newAttribute')">
-      <form id="attr-form" class="grid gap-4" @submit.prevent="createAttr">
+      <form id="attr-form" class="grid gap-4" novalidate @submit.prevent="createAttr">
         <div class="grid grid-cols-2 gap-4">
-          <FormField v-model="attrForm.name" :label="$t('common.name')" placeholder="Color" required />
+          <FormField v-model="attrForm.name" :label="$t('common.name')" placeholder="Color" :error="aErrors.name" @update:model-value="clearAttr('name')" />
           <FormField v-model="attrForm.code" :label="$t('attributesPage.code')" placeholder="color" />
         </div>
         <FormField v-model.number="attrForm.sort_order" :label="$t('attributesPage.sortOrder')" type="number" />
@@ -144,9 +149,9 @@ onMounted(async () => {
 
     <!-- Value modal -->
     <Modal v-model="valModal" :title="valAttr ? $t('attributesPage.addValueFor', { name: valAttr.name }) : $t('attributesPage.addValue')">
-      <form id="val-form" class="grid gap-4" @submit.prevent="createVal">
+      <form id="val-form" class="grid gap-4" novalidate @submit.prevent="createVal">
         <div class="grid grid-cols-2 gap-4">
-          <FormField v-model="valForm.value" :label="$t('attributesPage.value')" placeholder="red" required />
+          <FormField v-model="valForm.value" :label="$t('attributesPage.value')" placeholder="red" :error="vErrors.value" @update:model-value="clearVal('value')" />
           <FormField v-model="valForm.label" :label="$t('attributesPage.label')" placeholder="Red" />
         </div>
         <FormField v-model.number="valForm.sort_order" :label="$t('attributesPage.sortOrder')" type="number" />
