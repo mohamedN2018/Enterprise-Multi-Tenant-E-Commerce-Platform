@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Plus, Pencil, Trash2 } from 'lucide-vue-next';
+import { t } from '@/i18n';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import Pagination from '@/components/ui/Pagination.vue';
@@ -17,11 +18,11 @@ import { errorMessage } from '@/services/http';
 const tenant = useTenantStore();
 const ui = useUiStore();
 
-const columns = [
-  { key: 'name', label: 'Brand', sortable: true },
-  { key: 'is_active', label: 'Status', sortable: true },
+const columns = computed(() => [
+  { key: 'name', label: t('common.brand'), sortable: true },
+  { key: 'is_active', label: t('common.status'), sortable: true },
   { key: 'actions', label: '', align: 'right' }
-];
+]);
 
 const { items, page, total, totalPages, loading, load } = usePaginated((params) => seller.brands(params));
 const changePage = (n) => {
@@ -50,10 +51,10 @@ const save = async () => {
   try {
     if (editing.value) {
       await seller.updateBrand(editing.value.id, form.value);
-      ui.success('Brand updated.');
+      ui.success(t('brandsPage.brandUpdated'));
     } else {
       await seller.createBrand(form.value);
-      ui.success('Brand created.');
+      ui.success(t('brandsPage.brandCreated'));
     }
     showModal.value = false;
     load();
@@ -70,7 +71,7 @@ const doDelete = async () => {
   deleting.value = true;
   try {
     await seller.deleteBrand(confirmDelete.value.id);
-    ui.success('Brand deleted.');
+    ui.success(t('brandsPage.brandDeleted'));
     confirmDelete.value = null;
     load();
   } catch (e) {
@@ -88,14 +89,14 @@ onMounted(async () => {
 
 <template>
   <div>
-    <PageHeader title="Brands" subtitle="Manage the brands in your catalog.">
+    <PageHeader :title="$t('brandsPage.title')" :subtitle="$t('brandsPage.subtitle')">
       <template #actions>
-        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
-        <button v-if="tenant.canWrite" class="btn btn-primary btn-sm" :disabled="!tenant.hasStores" @click="openCreate"><Plus class="h-4 w-4" /> Add brand</button>
+        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">{{ $t('common.readOnly') }}</span>
+        <button v-if="tenant.canWrite" class="btn btn-primary btn-sm" :disabled="!tenant.hasStores" @click="openCreate"><Plus class="h-4 w-4" /> {{ $t('brandsPage.addBrand') }}</button>
       </template>
     </PageHeader>
 
-    <DataTable :columns="columns" :rows="items" :loading="loading" empty-title="No brands yet" empty-message="Add brands to organize your products.">
+    <DataTable :columns="columns" :rows="items" :loading="loading" :empty-title="$t('brandsPage.emptyTitle')" :empty-message="$t('brandsPage.emptyMessage')">
       <template #cell-name="{ row }">
         <div><p class="font-medium text-ink">{{ row.name }}</p><p class="clamp-1 text-xs text-slate-400">{{ row.description || '—' }}</p></div>
       </template>
@@ -111,29 +112,29 @@ onMounted(async () => {
 
     <div v-if="totalPages > 1" class="mt-6"><Pagination :page="page" :page-size="20" :total="total" @update:page="changePage" /></div>
 
-    <Modal v-model="showModal" :title="editing ? 'Edit brand' : 'New brand'">
+    <Modal v-model="showModal" :title="editing ? $t('brandsPage.editBrand') : $t('brandsPage.newBrand')">
       <form id="brand-form" class="grid gap-4" @submit.prevent="save">
-        <FormField v-model="form.name" label="Name" required />
+        <FormField v-model="form.name" :label="$t('common.name')" required />
         <div>
-          <label class="label">Description</label>
+          <label class="label">{{ $t('common.description') }}</label>
           <textarea v-model="form.description" rows="2" class="input"></textarea>
         </div>
-        <label class="flex items-center gap-2 text-sm"><input v-model="form.is_active" type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" /> Active</label>
+        <label class="flex items-center gap-2 text-sm"><input v-model="form.is_active" type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" /> {{ $t('common.active') }}</label>
       </form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn btn-ghost" @click="showModal = false">Cancel</button>
-          <button form="brand-form" type="submit" class="btn btn-primary" :disabled="saving"><Spinner v-if="saving" :size="18" /><span v-else>{{ editing ? 'Save' : 'Create' }}</span></button>
+          <button class="btn btn-ghost" @click="showModal = false">{{ $t('common.cancel') }}</button>
+          <button form="brand-form" type="submit" class="btn btn-primary" :disabled="saving"><Spinner v-if="saving" :size="18" /><span v-else>{{ editing ? $t('common.save') : $t('common.create') }}</span></button>
         </div>
       </template>
     </Modal>
 
-    <Modal :model-value="!!confirmDelete" title="Delete brand" size="sm" @update:model-value="confirmDelete = null">
-      <p class="text-sm text-slate-600">Delete <span class="font-semibold">{{ confirmDelete?.name }}</span>?</p>
+    <Modal :model-value="!!confirmDelete" :title="$t('brandsPage.deleteBrand')" size="sm" @update:model-value="confirmDelete = null">
+      <p class="text-sm text-slate-600">{{ $t('brandsPage.deletePromptPre') }} <span class="font-semibold">{{ confirmDelete?.name }}</span>{{ $t('brandsPage.deletePromptPost') }}</p>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn btn-ghost" @click="confirmDelete = null">Cancel</button>
-          <button class="btn btn-danger" :disabled="deleting" @click="doDelete"><Spinner v-if="deleting" :size="18" /><span v-else>Delete</span></button>
+          <button class="btn btn-ghost" @click="confirmDelete = null">{{ $t('common.cancel') }}</button>
+          <button class="btn btn-danger" :disabled="deleting" @click="doDelete"><Spinner v-if="deleting" :size="18" /><span v-else>{{ $t('common.delete') }}</span></button>
         </div>
       </template>
     </Modal>

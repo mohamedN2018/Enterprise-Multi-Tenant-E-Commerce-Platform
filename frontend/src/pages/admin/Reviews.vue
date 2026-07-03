@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Check, X, Star, Download } from 'lucide-vue-next';
+import { t } from '@/i18n';
 import { downloadCsv } from '@/utils/csv';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
@@ -19,20 +20,20 @@ const statusFilter = ref('pending');
 const productMap = ref({});
 const acting = ref(null);
 
-const tabs = [
-  { key: 'pending', label: 'Pending' },
-  { key: 'approved', label: 'Approved' },
-  { key: 'rejected', label: 'Rejected' },
-  { key: '', label: 'All' }
-];
+const tabs = computed(() => [
+  { key: 'pending', label: t('status.pending') },
+  { key: 'approved', label: t('status.approved') },
+  { key: 'rejected', label: t('status.rejected') },
+  { key: '', label: t('common.all') }
+]);
 
-const columns = [
-  { key: 'product', label: 'Product' },
-  { key: 'rating', label: 'Rating' },
-  { key: 'body', label: 'Review' },
-  { key: 'status', label: 'Status' },
+const columns = computed(() => [
+  { key: 'product', label: t('reviewsPage.product') },
+  { key: 'rating', label: t('reviewsPage.rating') },
+  { key: 'body', label: t('reviewsPage.review') },
+  { key: 'status', label: t('common.status') },
   { key: 'actions', label: '', align: 'right' }
-];
+]);
 
 const { items, page, total, totalPages, loading, load } = usePaginated((params) =>
   seller.reviewsModeration(params)
@@ -54,7 +55,7 @@ const moderate = async (review, approve) => {
   try {
     if (approve) await seller.approveReview(review.id);
     else await seller.rejectReview(review.id);
-    ui.success(approve ? 'Review approved.' : 'Review rejected.');
+    ui.success(approve ? t('reviewsPage.reviewApproved') : t('reviewsPage.reviewRejected'));
     fetch();
   } catch (e) {
     ui.error(errorMessage(e));
@@ -65,7 +66,7 @@ const moderate = async (review, approve) => {
 
 const exportCsv = () => {
   const rows = items.value.map((r) => ({
-    product: productMap.value[r.product] || 'Product',
+    product: productMap.value[r.product] || t('reviewsPage.product'),
     rating: r.rating,
     title: r.title || '',
     status: r.status,
@@ -90,10 +91,10 @@ onMounted(async () => {
 
 <template>
   <div>
-    <PageHeader title="Reviews" subtitle="Moderate customer reviews for your store.">
+    <PageHeader :title="$t('reviewsPage.title')" :subtitle="$t('reviewsPage.subtitle')">
       <template #actions>
-        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
-        <button class="btn btn-outline btn-sm" :disabled="!items.length" @click="exportCsv"><Download class="h-4 w-4" /> Export</button>
+        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">{{ $t('common.readOnly') }}</span>
+        <button class="btn btn-outline btn-sm" :disabled="!items.length" @click="exportCsv"><Download class="h-4 w-4" /> {{ $t('common.export') }}</button>
       </template>
     </PageHeader>
 
@@ -109,12 +110,12 @@ onMounted(async () => {
       </button>
     </div>
 
-    <DataTable :columns="columns" :rows="items" :loading="loading" empty-title="No reviews" empty-message="Reviews awaiting moderation will appear here.">
+    <DataTable :columns="columns" :rows="items" :loading="loading" :empty-title="$t('reviewsPage.emptyTitle')" :empty-message="$t('reviewsPage.emptyMessage')">
       <template #cell-product="{ value }">
-        <span class="font-medium text-ink">{{ productMap[value] || 'Product' }}</span>
+        <span class="font-medium text-ink">{{ productMap[value] || $t('reviewsPage.product') }}</span>
       </template>
       <template #cell-rating="{ row }">
-        <div class="flex">
+        <div class="flex" :aria-label="$t('reviewsPage.ratingStars', { n: row.rating })">
           <Star v-for="n in 5" :key="n" class="h-4 w-4" :class="n <= row.rating ? 'fill-primary-600 text-primary-600' : 'text-slate-300'" />
         </div>
       </template>
@@ -127,8 +128,8 @@ onMounted(async () => {
       <template #cell-status="{ value }"><StatusBadge :status="value" /></template>
       <template #cell-actions="{ row }">
         <div v-if="tenant.canWrite && row.status === 'pending'" class="flex justify-end gap-1">
-          <button class="btn btn-ghost btn-sm text-emerald-600" :disabled="acting === row.id" @click="moderate(row, true)"><Check class="h-4 w-4" /> Approve</button>
-          <button class="btn btn-ghost btn-sm text-secondary-500" :disabled="acting === row.id" @click="moderate(row, false)"><X class="h-4 w-4" /> Reject</button>
+          <button class="btn btn-ghost btn-sm text-emerald-600" :disabled="acting === row.id" @click="moderate(row, true)"><Check class="h-4 w-4" /> {{ $t('reviewsPage.approve') }}</button>
+          <button class="btn btn-ghost btn-sm text-secondary-500" :disabled="acting === row.id" @click="moderate(row, false)"><X class="h-4 w-4" /> {{ $t('reviewsPage.reject') }}</button>
         </div>
         <span v-else class="text-xs text-muted">—</span>
       </template>

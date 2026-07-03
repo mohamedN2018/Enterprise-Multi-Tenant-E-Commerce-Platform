@@ -13,16 +13,18 @@ import { useUiStore } from '@/stores/ui';
 import { usePaginated } from '@/composables/usePaginated';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
+import { computed } from 'vue';
+import { t } from '@/i18n';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
 
-const columns = [
-  { key: 'name', label: 'Category', sortable: true },
-  { key: 'position', label: 'Position', align: 'right', sortable: true },
-  { key: 'is_active', label: 'Status', sortable: true },
+const columns = computed(() => [
+  { key: 'name', label: t('categoriesPage.category'), sortable: true },
+  { key: 'position', label: t('categoriesPage.position'), align: 'right', sortable: true },
+  { key: 'is_active', label: t('common.status'), sortable: true },
   { key: 'actions', label: '', align: 'right' }
-];
+]);
 
 const { items, page, total, totalPages, loading, load } = usePaginated((params) =>
   seller.categories(params)
@@ -53,10 +55,10 @@ const save = async () => {
   try {
     if (editing.value) {
       await seller.updateCategory(editing.value.id, form.value);
-      ui.success('Category updated.');
+      ui.success(t('categoriesPage.categoryUpdated'));
     } else {
       await seller.createCategory(form.value);
-      ui.success('Category created.');
+      ui.success(t('categoriesPage.categoryCreated'));
     }
     showModal.value = false;
     load();
@@ -73,7 +75,7 @@ const doDelete = async () => {
   deleting.value = true;
   try {
     await seller.deleteCategory(confirmDelete.value.id);
-    ui.success('Category deleted.');
+    ui.success(t('categoriesPage.categoryDeleted'));
     confirmDelete.value = null;
     load();
   } catch (e) {
@@ -91,16 +93,16 @@ onMounted(async () => {
 
 <template>
   <div>
-    <PageHeader title="Categories" subtitle="Organize your products.">
+    <PageHeader :title="$t('categoriesPage.title')" :subtitle="$t('categoriesPage.subtitle')">
       <template #actions>
-        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
+        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">{{ $t('common.readOnly') }}</span>
         <button v-if="tenant.canWrite" class="btn btn-primary btn-sm" :disabled="!tenant.hasStores" @click="openCreate">
-          <Plus class="h-4 w-4" /> Add category
+          <Plus class="h-4 w-4" /> {{ $t('categoriesPage.addCategory') }}
         </button>
       </template>
     </PageHeader>
 
-    <DataTable :columns="columns" :rows="items" :loading="loading" empty-title="No categories yet" empty-message="Group products into categories for easier browsing.">
+    <DataTable :columns="columns" :rows="items" :loading="loading" :empty-title="$t('categoriesPage.noCategories')" :empty-message="$t('categoriesPage.noCategoriesMsg')">
       <template #cell-name="{ row }">
         <div>
           <p class="font-medium text-ink">{{ row.name }}</p>
@@ -121,38 +123,38 @@ onMounted(async () => {
       <Pagination :page="page" :page-size="20" :total="total" @update:page="changePage" />
     </div>
 
-    <Modal v-model="showModal" :title="editing ? 'Edit category' : 'New category'">
+    <Modal v-model="showModal" :title="editing ? $t('categoriesPage.editCategory') : $t('categoriesPage.newCategory')">
       <form id="category-form" class="grid gap-4" @submit.prevent="save">
-        <FormField v-model="form.name" label="Name" required />
+        <FormField v-model="form.name" :label="$t('common.name')" required />
         <div>
-          <label class="label">Description</label>
+          <label class="label">{{ $t('common.description') }}</label>
           <textarea v-model="form.description" rows="2" class="input"></textarea>
         </div>
         <div class="grid grid-cols-2 gap-4">
-          <FormField v-model.number="form.position" label="Position" type="number" />
+          <FormField v-model.number="form.position" :label="$t('categoriesPage.position')" type="number" />
           <label class="mt-6 flex items-center gap-2 text-sm">
             <input v-model="form.is_active" type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
-            Active
+            {{ $t('common.active') }}
           </label>
         </div>
       </form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn btn-ghost" @click="showModal = false">Cancel</button>
+          <button class="btn btn-ghost" @click="showModal = false">{{ $t('common.cancel') }}</button>
           <button form="category-form" type="submit" class="btn btn-primary" :disabled="saving">
-            <Spinner v-if="saving" :size="18" /><span v-else>{{ editing ? 'Save' : 'Create' }}</span>
+            <Spinner v-if="saving" :size="18" /><span v-else>{{ editing ? $t('common.save') : $t('common.create') }}</span>
           </button>
         </div>
       </template>
     </Modal>
 
-    <Modal :model-value="!!confirmDelete" title="Delete category" size="sm" @update:model-value="confirmDelete = null">
-      <p class="text-sm text-slate-600">Delete <span class="font-semibold">{{ confirmDelete?.name }}</span>?</p>
+    <Modal :model-value="!!confirmDelete" :title="$t('categoriesPage.deleteCategory')" size="sm" @update:model-value="confirmDelete = null">
+      <p class="text-sm text-slate-600">{{ $t('categoriesPage.deleteConfirm', { name: confirmDelete?.name }) }}</p>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn btn-ghost" @click="confirmDelete = null">Cancel</button>
+          <button class="btn btn-ghost" @click="confirmDelete = null">{{ $t('common.cancel') }}</button>
           <button class="btn btn-danger" :disabled="deleting" @click="doDelete">
-            <Spinner v-if="deleting" :size="18" /><span v-else>Delete</span>
+            <Spinner v-if="deleting" :size="18" /><span v-else>{{ $t('common.delete') }}</span>
           </button>
         </div>
       </template>

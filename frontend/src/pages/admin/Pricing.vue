@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { Plus, Users, Trash2, Tag } from 'lucide-vue-next';
+import { t } from '@/i18n';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -24,21 +25,21 @@ const variantMap = ref({});
 
 const groupMap = computed(() => Object.fromEntries(groups.value.map((g) => [g.id, g.name])));
 
-const groupCols = [
-  { key: 'name', label: 'Group', sortable: true },
-  { key: 'code', label: 'Code' },
-  { key: 'priority', label: 'Priority', align: 'right', sortable: true },
-  { key: 'is_default', label: 'Default' }
-];
-const ruleCols = [
-  { key: 'variant', label: 'Variant' },
-  { key: 'customer_group', label: 'Group' },
-  { key: 'min_quantity', label: 'Min qty', align: 'right', sortable: true },
-  { key: 'rule_type', label: 'Type' },
-  { key: 'value', label: 'Value', align: 'right', sortable: true },
-  { key: 'is_active', label: 'Status' },
+const groupCols = computed(() => [
+  { key: 'name', label: t('pricingPage.group'), sortable: true },
+  { key: 'code', label: t('pricingPage.code') },
+  { key: 'priority', label: t('pricingPage.priority'), align: 'right', sortable: true },
+  { key: 'is_default', label: t('pricingPage.default') }
+]);
+const ruleCols = computed(() => [
+  { key: 'variant', label: t('pricingPage.variant') },
+  { key: 'customer_group', label: t('pricingPage.group') },
+  { key: 'min_quantity', label: t('pricingPage.minQty'), align: 'right', sortable: true },
+  { key: 'rule_type', label: t('common.type') },
+  { key: 'value', label: t('pricingPage.value'), align: 'right', sortable: true },
+  { key: 'is_active', label: t('common.status') },
   { key: 'actions', label: '', align: 'right' }
-];
+]);
 
 const load = async () => {
   loading.value = true;
@@ -78,7 +79,7 @@ const createGroup = async () => {
     const payload = { ...groupForm.value };
     if (!payload.code) delete payload.code;
     await seller.createCustomerGroup(payload);
-    ui.success('Group created.');
+    ui.success(t('pricingPage.groupCreated'));
     groupModal.value = false;
     groupForm.value = { name: '', code: '', description: '', priority: 0, is_default: false };
     load();
@@ -103,7 +104,7 @@ const createRule = async () => {
     const payload = { ...ruleForm.value };
     if (!payload.customer_group_id) delete payload.customer_group_id;
     await seller.createPriceRule(payload);
-    ui.success('Price rule created.');
+    ui.success(t('pricingPage.ruleCreated'));
     ruleModal.value = false;
     load();
   } catch (e) {
@@ -116,7 +117,7 @@ const deleteRule = async (r) => {
   try {
     await seller.deletePriceRule(r.id);
     rules.value = rules.value.filter((x) => x.id !== r.id);
-    ui.success('Rule deleted.');
+    ui.success(t('pricingPage.ruleDeleted'));
   } catch (e) {
     ui.error(errorMessage(e));
   }
@@ -131,29 +132,29 @@ onMounted(async () => {
 
 <template>
   <div>
-    <PageHeader title="Pricing" subtitle="Customer groups and tiered price rules.">
+    <PageHeader :title="$t('pricingPage.title')" :subtitle="$t('pricingPage.subtitle')">
       <template #actions>
-        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
-        <button v-if="tenant.canWrite && tab === 'groups'" class="btn btn-primary btn-sm" @click="groupModal = true"><Plus class="h-4 w-4" /> Add group</button>
-        <button v-if="tenant.canWrite && tab === 'rules'" class="btn btn-primary btn-sm" :disabled="!variantOptions.length" @click="openRule"><Plus class="h-4 w-4" /> Add rule</button>
+        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">{{ $t('common.readOnly') }}</span>
+        <button v-if="tenant.canWrite && tab === 'groups'" class="btn btn-primary btn-sm" @click="groupModal = true"><Plus class="h-4 w-4" /> {{ $t('pricingPage.addGroup') }}</button>
+        <button v-if="tenant.canWrite && tab === 'rules'" class="btn btn-primary btn-sm" :disabled="!variantOptions.length" @click="openRule"><Plus class="h-4 w-4" /> {{ $t('pricingPage.addRule') }}</button>
       </template>
     </PageHeader>
 
     <div class="mb-4 flex gap-2">
-      <button class="rounded-full px-4 py-1.5 text-sm font-medium transition" :class="tab === 'groups' ? 'bg-primary-600 text-white' : 'bg-lightbg text-ink hover:bg-primary-100'" @click="tab = 'groups'"><Users class="mr-1 inline h-4 w-4" /> Customer groups</button>
-      <button class="rounded-full px-4 py-1.5 text-sm font-medium transition" :class="tab === 'rules' ? 'bg-primary-600 text-white' : 'bg-lightbg text-ink hover:bg-primary-100'" @click="tab = 'rules'"><Tag class="mr-1 inline h-4 w-4" /> Price rules</button>
+      <button class="rounded-full px-4 py-1.5 text-sm font-medium transition" :class="tab === 'groups' ? 'bg-primary-600 text-white' : 'bg-lightbg text-ink hover:bg-primary-100'" @click="tab = 'groups'"><Users class="me-1 inline h-4 w-4" /> {{ $t('pricingPage.customerGroups') }}</button>
+      <button class="rounded-full px-4 py-1.5 text-sm font-medium transition" :class="tab === 'rules' ? 'bg-primary-600 text-white' : 'bg-lightbg text-ink hover:bg-primary-100'" @click="tab = 'rules'"><Tag class="me-1 inline h-4 w-4" /> {{ $t('pricingPage.priceRules') }}</button>
     </div>
 
-    <DataTable v-if="tab === 'groups'" :columns="groupCols" :rows="groups" :loading="loading" empty-title="No customer groups" empty-message="Create groups (e.g. VIP, Wholesale) to apply special pricing.">
+    <DataTable v-if="tab === 'groups'" :columns="groupCols" :rows="groups" :loading="loading" :empty-title="$t('pricingPage.noGroups')" :empty-message="$t('pricingPage.noGroupsMsg')">
       <template #cell-name="{ row }"><span class="font-medium text-ink">{{ row.name }}</span></template>
       <template #cell-code="{ value }"><span class="text-xs text-muted">{{ value || '—' }}</span></template>
-      <template #cell-is_default="{ value }"><StatusBadge v-if="value" status="active" label="Default" /><span v-else class="text-xs text-muted">—</span></template>
+      <template #cell-is_default="{ value }"><StatusBadge v-if="value" status="active" :label="$t('pricingPage.default')" /><span v-else class="text-xs text-muted">—</span></template>
     </DataTable>
 
-    <DataTable v-else :columns="ruleCols" :rows="rules" :loading="loading" empty-title="No price rules" empty-message="Add tiered or group-based prices for your variants.">
+    <DataTable v-else :columns="ruleCols" :rows="rules" :loading="loading" :empty-title="$t('pricingPage.noRules')" :empty-message="$t('pricingPage.noRulesMsg')">
       <template #cell-variant="{ value }"><span class="font-medium text-ink">{{ variantMap[value] || String(value).slice(0, 8) }}</span></template>
-      <template #cell-customer_group="{ value }">{{ value ? groupMap[value] || 'Group' : 'All customers' }}</template>
-      <template #cell-rule_type="{ value }"><span class="capitalize">{{ value }}</span></template>
+      <template #cell-customer_group="{ value }">{{ value ? groupMap[value] || $t('pricingPage.group') : $t('pricingPage.allCustomers') }}</template>
+      <template #cell-rule_type="{ value }"><span>{{ value === 'percentage' ? $t('pricingPage.percentage') : $t('pricingPage.fixed') }}</span></template>
       <template #cell-value="{ row }">{{ row.value }} {{ row.rule_type === 'percentage' ? '%' : tenant.currency }}</template>
       <template #cell-is_active="{ value }"><StatusBadge :status="value ? 'active' : 'inactive'" /></template>
       <template #cell-actions="{ row }">
@@ -163,56 +164,56 @@ onMounted(async () => {
     </DataTable>
 
     <!-- Group modal -->
-    <Modal v-model="groupModal" title="New customer group">
+    <Modal v-model="groupModal" :title="$t('pricingPage.newGroup')">
       <form id="group-form" class="grid gap-4" @submit.prevent="createGroup">
-        <FormField v-model="groupForm.name" label="Name" placeholder="VIP" required />
+        <FormField v-model="groupForm.name" :label="$t('common.name')" placeholder="VIP" required />
         <div class="grid grid-cols-2 gap-4">
-          <FormField v-model="groupForm.code" label="Code" placeholder="VIP" />
-          <FormField v-model.number="groupForm.priority" label="Priority" type="number" />
+          <FormField v-model="groupForm.code" :label="$t('pricingPage.code')" placeholder="VIP" />
+          <FormField v-model.number="groupForm.priority" :label="$t('pricingPage.priority')" type="number" />
         </div>
-        <FormField v-model="groupForm.description" label="Description" />
-        <label class="flex items-center gap-2 text-sm"><input v-model="groupForm.is_default" type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" /> Default group</label>
+        <FormField v-model="groupForm.description" :label="$t('common.description')" />
+        <label class="flex items-center gap-2 text-sm"><input v-model="groupForm.is_default" type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" /> {{ $t('pricingPage.defaultGroup') }}</label>
       </form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn btn-ghost" @click="groupModal = false">Cancel</button>
-          <button form="group-form" type="submit" class="btn btn-primary" :disabled="groupBusy"><Spinner v-if="groupBusy" :size="18" /><span v-else>Create</span></button>
+          <button class="btn btn-ghost" @click="groupModal = false">{{ $t('common.cancel') }}</button>
+          <button form="group-form" type="submit" class="btn btn-primary" :disabled="groupBusy"><Spinner v-if="groupBusy" :size="18" /><span v-else>{{ $t('common.create') }}</span></button>
         </div>
       </template>
     </Modal>
 
     <!-- Rule modal -->
-    <Modal v-model="ruleModal" title="New price rule">
+    <Modal v-model="ruleModal" :title="$t('pricingPage.newRule')">
       <form id="rule-form" class="grid gap-4" @submit.prevent="createRule">
         <div>
-          <label class="label">Variant</label>
+          <label class="label">{{ $t('pricingPage.variant') }}</label>
           <select v-model="ruleForm.variant_id" class="input" required>
             <option v-for="v in variantOptions" :key="v.id" :value="v.id">{{ v.label }}</option>
           </select>
         </div>
         <div>
-          <label class="label">Customer group</label>
+          <label class="label">{{ $t('pricingPage.customerGroup') }}</label>
           <select v-model="ruleForm.customer_group_id" class="input">
-            <option value="">All customers</option>
+            <option value="">{{ $t('pricingPage.allCustomers') }}</option>
             <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
           </select>
         </div>
         <div class="grid grid-cols-3 gap-4">
-          <FormField v-model.number="ruleForm.min_quantity" label="Min qty" type="number" />
+          <FormField v-model.number="ruleForm.min_quantity" :label="$t('pricingPage.minQty')" type="number" />
           <div>
-            <label class="label">Type</label>
+            <label class="label">{{ $t('common.type') }}</label>
             <select v-model="ruleForm.rule_type" class="input">
-              <option value="fixed">Fixed</option>
-              <option value="percentage">Percentage</option>
+              <option value="fixed">{{ $t('pricingPage.fixed') }}</option>
+              <option value="percentage">{{ $t('pricingPage.percentage') }}</option>
             </select>
           </div>
-          <FormField v-model.number="ruleForm.value" label="Value" type="number" step="0.01" required />
+          <FormField v-model.number="ruleForm.value" :label="$t('pricingPage.value')" type="number" step="0.01" required />
         </div>
       </form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn btn-ghost" @click="ruleModal = false">Cancel</button>
-          <button form="rule-form" type="submit" class="btn btn-primary" :disabled="ruleBusy"><Spinner v-if="ruleBusy" :size="18" /><span v-else>Create</span></button>
+          <button class="btn btn-ghost" @click="ruleModal = false">{{ $t('common.cancel') }}</button>
+          <button form="rule-form" type="submit" class="btn btn-primary" :disabled="ruleBusy"><Spinner v-if="ruleBusy" :size="18" /><span v-else>{{ $t('common.create') }}</span></button>
         </div>
       </template>
     </Modal>

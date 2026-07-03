@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Plus, Pencil, Trash2, Ticket, Download } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
@@ -14,18 +14,19 @@ import { usePaginated } from '@/composables/usePaginated';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
 import { downloadCsv } from '@/utils/csv';
+import { t } from '@/i18n';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
 
-const columns = [
-  { key: 'code', label: 'Code', sortable: true },
-  { key: 'discount', label: 'Discount' },
-  { key: 'used_count', label: 'Used', align: 'right', sortable: true },
-  { key: 'window', label: 'Window' },
-  { key: 'is_active', label: 'Status', sortable: true },
+const columns = computed(() => [
+  { key: 'code', label: t('promotionsPage.code'), sortable: true },
+  { key: 'discount', label: t('common.discount') },
+  { key: 'used_count', label: t('promotionsPage.used'), align: 'right', sortable: true },
+  { key: 'window', label: t('promotionsPage.window') },
+  { key: 'is_active', label: t('common.status'), sortable: true },
   { key: 'actions', label: '', align: 'right' }
-];
+]);
 
 const { items, page, total, totalPages, loading, load } = usePaginated((params) =>
   seller.coupons(params)
@@ -103,10 +104,10 @@ const save = async () => {
     const payload = clean(form.value);
     if (editing.value) {
       await seller.updateCoupon(editing.value.id, payload);
-      ui.success('Coupon updated.');
+      ui.success(t('promotionsPage.couponUpdated'));
     } else {
       await seller.createCoupon(payload);
-      ui.success('Coupon created.');
+      ui.success(t('promotionsPage.couponCreated'));
     }
     showModal.value = false;
     load();
@@ -123,7 +124,7 @@ const doDelete = async () => {
   deleting.value = true;
   try {
     await seller.deleteCoupon(confirmDelete.value.id);
-    ui.success('Coupon deleted.');
+    ui.success(t('promotionsPage.couponDeleted'));
     confirmDelete.value = null;
     load();
   } catch (e) {
@@ -141,17 +142,17 @@ onMounted(async () => {
 
 <template>
   <div>
-    <PageHeader title="Promotions" subtitle="Create coupons to drive sales.">
+    <PageHeader :title="$t('promotionsPage.title')" :subtitle="$t('promotionsPage.subtitle')">
       <template #actions>
-        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
-        <button class="btn btn-outline btn-sm" :disabled="!items.length" @click="exportCsv"><Download class="h-4 w-4" /> Export</button>
+        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">{{ $t('common.readOnly') }}</span>
+        <button class="btn btn-outline btn-sm" :disabled="!items.length" @click="exportCsv"><Download class="h-4 w-4" /> {{ $t('common.export') }}</button>
         <button v-if="tenant.canWrite" class="btn btn-primary btn-sm" :disabled="!tenant.hasStores" @click="openCreate">
-          <Plus class="h-4 w-4" /> New coupon
+          <Plus class="h-4 w-4" /> {{ $t('promotionsPage.newCoupon') }}
         </button>
       </template>
     </PageHeader>
 
-    <DataTable :columns="columns" :rows="items" :loading="loading" empty-title="No coupons yet" empty-message="Offer discounts to attract and retain customers.">
+    <DataTable :columns="columns" :rows="items" :loading="loading" :empty-title="$t('promotionsPage.noCoupons')" :empty-message="$t('promotionsPage.noCouponsMsg')">
       <template #cell-code="{ row }">
         <div class="flex items-center gap-2">
           <span class="grid h-8 w-8 place-items-center rounded-lg bg-primary-50 text-primary-600"><Ticket class="h-4 w-4" /></span>
@@ -161,7 +162,7 @@ onMounted(async () => {
       <template #cell-discount="{ row }">{{ discountLabel(row) }}</template>
       <template #cell-window="{ row }">
         <span class="text-xs text-slate-500">
-          {{ row.starts_at ? row.starts_at.slice(0, 10) : 'now' }} → {{ row.ends_at ? row.ends_at.slice(0, 10) : '∞' }}
+          {{ row.starts_at ? row.starts_at.slice(0, 10) : $t('promotionsPage.now') }} → {{ row.ends_at ? row.ends_at.slice(0, 10) : '∞' }}
         </span>
       </template>
       <template #cell-is_active="{ value }"><StatusBadge :status="value ? 'active' : 'inactive'" /></template>
@@ -178,49 +179,49 @@ onMounted(async () => {
       <Pagination :page="page" :page-size="20" :total="total" @update:page="changePage" />
     </div>
 
-    <Modal v-model="showModal" :title="editing ? 'Edit coupon' : 'New coupon'">
+    <Modal v-model="showModal" :title="editing ? $t('promotionsPage.editCoupon') : $t('promotionsPage.newCoupon')">
       <form id="coupon-form" class="grid gap-4" @submit.prevent="save">
         <div class="grid grid-cols-2 gap-4">
-          <FormField v-model="form.code" label="Code" placeholder="SAVE10" required />
+          <FormField v-model="form.code" :label="$t('promotionsPage.code')" placeholder="SAVE10" required />
           <div>
-            <label class="label">Discount type</label>
+            <label class="label">{{ $t('promotionsPage.discountType') }}</label>
             <select v-model="form.discount_type" class="input">
-              <option value="percentage">Percentage</option>
-              <option value="fixed">Fixed amount</option>
+              <option value="percentage">{{ $t('promotionsPage.percentage') }}</option>
+              <option value="fixed">{{ $t('promotionsPage.fixedAmount') }}</option>
             </select>
           </div>
         </div>
-        <FormField v-model="form.description" label="Description" placeholder="Optional" />
+        <FormField v-model="form.description" :label="$t('common.description')" :placeholder="$t('promotionsPage.optional')" />
         <div class="grid grid-cols-2 gap-4">
-          <FormField v-model.number="form.value" label="Value" type="number" step="0.01" required />
-          <FormField v-model="form.min_spend" label="Min. spend" type="number" step="0.01" placeholder="0" />
+          <FormField v-model.number="form.value" :label="$t('promotionsPage.value')" type="number" step="0.01" required />
+          <FormField v-model="form.min_spend" :label="$t('promotionsPage.minSpend')" type="number" step="0.01" placeholder="0" />
         </div>
         <div class="grid grid-cols-2 gap-4">
-          <FormField v-model="form.usage_limit" label="Total usage limit" type="number" placeholder="Unlimited" />
-          <FormField v-model="form.per_user_limit" label="Per-user limit" type="number" placeholder="Unlimited" />
+          <FormField v-model="form.usage_limit" :label="$t('promotionsPage.totalUsageLimit')" type="number" :placeholder="$t('promotionsPage.unlimited')" />
+          <FormField v-model="form.per_user_limit" :label="$t('promotionsPage.perUserLimit')" type="number" :placeholder="$t('promotionsPage.unlimited')" />
         </div>
         <label class="flex items-center gap-2 text-sm">
           <input v-model="form.is_active" type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
-          Active
+          {{ $t('common.active') }}
         </label>
       </form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn btn-ghost" @click="showModal = false">Cancel</button>
+          <button class="btn btn-ghost" @click="showModal = false">{{ $t('common.cancel') }}</button>
           <button form="coupon-form" type="submit" class="btn btn-primary" :disabled="saving">
-            <Spinner v-if="saving" :size="18" /><span v-else>{{ editing ? 'Save' : 'Create' }}</span>
+            <Spinner v-if="saving" :size="18" /><span v-else>{{ editing ? $t('common.save') : $t('common.create') }}</span>
           </button>
         </div>
       </template>
     </Modal>
 
-    <Modal :model-value="!!confirmDelete" title="Delete coupon" size="sm" @update:model-value="confirmDelete = null">
-      <p class="text-sm text-slate-600">Delete coupon <span class="font-mono font-semibold">{{ confirmDelete?.code }}</span>?</p>
+    <Modal :model-value="!!confirmDelete" :title="$t('promotionsPage.deleteCoupon')" size="sm" @update:model-value="confirmDelete = null">
+      <p class="text-sm text-slate-600">{{ $t('promotionsPage.deleteCouponConfirm', { code: confirmDelete?.code }) }}</p>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn btn-ghost" @click="confirmDelete = null">Cancel</button>
+          <button class="btn btn-ghost" @click="confirmDelete = null">{{ $t('common.cancel') }}</button>
           <button class="btn btn-danger" :disabled="deleting" @click="doDelete">
-            <Spinner v-if="deleting" :size="18" /><span v-else>Delete</span>
+            <Spinner v-if="deleting" :size="18" /><span v-else>{{ $t('common.delete') }}</span>
           </button>
         </div>
       </template>

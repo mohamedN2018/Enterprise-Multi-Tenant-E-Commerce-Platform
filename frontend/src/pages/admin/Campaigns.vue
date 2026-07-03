@@ -13,26 +13,27 @@ import { useUiStore } from '@/stores/ui';
 import { usePaginated } from '@/composables/usePaginated';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
+import { t } from '@/i18n';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
 
-const TYPES = [
-  { value: 'flash_sale', label: 'Flash sale' },
-  { value: 'order_discount', label: 'Order discount' },
-  { value: 'buy_x_get_y', label: 'Buy X get Y' },
-  { value: 'free_shipping', label: 'Free shipping' }
-];
-const typeLabel = (v) => TYPES.find((t) => t.value === v)?.label || v;
+const TYPES = computed(() => [
+  { value: 'flash_sale', label: t('campaignsPage.flashSale') },
+  { value: 'order_discount', label: t('campaignsPage.orderDiscount') },
+  { value: 'buy_x_get_y', label: t('campaignsPage.buyXGetY') },
+  { value: 'free_shipping', label: t('campaignsPage.freeShipping') }
+]);
+const typeLabel = (v) => TYPES.value.find((x) => x.value === v)?.label || v;
 
-const columns = [
-  { key: 'name', label: 'Campaign', sortable: true },
-  { key: 'campaign_type', label: 'Type', sortable: true },
-  { key: 'window', label: 'Window' },
-  { key: 'priority', label: 'Priority', align: 'right', sortable: true },
-  { key: 'is_active', label: 'Status', sortable: true },
+const columns = computed(() => [
+  { key: 'name', label: t('campaignsPage.campaign'), sortable: true },
+  { key: 'campaign_type', label: t('common.type'), sortable: true },
+  { key: 'window', label: t('campaignsPage.window') },
+  { key: 'priority', label: t('campaignsPage.priority'), align: 'right', sortable: true },
+  { key: 'is_active', label: t('common.status'), sortable: true },
   { key: 'actions', label: '', align: 'right' }
-];
+]);
 
 const { items, page, total, totalPages, loading, load } = usePaginated((params) => seller.campaigns(params));
 const changePage = (n) => {
@@ -85,7 +86,7 @@ const save = async () => {
     }
     if (editing.value) await seller.updateCampaign(editing.value.id, p);
     else await seller.createCampaign(p);
-    ui.success(editing.value ? 'Campaign updated.' : 'Campaign created.');
+    ui.success(editing.value ? t('campaignsPage.campaignUpdated') : t('campaignsPage.campaignCreated'));
     showModal.value = false;
     load();
   } catch (e) {
@@ -101,7 +102,7 @@ const doDelete = async () => {
   deleting.value = true;
   try {
     await seller.deleteCampaign(confirmDelete.value.id);
-    ui.success('Campaign deleted.');
+    ui.success(t('campaignsPage.campaignDeleted'));
     confirmDelete.value = null;
     load();
   } catch (e) {
@@ -119,17 +120,17 @@ onMounted(async () => {
 
 <template>
   <div>
-    <PageHeader title="Campaigns" subtitle="Automatic promotions: flash sales, BxGy, order discounts.">
+    <PageHeader :title="$t('campaignsPage.title')" :subtitle="$t('campaignsPage.subtitle')">
       <template #actions>
-        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
-        <button v-if="tenant.canWrite" class="btn btn-primary btn-sm" @click="openCreate"><Plus class="h-4 w-4" /> New campaign</button>
+        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">{{ $t('common.readOnly') }}</span>
+        <button v-if="tenant.canWrite" class="btn btn-primary btn-sm" @click="openCreate"><Plus class="h-4 w-4" /> {{ $t('campaignsPage.newCampaign') }}</button>
       </template>
     </PageHeader>
 
-    <DataTable :columns="columns" :rows="items" :loading="loading" empty-title="No campaigns" empty-message="Create automatic promotions that apply without a coupon code.">
+    <DataTable :columns="columns" :rows="items" :loading="loading" :empty-title="$t('campaignsPage.noCampaigns')" :empty-message="$t('campaignsPage.noCampaignsMsg')">
       <template #cell-name="{ row }"><div class="flex items-center gap-2"><span class="grid h-8 w-8 place-items-center rounded-lg bg-primary-50 text-primary-600"><Megaphone class="h-4 w-4" /></span><span class="font-medium text-ink">{{ row.name }}</span></div></template>
       <template #cell-campaign_type="{ value }">{{ typeLabel(value) }}</template>
-      <template #cell-window="{ row }"><span class="text-xs text-muted">{{ row.starts_at ? row.starts_at.slice(0, 10) : 'now' }} → {{ row.ends_at ? row.ends_at.slice(0, 10) : '∞' }}</span></template>
+      <template #cell-window="{ row }"><span class="text-xs text-muted">{{ row.starts_at ? row.starts_at.slice(0, 10) : $t('campaignsPage.now') }} → {{ row.ends_at ? row.ends_at.slice(0, 10) : '∞' }}</span></template>
       <template #cell-is_active="{ value }"><StatusBadge :status="value ? 'active' : 'inactive'" /></template>
       <template #cell-actions="{ row }">
         <div v-if="tenant.canWrite" class="flex justify-end gap-1">
@@ -142,45 +143,45 @@ onMounted(async () => {
 
     <div v-if="totalPages > 1" class="mt-6"><Pagination :page="page" :page-size="20" :total="total" @update:page="changePage" /></div>
 
-    <Modal v-model="showModal" :title="editing ? 'Edit campaign' : 'New campaign'">
+    <Modal v-model="showModal" :title="editing ? $t('campaignsPage.editCampaign') : $t('campaignsPage.newCampaign')">
       <form id="camp-form" class="grid gap-4" @submit.prevent="save">
-        <FormField v-model="form.name" label="Name" required />
+        <FormField v-model="form.name" :label="$t('common.name')" required />
         <div>
-          <label class="label">Type</label>
+          <label class="label">{{ $t('common.type') }}</label>
           <select v-model="form.campaign_type" class="input"><option v-for="t in TYPES" :key="t.value" :value="t.value">{{ t.label }}</option></select>
         </div>
         <div v-if="isDiscount" class="grid grid-cols-2 gap-4">
           <div>
-            <label class="label">Discount type</label>
-            <select v-model="form.discount_type" class="input"><option value="percentage">Percentage</option><option value="fixed">Fixed</option></select>
+            <label class="label">{{ $t('campaignsPage.discountType') }}</label>
+            <select v-model="form.discount_type" class="input"><option value="percentage">{{ $t('campaignsPage.percentage') }}</option><option value="fixed">{{ $t('campaignsPage.fixed') }}</option></select>
           </div>
-          <FormField v-model.number="form.discount_value" label="Discount value" type="number" step="0.01" />
+          <FormField v-model.number="form.discount_value" :label="$t('campaignsPage.discountValue')" type="number" step="0.01" />
         </div>
         <div v-if="isBxgy" class="grid grid-cols-3 gap-4">
-          <FormField v-model.number="form.buy_quantity" label="Buy qty" type="number" />
-          <FormField v-model.number="form.get_quantity" label="Get qty" type="number" />
-          <FormField v-model.number="form.get_discount_percent" label="Get % off" type="number" />
+          <FormField v-model.number="form.buy_quantity" :label="$t('campaignsPage.buyQty')" type="number" />
+          <FormField v-model.number="form.get_quantity" :label="$t('campaignsPage.getQty')" type="number" />
+          <FormField v-model.number="form.get_discount_percent" :label="$t('campaignsPage.getPercentOff')" type="number" />
         </div>
         <div class="grid grid-cols-2 gap-4">
-          <FormField v-model.number="form.priority" label="Priority" type="number" />
-          <label class="mt-6 flex items-center gap-2 text-sm"><input v-model="form.stackable" type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" /> Stackable</label>
+          <FormField v-model.number="form.priority" :label="$t('campaignsPage.priority')" type="number" />
+          <label class="mt-6 flex items-center gap-2 text-sm"><input v-model="form.stackable" type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" /> {{ $t('campaignsPage.stackable') }}</label>
         </div>
-        <label class="flex items-center gap-2 text-sm"><input v-model="form.is_active" type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" /> Active</label>
+        <label class="flex items-center gap-2 text-sm"><input v-model="form.is_active" type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" /> {{ $t('common.active') }}</label>
       </form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn btn-ghost" @click="showModal = false">Cancel</button>
-          <button form="camp-form" type="submit" class="btn btn-primary" :disabled="saving"><Spinner v-if="saving" :size="18" /><span v-else>{{ editing ? 'Save' : 'Create' }}</span></button>
+          <button class="btn btn-ghost" @click="showModal = false">{{ $t('common.cancel') }}</button>
+          <button form="camp-form" type="submit" class="btn btn-primary" :disabled="saving"><Spinner v-if="saving" :size="18" /><span v-else>{{ editing ? $t('common.save') : $t('common.create') }}</span></button>
         </div>
       </template>
     </Modal>
 
-    <Modal :model-value="!!confirmDelete" title="Delete campaign" size="sm" @update:model-value="confirmDelete = null">
-      <p class="text-sm text-slate-600">Delete <span class="font-semibold">{{ confirmDelete?.name }}</span>?</p>
+    <Modal :model-value="!!confirmDelete" :title="$t('campaignsPage.deleteCampaign')" size="sm" @update:model-value="confirmDelete = null">
+      <p class="text-sm text-slate-600">{{ $t('campaignsPage.deleteCampaignConfirm', { name: confirmDelete?.name }) }}</p>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn btn-ghost" @click="confirmDelete = null">Cancel</button>
-          <button class="btn btn-danger" :disabled="deleting" @click="doDelete"><Spinner v-if="deleting" :size="18" /><span v-else>Delete</span></button>
+          <button class="btn btn-ghost" @click="confirmDelete = null">{{ $t('common.cancel') }}</button>
+          <button class="btn btn-danger" :disabled="deleting" @click="doDelete"><Spinner v-if="deleting" :size="18" /><span v-else>{{ $t('common.delete') }}</span></button>
         </div>
       </template>
     </Modal>

@@ -12,6 +12,7 @@ import { useTenantStore } from '@/stores/tenant';
 import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
+import { t } from '@/i18n';
 
 const route = useRoute();
 const router = useRouter();
@@ -27,7 +28,7 @@ const currency = computed(() => order.value?.currency || '');
 const address = computed(() => (order.value?.shipping_address && typeof order.value.shipping_address === 'object' ? order.value.shipping_address : null));
 
 // Status timeline
-const STEPS = ['Placed', 'Confirmed', 'Fulfilled'];
+const STEPS = computed(() => [t('orderDetailPage.placed'), t('orderDetailPage.confirmedStep'), t('orderDetailPage.fulfilled')]);
 const isCancelled = computed(() => ['cancelled', 'canceled', 'refunded'].includes(order.value?.status));
 const stageIndex = computed(() => {
   const s = order.value?.status;
@@ -55,7 +56,7 @@ const act = async (kind) => {
   try {
     const res = kind === 'confirm' ? await seller.confirmOrder(order.value.id) : await seller.cancelOrder(order.value.id);
     order.value = res.data;
-    ui.success(kind === 'confirm' ? 'Order confirmed.' : 'Order cancelled.');
+    ui.success(kind === 'confirm' ? t('orderDetailPage.confirmed') : t('orderDetailPage.cancelled'));
   } catch (e) {
     ui.error(errorMessage(e));
   } finally {
@@ -78,7 +79,7 @@ const saveTracking = async () => {
   try {
     await seller.setOrderTracking(order.value.id, { tracking_number: trackNumber.value });
     order.value.tracking_number = trackNumber.value;
-    ui.success('Tracking number set.');
+    ui.success(t('orderDetailPage.trackingAdded'));
     trackModal.value = false;
   } catch (e) {
     ui.error(errorMessage(e));
@@ -92,22 +93,22 @@ onMounted(load);
 
 <template>
   <div>
-    <div v-if="loading" class="flex min-h-[50vh] items-center justify-center"><Spinner :size="30" label="Loading order…" /></div>
+    <div v-if="loading" class="flex min-h-[50vh] items-center justify-center"><Spinner :size="30" :label="$t('orderDetailPage.loading')" /></div>
 
-    <EmptyState v-else-if="failed || !order" :icon="ShoppingBag" title="Order not found" message="This order could not be loaded.">
-      <RouterLink :to="{ name: 'admin-orders' }" class="btn btn-primary btn-sm">Back to orders</RouterLink>
+    <EmptyState v-else-if="failed || !order" :icon="ShoppingBag" :title="$t('orderDetailPage.notFound')" :message="$t('orderDetailPage.notFoundMsg')">
+      <RouterLink :to="{ name: 'admin-orders' }" class="btn btn-primary btn-sm">{{ $t('orderDetailPage.backToOrders') }}</RouterLink>
     </EmptyState>
 
     <template v-else>
       <div class="no-print">
-        <PageHeader :title="`Order #${order.number}`" :subtitle="(order.placed_at || order.created_at || '').slice(0, 10)">
+        <PageHeader :title="`${$t('orderDetailPage.title')} #${order.number}`" :subtitle="(order.placed_at || order.created_at || '').slice(0, 10)">
           <template #actions>
-            <button class="btn btn-ghost btn-sm" @click="router.push({ name: 'admin-orders' })"><ArrowLeft class="h-4 w-4" /> Back</button>
-            <button class="btn btn-outline btn-sm" @click="print"><Printer class="h-4 w-4" /> Print invoice</button>
-            <button v-if="tenant.canWrite" class="btn btn-outline btn-sm" @click="openTrack"><Truck class="h-4 w-4" /> Tracking</button>
+            <button class="btn btn-ghost btn-sm" @click="router.push({ name: 'admin-orders' })"><ArrowLeft class="h-4 w-4 rtl:rotate-180" /> {{ $t('orderDetailPage.back') }}</button>
+            <button class="btn btn-outline btn-sm" @click="print"><Printer class="h-4 w-4" /> {{ $t('orderDetailPage.printInvoice') }}</button>
+            <button v-if="tenant.canWrite" class="btn btn-outline btn-sm" @click="openTrack"><Truck class="h-4 w-4" /> {{ $t('orderDetailPage.trackingLabel') }}</button>
             <template v-if="tenant.canWrite && order.status === 'pending'">
-              <button class="btn btn-danger btn-sm" :disabled="acting" @click="act('cancel')"><X class="h-4 w-4" /> Cancel</button>
-              <button class="btn btn-primary btn-sm" :disabled="acting" @click="act('confirm')"><Check class="h-4 w-4" /> Confirm</button>
+              <button class="btn btn-danger btn-sm" :disabled="acting" @click="act('cancel')"><X class="h-4 w-4" /> {{ $t('orderDetailPage.cancel') }}</button>
+              <button class="btn btn-primary btn-sm" :disabled="acting" @click="act('confirm')"><Check class="h-4 w-4" /> {{ $t('orderDetailPage.confirm') }}</button>
             </template>
           </template>
         </PageHeader>
@@ -116,7 +117,7 @@ onMounted(load);
       <!-- Status timeline -->
       <div class="no-print mb-6">
         <div v-if="isCancelled" class="flex items-center gap-2 rounded-xl border border-secondary-200 bg-secondary-50 px-5 py-4 text-sm font-medium text-secondary-700">
-          <XCircle class="h-5 w-5" /> This order was {{ order.status }}.
+          <XCircle class="h-5 w-5" /> {{ $t('orderDetailPage.wasStatus', { status: $t('status.' + order.status) }) }}
         </div>
         <div v-else class="card p-5">
           <div class="flex items-center">
@@ -140,8 +141,8 @@ onMounted(load);
             <img src="/brand/qtech-logo.png" alt="q-shop" class="h-12 w-auto" />
             <p class="mt-1 text-sm text-muted">{{ tenant.active?.name }}</p>
           </div>
-          <div class="text-right">
-            <p class="font-heading text-lg font-bold">INVOICE</p>
+          <div class="text-end">
+            <p class="font-heading text-lg font-bold">{{ $t('orderDetailPage.invoice') }}</p>
             <p class="text-sm text-muted">#{{ order.number }}</p>
             <p class="text-sm text-muted">{{ (order.placed_at || order.created_at || '').slice(0, 10) }}</p>
             <div class="mt-1 flex justify-end"><StatusBadge :status="order.status" /></div>
@@ -150,27 +151,27 @@ onMounted(load);
 
         <div v-if="address || order.shipping_method || order.tracking_number" class="grid gap-4 border-b border-slate-100 py-6 sm:grid-cols-2">
           <div v-if="address">
-            <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Ship to</p>
+            <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ $t('orderDetailPage.shipTo') }}</p>
             <p class="font-medium">{{ address.full_name }}</p>
             <p class="text-sm text-muted">{{ address.line1 }}<span v-if="address.line2">, {{ address.line2 }}</span></p>
             <p class="text-sm text-muted">{{ address.city }}, {{ address.region }} {{ address.postal_code }}</p>
             <p class="text-sm text-muted">{{ address.country }} · {{ address.phone }}</p>
           </div>
           <div>
-            <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Shipping</p>
-            <p class="flex items-center gap-2 text-sm"><Truck class="h-4 w-4 text-primary-600" /> {{ order.shipping_method || 'Standard' }}</p>
-            <p v-if="order.tracking_number" class="text-sm text-muted">Tracking: {{ order.tracking_number }}</p>
+            <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ $t('orderDetailPage.shipping') }}</p>
+            <p class="flex items-center gap-2 text-sm"><Truck class="h-4 w-4 text-primary-600" /> {{ order.shipping_method || $t('orderDetailPage.standard') }}</p>
+            <p v-if="order.tracking_number" class="text-sm text-muted">{{ $t('orderDetailPage.trackingLabel') }}: {{ order.tracking_number }}</p>
             <p v-if="order.coupon_code" class="flex items-center gap-2 text-sm text-muted"><Ticket class="h-4 w-4" /> {{ order.coupon_code }}</p>
           </div>
         </div>
 
         <table class="mt-6 w-full text-sm">
           <thead>
-            <tr class="border-b border-slate-200 text-left text-xs uppercase text-slate-400">
-              <th class="py-2">Item</th>
-              <th class="py-2 text-right">Unit</th>
-              <th class="py-2 text-right">Qty</th>
-              <th class="py-2 text-right">Total</th>
+            <tr class="border-b border-slate-200 text-start text-xs uppercase text-slate-400">
+              <th class="py-2 text-start">{{ $t('orderDetailPage.item') }}</th>
+              <th class="py-2 text-end">{{ $t('orderDetailPage.unit') }}</th>
+              <th class="py-2 text-end">{{ $t('orderDetailPage.qty') }}</th>
+              <th class="py-2 text-end">{{ $t('common.total') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -179,30 +180,30 @@ onMounted(load);
                 <p class="font-medium text-ink">{{ it.product_name }}</p>
                 <p class="text-xs text-slate-400">SKU {{ it.sku }}</p>
               </td>
-              <td class="py-3 text-right">{{ it.unit_price }}</td>
-              <td class="py-3 text-right">{{ it.quantity }}</td>
-              <td class="py-3 text-right font-medium">{{ it.line_total }} {{ currency }}</td>
+              <td class="py-3 text-end">{{ it.unit_price }}</td>
+              <td class="py-3 text-end">{{ it.quantity }}</td>
+              <td class="py-3 text-end font-medium">{{ it.line_total }} {{ currency }}</td>
             </tr>
           </tbody>
         </table>
 
-        <div class="ml-auto mt-6 w-full max-w-xs space-y-1.5 text-sm">
-          <div class="flex justify-between"><span class="text-muted">Subtotal</span><span>{{ order.subtotal }} {{ currency }}</span></div>
-          <div v-if="Number(order.discount_total) > 0" class="flex justify-between text-emerald-600"><span>Discount</span><span>−{{ order.discount_total }} {{ currency }}</span></div>
-          <div v-if="Number(order.tax_total) > 0" class="flex justify-between"><span class="text-muted">Tax</span><span>{{ order.tax_total }} {{ currency }}</span></div>
-          <div v-if="Number(order.shipping_total) > 0" class="flex justify-between"><span class="text-muted">Shipping</span><span>{{ order.shipping_total }} {{ currency }}</span></div>
-          <div class="flex justify-between border-t border-slate-200 pt-2 font-heading text-base font-bold"><span>Total</span><span>{{ order.total }} {{ currency }}</span></div>
+        <div class="ms-auto mt-6 w-full max-w-xs space-y-1.5 text-sm">
+          <div class="flex justify-between"><span class="text-muted">{{ $t('common.subtotal') }}</span><span>{{ order.subtotal }} {{ currency }}</span></div>
+          <div v-if="Number(order.discount_total) > 0" class="flex justify-between text-emerald-600"><span>{{ $t('common.discount') }}</span><span>−{{ order.discount_total }} {{ currency }}</span></div>
+          <div v-if="Number(order.tax_total) > 0" class="flex justify-between"><span class="text-muted">{{ $t('orderDetailPage.tax') }}</span><span>{{ order.tax_total }} {{ currency }}</span></div>
+          <div v-if="Number(order.shipping_total) > 0" class="flex justify-between"><span class="text-muted">{{ $t('orderDetailPage.shipping') }}</span><span>{{ order.shipping_total }} {{ currency }}</span></div>
+          <div class="flex justify-between border-t border-slate-200 pt-2 font-heading text-base font-bold"><span>{{ $t('common.total') }}</span><span>{{ order.total }} {{ currency }}</span></div>
         </div>
 
-        <p class="mt-8 border-t border-slate-100 pt-4 text-center text-xs text-slate-400">Thank you for shopping with {{ tenant.active?.name }} on q-shop.</p>
+        <p class="mt-8 border-t border-slate-100 pt-4 text-center text-xs text-slate-400">{{ $t('orderDetailPage.thankYou', { store: tenant.active?.name }) }}</p>
       </div>
 
-      <Modal v-model="trackModal" title="Set tracking number" size="sm">
-        <FormField v-model="trackNumber" label="Tracking number" placeholder="e.g. 1Z999AA10123456784" required />
+      <Modal v-model="trackModal" :title="$t('orderDetailPage.setTracking')" size="sm">
+        <FormField v-model="trackNumber" :label="$t('orderDetailPage.trackingNumber')" placeholder="e.g. 1Z999AA10123456784" required />
         <template #footer>
           <div class="flex justify-end gap-2">
-            <button class="btn btn-ghost" @click="trackModal = false">Cancel</button>
-            <button class="btn btn-primary" :disabled="trackBusy || !trackNumber" @click="saveTracking"><Spinner v-if="trackBusy" :size="18" /><span v-else>Save</span></button>
+            <button class="btn btn-ghost" @click="trackModal = false">{{ $t('common.cancel') }}</button>
+            <button class="btn btn-primary" :disabled="trackBusy || !trackNumber" @click="saveTracking"><Spinner v-if="trackBusy" :size="18" /><span v-else>{{ $t('orderDetailPage.save') }}</span></button>
           </div>
         </template>
       </Modal>

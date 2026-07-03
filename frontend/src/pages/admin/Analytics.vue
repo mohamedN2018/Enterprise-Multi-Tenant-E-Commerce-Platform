@@ -10,6 +10,7 @@ import { useUiStore } from '@/stores/ui';
 import { usePaginated } from '@/composables/usePaginated';
 import { seller } from '@/services/seller';
 import { downloadCsv } from '@/utils/csv';
+import { t } from '@/i18n';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -23,10 +24,10 @@ const kpis = computed(() => {
   const s = summary.value;
   if (!s) return [];
   return [
-    { label: 'Total events', value: s.total_events ?? 0, icon: Activity, tone: 'text-primary-600 bg-primary-50' },
-    { label: 'Orders', value: s.orders?.count ?? 0, icon: ShoppingBag, tone: 'text-sky-600 bg-sky-50' },
-    { label: 'Confirmed', value: s.orders?.confirmed ?? 0, icon: ShoppingBag, tone: 'text-emerald-600 bg-emerald-50' },
-    { label: 'Revenue', value: `${s.orders?.revenue ?? '0.00'} ${tenant.currency}`, icon: DollarSign, tone: 'text-emerald-600 bg-emerald-50' }
+    { label: t('analyticsPage.totalEvents'), value: s.total_events ?? 0, icon: Activity, tone: 'text-primary-600 bg-primary-50' },
+    { label: t('analyticsPage.orders'), value: s.orders?.count ?? 0, icon: ShoppingBag, tone: 'text-sky-600 bg-sky-50' },
+    { label: t('analyticsPage.confirmed'), value: s.orders?.confirmed ?? 0, icon: ShoppingBag, tone: 'text-emerald-600 bg-emerald-50' },
+    { label: t('analyticsPage.revenue'), value: `${s.orders?.revenue ?? '0.00'} ${tenant.currency}`, icon: DollarSign, tone: 'text-emerald-600 bg-emerald-50' }
   ];
 });
 
@@ -37,11 +38,11 @@ const eventTypes = computed(() => {
   return entries.sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ type: k, count: v, pct: (Number(v) / max) * 100 }));
 });
 
-const columns = [
-  { key: 'occurred_at', label: 'When', sortable: true },
-  { key: 'event_type', label: 'Event', sortable: true },
-  { key: 'user', label: 'User' }
-];
+const columns = computed(() => [
+  { key: 'occurred_at', label: t('analyticsPage.when'), sortable: true },
+  { key: 'event_type', label: t('analyticsPage.event'), sortable: true },
+  { key: 'user', label: t('analyticsPage.user') }
+]);
 
 const { items, page, total, totalPages, loading: eventsLoading, load } = usePaginated((params) => seller.analyticsEvents(params));
 const changePage = (n) => {
@@ -67,7 +68,7 @@ const setPeriod = (d) => {
 };
 const refresh = async () => {
   await Promise.all([loadSummary(), load()]);
-  ui.success('Analytics refreshed.');
+  ui.success(t('analyticsPage.refreshed'));
 };
 const exportCsv = () => {
   const rows = eventTypes.value.map((e) => ({ event: e.type, count: e.count }));
@@ -89,17 +90,17 @@ onMounted(async () => {
 
 <template>
   <div>
-    <PageHeader title="Analytics" subtitle="Store activity and event insights.">
+    <PageHeader :title="$t('analyticsPage.title')" :subtitle="$t('analyticsPage.subtitle')">
       <template #actions>
         <div class="flex rounded-full bg-lightbg p-0.5">
-          <button v-for="d in [7, 30, 90]" :key="d" class="rounded-full px-3 py-1 text-sm font-medium transition" :class="period === d ? 'bg-primary-600 text-white' : 'text-ink hover:text-primary-600'" @click="setPeriod(d)">{{ d }}d</button>
+          <button v-for="d in [7, 30, 90]" :key="d" class="rounded-full px-3 py-1 text-sm font-medium transition" :class="period === d ? 'bg-primary-600 text-white' : 'text-ink hover:text-primary-600'" @click="setPeriod(d)">{{ $t('analyticsPage.daysShort', { n: d }) }}</button>
         </div>
-        <button class="btn btn-outline btn-sm" :disabled="!summary?.events" @click="exportCsv"><Download class="h-4 w-4" /> Export</button>
-        <button class="btn btn-ghost btn-sm" :disabled="summaryLoading" @click="refresh"><RefreshCw class="h-4 w-4" :class="summaryLoading ? 'animate-spin' : ''" /> Refresh</button>
+        <button class="btn btn-outline btn-sm" :disabled="!summary?.events" @click="exportCsv"><Download class="h-4 w-4" /> {{ $t('common.export') }}</button>
+        <button class="btn btn-ghost btn-sm" :disabled="summaryLoading" @click="refresh"><RefreshCw class="h-4 w-4" :class="summaryLoading ? 'animate-spin' : ''" /> {{ $t('common.refresh') }}</button>
       </template>
     </PageHeader>
 
-    <div v-if="loading" class="flex min-h-[30vh] items-center justify-center"><Spinner :size="28" label="Loading…" /></div>
+    <div v-if="loading" class="flex min-h-[30vh] items-center justify-center"><Spinner :size="28" :label="$t('common.loading')" /></div>
 
     <template v-else>
       <!-- KPIs -->
@@ -114,7 +115,7 @@ onMounted(async () => {
       <!-- Events by type -->
       <div class="mt-6 grid gap-6 lg:grid-cols-2">
         <div class="card p-5">
-          <h3 class="mb-4 flex items-center gap-2 font-heading font-semibold"><BarChart3 class="h-5 w-5 text-primary-600" /> Events by type</h3>
+          <h3 class="mb-4 flex items-center gap-2 font-heading font-semibold"><BarChart3 class="h-5 w-5 text-primary-600" /> {{ $t('analyticsPage.eventsByType') }}</h3>
           <ul v-if="eventTypes.length" class="space-y-3">
             <li v-for="e in eventTypes" :key="e.type">
               <div class="mb-1 flex items-center justify-between text-sm">
@@ -124,16 +125,16 @@ onMounted(async () => {
               <div class="h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-primary-600" :style="{ width: `${e.pct}%` }"></div></div>
             </li>
           </ul>
-          <p v-else class="text-sm text-muted">No events recorded yet.</p>
+          <p v-else class="text-sm text-muted">{{ $t('analyticsPage.noEventsYet') }}</p>
         </div>
 
         <!-- Event feed -->
         <div class="card p-0">
-          <h3 class="flex items-center gap-2 border-b border-slate-100 p-5 font-heading font-semibold"><Activity class="h-5 w-5 text-primary-600" /> Recent events</h3>
-          <DataTable :columns="columns" :rows="items" :loading="eventsLoading" empty-title="No events" empty-message="Activity will be logged here.">
+          <h3 class="flex items-center gap-2 border-b border-slate-100 p-5 font-heading font-semibold"><Activity class="h-5 w-5 text-primary-600" /> {{ $t('analyticsPage.recentEvents') }}</h3>
+          <DataTable :columns="columns" :rows="items" :loading="eventsLoading" :empty-title="$t('analyticsPage.emptyEventsTitle')" :empty-message="$t('analyticsPage.emptyEventsMessage')">
             <template #cell-occurred_at="{ row }">{{ (row.occurred_at || row.created_at || '').replace('T', ' ').slice(0, 16) }}</template>
             <template #cell-event_type="{ value }"><span class="capitalize">{{ String(value).replace(/_/g, ' ') }}</span></template>
-            <template #cell-user="{ value }"><span class="font-mono text-xs">{{ value ? String(value).slice(0, 8) : 'guest' }}</span></template>
+            <template #cell-user="{ value }"><span class="font-mono text-xs">{{ value ? String(value).slice(0, 8) : $t('analyticsPage.guest') }}</span></template>
           </DataTable>
         </div>
       </div>

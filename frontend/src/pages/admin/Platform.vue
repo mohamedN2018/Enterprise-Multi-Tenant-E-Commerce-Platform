@@ -20,6 +20,7 @@ import EmptyState from '@/components/ui/EmptyState.vue';
 import { useTenantStore } from '@/stores/tenant';
 import { storefront } from '@/services/storefront';
 import http from '@/services/http';
+import { t } from '@/i18n';
 
 const router = useRouter();
 const tenant = useTenantStore();
@@ -31,18 +32,18 @@ const rollup = ref({ revenue: 0, orders: 0, currency: 'USD' });
 
 const manageableIds = computed(() => new Set(tenant.stores.map((s) => s.id)));
 
-const columns = [
-  { key: 'name', label: 'Store' },
-  { key: 'country', label: 'Country' },
-  { key: 'currency', label: 'Currency' },
+const columns = computed(() => [
+  { key: 'name', label: t('platformPage.store') },
+  { key: 'country', label: t('common.country') },
+  { key: 'currency', label: t('platformPage.currency') },
   { key: 'actions', label: '', align: 'right' }
-];
+]);
 
 const kpis = computed(() => [
-  { label: 'Total stores', value: stats.value.stores, icon: StoreIcon, tone: 'text-primary-600 bg-primary-50' },
-  { label: 'Total products', value: stats.value.products, icon: Package, tone: 'text-sky-600 bg-sky-50' },
-  { label: 'Categories', value: stats.value.categories, icon: Tags, tone: 'text-violet-600 bg-violet-50' },
-  { label: 'My stores', value: tenant.stores.length, icon: Users, tone: 'text-emerald-600 bg-emerald-50' }
+  { label: t('platformPage.totalStores'), value: stats.value.stores, icon: StoreIcon, tone: 'text-primary-600 bg-primary-50' },
+  { label: t('platformPage.totalProducts'), value: stats.value.products, icon: Package, tone: 'text-sky-600 bg-sky-50' },
+  { label: t('platformPage.categories'), value: stats.value.categories, icon: Tags, tone: 'text-violet-600 bg-violet-50' },
+  { label: t('platformPage.myStores'), value: tenant.stores.length, icon: Users, tone: 'text-emerald-600 bg-emerald-50' }
 ]);
 
 const viewStorefront = (s) => router.push({ name: 'products', query: { store: s.slug } });
@@ -91,22 +92,22 @@ onMounted(load);
 
 <template>
   <div>
-    <div v-if="loading" class="flex min-h-[50vh] items-center justify-center"><Spinner :size="30" label="Loading platform…" /></div>
+    <div v-if="loading" class="flex min-h-[50vh] items-center justify-center"><Spinner :size="30" :label="$t('platformPage.loadingPlatform')" /></div>
 
     <EmptyState
       v-else-if="!tenant.isPlatform"
       :icon="ShieldAlert"
-      title="Platform admins only"
-      message="This area is restricted to super-administrators."
+      :title="$t('platformPage.adminsOnlyTitle')"
+      :message="$t('platformPage.adminsOnlyMessage')"
     >
-      <RouterLink :to="{ name: 'admin-dashboard' }" class="btn btn-primary btn-sm">Back to dashboard</RouterLink>
+      <RouterLink :to="{ name: 'admin-dashboard' }" class="btn btn-primary btn-sm">{{ $t('platformPage.backToDashboard') }}</RouterLink>
     </EmptyState>
 
     <template v-else>
-      <PageHeader title="Platform overview" subtitle="Marketplace-wide view for super-administrators.">
+      <PageHeader :title="$t('platformPage.title')" :subtitle="$t('platformPage.subtitle')">
         <template #actions>
           <a href="/django-admin/" target="_blank" rel="noopener" class="btn btn-outline btn-sm">
-            <ExternalLink class="h-4 w-4" /> Django admin
+            <ExternalLink class="h-4 w-4" /> {{ $t('platformPage.djangoAdmin') }}
           </a>
         </template>
       </PageHeader>
@@ -126,22 +127,22 @@ onMounted(load);
           <span class="grid h-12 w-12 place-items-center rounded-lg bg-emerald-50 text-emerald-600"><DollarSign class="h-6 w-6" /></span>
           <div>
             <p class="font-heading text-2xl font-bold">{{ rollup.revenue }} {{ rollup.currency }}</p>
-            <p class="text-sm text-muted">Revenue across my {{ tenant.stores.length }} store(s)</p>
+            <p class="text-sm text-muted">{{ $t('platformPage.revenueAcrossStores', { n: tenant.stores.length }) }}</p>
           </div>
         </div>
         <div class="card flex items-center gap-4 p-5">
           <span class="grid h-12 w-12 place-items-center rounded-lg bg-sky-50 text-sky-600"><Package class="h-6 w-6" /></span>
           <div>
             <p class="font-heading text-2xl font-bold">{{ rollup.orders }}</p>
-            <p class="text-sm text-muted">Orders across my stores</p>
+            <p class="text-sm text-muted">{{ $t('platformPage.ordersAcrossStores') }}</p>
           </div>
         </div>
       </div>
 
       <!-- All stores -->
       <div class="mt-8">
-        <h2 class="section-title mb-4 text-xl">All stores on the platform</h2>
-        <DataTable :columns="columns" :rows="allStores" empty-title="No stores" empty-message="No active stores on the marketplace yet.">
+        <h2 class="section-title mb-4 text-xl">{{ $t('platformPage.allStoresTitle') }}</h2>
+        <DataTable :columns="columns" :rows="allStores" :empty-title="$t('platformPage.emptyStoresTitle')" :empty-message="$t('platformPage.emptyStoresMessage')">
           <template #cell-name="{ row }">
             <div class="flex items-center gap-3">
               <span class="grid h-9 w-9 place-items-center rounded-lg bg-primary-50 text-primary-600"><StoreIcon class="h-4 w-4" /></span>
@@ -154,14 +155,14 @@ onMounted(load);
           <template #cell-country="{ value }">{{ value || '—' }}</template>
           <template #cell-actions="{ row }">
             <div class="flex justify-end gap-2">
-              <button class="btn btn-ghost btn-sm" @click="viewStorefront(row)"><Eye class="h-4 w-4" /> View</button>
-              <button v-if="manageableIds.has(row.id)" class="btn btn-outline btn-sm" @click="manage(row)"><Settings2 class="h-4 w-4" /> Manage</button>
-              <StatusBadge v-else status="gray" label="Not a member" />
+              <button class="btn btn-ghost btn-sm" @click="viewStorefront(row)"><Eye class="h-4 w-4" /> {{ $t('platformPage.view') }}</button>
+              <button v-if="manageableIds.has(row.id)" class="btn btn-outline btn-sm" @click="manage(row)"><Settings2 class="h-4 w-4" /> {{ $t('platformPage.manage') }}</button>
+              <StatusBadge v-else status="gray" :label="$t('platformPage.notAMember')" />
             </div>
           </template>
         </DataTable>
         <p class="mt-3 text-xs text-muted">
-          Management is limited to stores you belong to. Use the Django admin for platform-wide user &amp; store administration.
+          {{ $t('platformPage.managementNote') }}
         </p>
       </div>
     </template>

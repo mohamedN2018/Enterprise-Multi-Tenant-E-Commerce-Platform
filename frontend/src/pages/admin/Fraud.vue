@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { ShieldCheck, ShieldX, Download } from 'lucide-vue-next';
+import { t } from '@/i18n';
 import { downloadCsv } from '@/utils/csv';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
@@ -16,16 +17,16 @@ const tenant = useTenantStore();
 const ui = useUiStore();
 const acting = ref(null);
 
-const columns = [
-  { key: 'created_at', label: 'Date', sortable: true },
-  { key: 'order_number', label: 'Order', sortable: true },
-  { key: 'order_total', label: 'Total', align: 'right', sortable: true },
-  { key: 'score', label: 'Risk score', align: 'right', sortable: true },
-  { key: 'decision', label: 'Decision', sortable: true },
-  { key: 'reasons', label: 'Reasons' },
-  { key: 'resolution', label: 'Resolution', sortable: true },
+const columns = computed(() => [
+  { key: 'created_at', label: t('common.date'), sortable: true },
+  { key: 'order_number', label: t('fraudPage.order'), sortable: true },
+  { key: 'order_total', label: t('common.total'), align: 'right', sortable: true },
+  { key: 'score', label: t('fraudPage.riskScore'), align: 'right', sortable: true },
+  { key: 'decision', label: t('fraudPage.decision'), sortable: true },
+  { key: 'reasons', label: t('fraudPage.reasons') },
+  { key: 'resolution', label: t('fraudPage.resolution'), sortable: true },
   { key: 'actions', label: '', align: 'right' }
-];
+]);
 
 const { items, page, total, totalPages, loading, load } = usePaginated((params) => seller.fraudChecks(params));
 const changePage = (n) => {
@@ -45,8 +46,8 @@ const run = async (row, fn, msg) => {
     acting.value = null;
   }
 };
-const clear = (row) => run(row, () => seller.clearFraud(row.id), 'Marked as cleared.');
-const reject = (row) => run(row, () => seller.rejectFraud(row.id), 'Flagged as fraud.');
+const clear = (row) => run(row, () => seller.clearFraud(row.id), t('fraudPage.markedCleared'));
+const reject = (row) => run(row, () => seller.rejectFraud(row.id), t('fraudPage.flaggedFraud'));
 
 const scoreTone = (s) => (Number(s) >= 70 ? 'text-secondary-500' : Number(s) >= 40 ? 'text-amber-600' : 'text-emerald-600');
 
@@ -71,14 +72,14 @@ onMounted(async () => {
 
 <template>
   <div>
-    <PageHeader title="Fraud review" subtitle="Risk checks on orders flagged for review.">
+    <PageHeader :title="$t('fraudPage.title')" :subtitle="$t('fraudPage.subtitle')">
       <template #actions>
-        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
-        <button class="btn btn-outline btn-sm" :disabled="!items.length" @click="exportCsv"><Download class="h-4 w-4" /> Export</button>
+        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">{{ $t('common.readOnly') }}</span>
+        <button class="btn btn-outline btn-sm" :disabled="!items.length" @click="exportCsv"><Download class="h-4 w-4" /> {{ $t('common.export') }}</button>
       </template>
     </PageHeader>
 
-    <DataTable :columns="columns" :rows="items" :loading="loading" empty-title="No fraud checks" empty-message="Orders flagged for review will appear here.">
+    <DataTable :columns="columns" :rows="items" :loading="loading" :empty-title="$t('fraudPage.emptyTitle')" :empty-message="$t('fraudPage.emptyMessage')">
       <template #cell-created_at="{ value }">{{ (value || '').slice(0, 10) }}</template>
       <template #cell-order_number="{ value }"><span class="font-medium text-ink">#{{ value }}</span></template>
       <template #cell-order_total="{ row }">{{ row.order_total }} {{ tenant.currency }}</template>
@@ -88,8 +89,8 @@ onMounted(async () => {
       <template #cell-resolution="{ value }"><StatusBadge :status="value" /></template>
       <template #cell-actions="{ row }">
         <div v-if="tenant.canWrite && (row.resolution === 'pending' || !row.resolution)" class="flex justify-end gap-1">
-          <button class="btn btn-ghost btn-sm text-emerald-600" :disabled="acting === row.id" @click="clear(row)"><ShieldCheck class="h-4 w-4" /> Clear</button>
-          <button class="btn btn-ghost btn-sm text-secondary-500" :disabled="acting === row.id" @click="reject(row)"><ShieldX class="h-4 w-4" /> Reject</button>
+          <button class="btn btn-ghost btn-sm text-emerald-600" :disabled="acting === row.id" @click="clear(row)"><ShieldCheck class="h-4 w-4" /> {{ $t('fraudPage.clear') }}</button>
+          <button class="btn btn-ghost btn-sm text-secondary-500" :disabled="acting === row.id" @click="reject(row)"><ShieldX class="h-4 w-4" /> {{ $t('fraudPage.reject') }}</button>
         </div>
         <span v-else class="text-xs text-muted">—</span>
       </template>

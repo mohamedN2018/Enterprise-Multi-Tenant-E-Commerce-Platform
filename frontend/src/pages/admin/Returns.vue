@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Check, X, Banknote, Download } from 'lucide-vue-next';
 import { downloadCsv } from '@/utils/csv';
 import PageHeader from '@/components/ui/PageHeader.vue';
@@ -11,6 +11,7 @@ import { useUiStore } from '@/stores/ui';
 import { usePaginated } from '@/composables/usePaginated';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
+import { t } from '@/i18n';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -18,23 +19,23 @@ const ui = useUiStore();
 const statusFilter = ref('');
 const acting = ref(null);
 
-const tabs = [
-  { key: '', label: 'All' },
-  { key: 'requested', label: 'Requested' },
-  { key: 'approved', label: 'Approved' },
-  { key: 'rejected', label: 'Rejected' },
-  { key: 'refunded', label: 'Refunded' }
-];
+const tabs = computed(() => [
+  { key: '', label: t('common.all') },
+  { key: 'requested', label: t('status.requested') },
+  { key: 'approved', label: t('status.approved') },
+  { key: 'rejected', label: t('status.rejected') },
+  { key: 'refunded', label: t('status.refunded') }
+]);
 
-const columns = [
-  { key: 'created_at', label: 'Date', sortable: true },
-  { key: 'order', label: 'Order' },
-  { key: 'resolution', label: 'Resolution', sortable: true },
-  { key: 'reason', label: 'Reason' },
-  { key: 'refund_amount', label: 'Refund', align: 'right', sortable: true },
-  { key: 'status', label: 'Status', sortable: true },
+const columns = computed(() => [
+  { key: 'created_at', label: t('common.date'), sortable: true },
+  { key: 'order', label: t('returnsPage.order') },
+  { key: 'resolution', label: t('returnsPage.resolution'), sortable: true },
+  { key: 'reason', label: t('returnsPage.reason') },
+  { key: 'refund_amount', label: t('returnsPage.refund'), align: 'right', sortable: true },
+  { key: 'status', label: t('common.status'), sortable: true },
   { key: 'actions', label: '', align: 'right' }
-];
+]);
 
 const { items, page, total, totalPages, loading, load } = usePaginated((params) =>
   seller.returnsManage(params)
@@ -62,9 +63,9 @@ const run = async (r, fn, label) => {
     acting.value = null;
   }
 };
-const approve = (r) => run(r, () => seller.approveReturn(r.id), 'Return approved.');
-const reject = (r) => run(r, () => seller.rejectReturn(r.id, { reason: '' }), 'Return rejected.');
-const refund = (r) => run(r, () => seller.refundReturn(r.id), 'Refund issued.');
+const approve = (r) => run(r, () => seller.approveReturn(r.id), t('returnsPage.approvedToast'));
+const reject = (r) => run(r, () => seller.rejectReturn(r.id, { reason: '' }), t('returnsPage.rejectedToast'));
+const refund = (r) => run(r, () => seller.refundReturn(r.id), t('returnsPage.refundIssued'));
 
 const exportCsv = () => {
   const rows = items.value.map((r) => ({
@@ -86,18 +87,18 @@ onMounted(async () => {
 
 <template>
   <div>
-    <PageHeader title="Returns" subtitle="Handle customer return & refund requests.">
+    <PageHeader :title="$t('returnsPage.title')" :subtitle="$t('returnsPage.subtitle')">
       <template #actions>
-        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">Read-only</span>
-        <button class="btn btn-outline btn-sm" :disabled="!items.length" @click="exportCsv"><Download class="h-4 w-4" /> Export</button>
+        <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">{{ $t('common.readOnly') }}</span>
+        <button class="btn btn-outline btn-sm" :disabled="!items.length" @click="exportCsv"><Download class="h-4 w-4" /> {{ $t('common.export') }}</button>
       </template>
     </PageHeader>
 
     <div class="mb-4 flex flex-wrap gap-2">
-      <button v-for="t in tabs" :key="t.label" class="rounded-full px-4 py-1.5 text-sm font-medium transition" :class="statusFilter === t.key ? 'bg-primary-600 text-white' : 'bg-lightbg text-ink hover:bg-primary-100'" @click="selectTab(t.key)">{{ t.label }}</button>
+      <button v-for="t in tabs" :key="t.key" class="rounded-full px-4 py-1.5 text-sm font-medium transition" :class="statusFilter === t.key ? 'bg-primary-600 text-white' : 'bg-lightbg text-ink hover:bg-primary-100'" @click="selectTab(t.key)">{{ t.label }}</button>
     </div>
 
-    <DataTable :columns="columns" :rows="items" :loading="loading" empty-title="No returns" empty-message="Return requests from customers will appear here.">
+    <DataTable :columns="columns" :rows="items" :loading="loading" :empty-title="$t('returnsPage.emptyTitle')" :empty-message="$t('returnsPage.emptyMsg')">
       <template #cell-created_at="{ value }">{{ (value || '').slice(0, 10) }}</template>
       <template #cell-order="{ value }"><span class="font-mono text-xs">{{ String(value).slice(0, 8) }}</span></template>
       <template #cell-resolution="{ value }"><span class="capitalize">{{ String(value).replace(/_/g, ' ') }}</span></template>
@@ -107,10 +108,10 @@ onMounted(async () => {
       <template #cell-actions="{ row }">
         <div v-if="tenant.canWrite" class="flex justify-end gap-1">
           <template v-if="row.status === 'requested'">
-            <button class="btn btn-ghost btn-sm text-emerald-600" :disabled="acting === row.id" @click="approve(row)"><Check class="h-4 w-4" /> Approve</button>
-            <button class="btn btn-ghost btn-sm text-secondary-500" :disabled="acting === row.id" @click="reject(row)"><X class="h-4 w-4" /> Reject</button>
+            <button class="btn btn-ghost btn-sm text-emerald-600" :disabled="acting === row.id" @click="approve(row)"><Check class="h-4 w-4" /> {{ $t('returnsPage.approve') }}</button>
+            <button class="btn btn-ghost btn-sm text-secondary-500" :disabled="acting === row.id" @click="reject(row)"><X class="h-4 w-4" /> {{ $t('returnsPage.reject') }}</button>
           </template>
-          <button v-else-if="row.status === 'approved'" class="btn btn-ghost btn-sm text-primary-600" :disabled="acting === row.id" @click="refund(row)"><Banknote class="h-4 w-4" /> Refund</button>
+          <button v-else-if="row.status === 'approved'" class="btn btn-ghost btn-sm text-primary-600" :disabled="acting === row.id" @click="refund(row)"><Banknote class="h-4 w-4" /> {{ $t('returnsPage.refundAction') }}</button>
           <span v-else class="text-xs text-muted">—</span>
         </div>
         <span v-else class="text-xs text-muted">—</span>

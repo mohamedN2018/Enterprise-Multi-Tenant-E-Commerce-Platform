@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { Bell, Check, CheckCheck, Dot } from 'lucide-vue-next';
+import { t } from '@/i18n';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Spinner from '@/components/ui/Spinner.vue';
@@ -46,7 +47,7 @@ const markAll = async () => {
   busy.value = true;
   try {
     await seller.markAllNotificationsRead();
-    ui.success('All marked read.');
+    ui.success(t('notificationsPage.allMarkedRead'));
     fetch();
   } catch (e) {
     ui.error(errorMessage(e));
@@ -63,18 +64,18 @@ onMounted(async () => {
 
 <template>
   <div>
-    <PageHeader title="Notifications" subtitle="Activity and alerts for your store.">
+    <PageHeader :title="$t('notificationsPage.title')" :subtitle="$t('notificationsPage.subtitle')">
       <template #actions>
-        <button class="btn btn-outline btn-sm" :disabled="busy" @click="markAll"><CheckCheck class="h-4 w-4" /> Mark all read</button>
+        <button class="btn btn-outline btn-sm" :disabled="busy" @click="markAll"><CheckCheck class="h-4 w-4" /> {{ $t('notificationsPage.markAllRead') }}</button>
       </template>
     </PageHeader>
 
     <div class="mb-4 flex gap-2">
-      <button class="rounded-full px-4 py-1.5 text-sm font-medium transition" :class="filter === 'all' ? 'bg-primary-600 text-white' : 'bg-lightbg text-ink hover:bg-primary-100'" @click="setFilter('all')">All</button>
-      <button class="rounded-full px-4 py-1.5 text-sm font-medium transition" :class="filter === 'unread' ? 'bg-primary-600 text-white' : 'bg-lightbg text-ink hover:bg-primary-100'" @click="setFilter('unread')">Unread</button>
+      <button class="rounded-full px-4 py-1.5 text-sm font-medium transition" :class="filter === 'all' ? 'bg-primary-600 text-white' : 'bg-lightbg text-ink hover:bg-primary-100'" @click="setFilter('all')">{{ $t('common.all') }}</button>
+      <button class="rounded-full px-4 py-1.5 text-sm font-medium transition" :class="filter === 'unread' ? 'bg-primary-600 text-white' : 'bg-lightbg text-ink hover:bg-primary-100'" @click="setFilter('unread')">{{ $t('notificationsPage.unread') }}</button>
     </div>
 
-    <div v-if="loading" class="flex min-h-[30vh] items-center justify-center"><Spinner :size="26" label="Loading…" /></div>
+    <div v-if="loading" class="flex min-h-[30vh] items-center justify-center"><Spinner :size="26" :label="$t('common.loading')" /></div>
 
     <template v-else-if="items.length">
       <div class="card divide-y divide-slate-100 overflow-hidden p-0">
@@ -95,12 +96,12 @@ onMounted(async () => {
             <p class="text-sm text-muted">{{ n.body }}</p>
             <p class="mt-1 text-xs text-slate-400">{{ (n.created_at || '').replace('T', ' ').slice(0, 16) }}</p>
           </div>
-          <button v-if="!n.is_read" class="btn btn-ghost btn-sm shrink-0" @click="markRead(n)"><Check class="h-4 w-4" /> Read</button>
+          <button v-if="!n.is_read" class="btn btn-ghost btn-sm shrink-0" @click="markRead(n)"><Check class="h-4 w-4" /> {{ $t('notificationsPage.read') }}</button>
         </div>
       </div>
       <div v-if="totalPages > 1" class="mt-6"><Pagination :page="page" :page-size="20" :total="total" @update:page="changePage" /></div>
     </template>
 
-    <EmptyState v-else :icon="Bell" title="No notifications" message="You're all caught up." />
+    <EmptyState v-else :icon="Bell" :title="$t('notificationsPage.emptyTitle')" :message="$t('notificationsPage.emptyMessage')" />
   </div>
 </template>
