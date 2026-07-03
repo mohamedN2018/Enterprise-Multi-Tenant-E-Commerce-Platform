@@ -66,8 +66,8 @@ onBeforeUnmount(() => timer && clearInterval(timer));
       </span>
     </button>
 
-    <div v-if="open" class="fixed inset-0 z-30" @click="open = false"></div>
-    <div v-if="open" class="absolute end-0 z-40 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-pop">
+    <div v-if="open" class="fixed inset-0 z-[90]" @click="open = false"></div>
+    <div v-if="open" class="absolute end-0 z-[100] mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-pop dark:border-slate-700 dark:bg-slate-800">
       <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
         <p class="font-heading font-semibold text-ink">{{ $t('notificationsPage.title') }}</p>
         <button v-if="unread" class="text-xs font-medium text-primary-600 hover:underline" @click="markAll"><CheckCheck class="me-1 inline h-3.5 w-3.5" />{{ $t('notificationsPage.markAllRead') }}</button>

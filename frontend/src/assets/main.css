@@ -28,12 +28,20 @@
   input[type='radio'] {
     cursor: url('/cursors/cursor-click-dark.png') 6 2, pointer;
   }
-  /* Light cursor on dark surfaces for contrast */
-  .bg-ink,
-  .bg-ink *,
-  .bg-primary-600,
-  .bg-primary-600 * {
+  /* Cursor follows the theme (not the surface) so it stays visible in both modes */
+  .dark body {
     cursor: url('/cursors/cursor-light.png') 4 2, auto;
+  }
+  .dark a,
+  .dark button,
+  .dark [role='button'],
+  .dark .btn,
+  .dark select,
+  .dark label,
+  .dark summary,
+  .dark input[type='checkbox'],
+  .dark input[type='radio'] {
+    cursor: url('/cursors/cursor-click-light.png') 6 2, pointer;
   }
 }
 
@@ -229,11 +237,52 @@
 .dark .border-slate-200 {
   border-color: #334155;
 }
-.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-50 > :not([hidden]) ~ :not([hidden]) {
   border-color: #334155;
 }
 .dark .skeleton {
   background-color: rgba(51, 65, 85, 0.7);
+}
+/* Extra structural overrides for full dark-mode coverage */
+.dark .bg-slate-200 {
+  background-color: #334155;
+}
+.dark .bg-white\/90,
+.dark .bg-white\/95,
+.dark .bg-white\/80 {
+  background-color: rgba(15, 23, 42, 0.9);
+}
+.dark .border-slate-300 {
+  border-color: #475569;
+}
+.dark .border-slate-50 {
+  border-color: #1e293b;
+}
+.dark .text-slate-800,
+.dark .text-slate-900,
+.dark .text-ink\/90 {
+  color: #e2e8f0;
+}
+.dark .bg-lightbg\/70,
+.dark .bg-slate-50\/40 {
+  background-color: #1e293b;
+}
+/* Chart tooltips (ApexCharts) in dark mode */
+.dark .apexcharts-tooltip {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+.dark .apexcharts-tooltip-title {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+.dark .apexcharts-xaxistooltip,
+.dark .apexcharts-yaxistooltip {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
 }
 
 /* Print: show only the invoice area */

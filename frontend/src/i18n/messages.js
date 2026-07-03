@@ -35,6 +35,7 @@ export default {
       viewAllProducts: 'عرض كل المنتجات', testimonials: 'ماذا يقول عملاؤنا', items: 'منتج',
       sellerCtaTitle: 'ابدأ البيع على q-shop اليوم', sellerCtaText: 'افتح متجرك، وصل لآلاف المتسوّقين، ونمِّ عملك.',
       independentStore: 'متجر مستقل', verifiedBuyer: 'مشترٍ موثّق',
+      testimonialsSubtitle: 'آراء حقيقية من عملاء اشتروا من متاجرنا المستقلة.',
       svc: {
         freeReturn: 'إرجاع مجاني', freeReturnMsg: 'ضمان استرداد المال خلال 30 يومًا!',
         freeShipping: 'شحن مجاني', freeShippingMsg: 'شحن مجاني على كل الطلبات',
@@ -357,6 +358,7 @@ export default {
       viewAllProducts: 'View all products', testimonials: 'What our customers say', items: 'items',
       sellerCtaTitle: 'Start selling on q-shop today', sellerCtaText: 'Open your store, reach thousands of shoppers, and grow your business.',
       independentStore: 'Independent store', verifiedBuyer: 'Verified buyer',
+      testimonialsSubtitle: 'Real reviews from customers who shopped our independent stores.',
       svc: {
         freeReturn: 'Free Return', freeReturnMsg: '30 days money back guarantee!',
         freeShipping: 'Free Shipping', freeShippingMsg: 'Free shipping on all orders',

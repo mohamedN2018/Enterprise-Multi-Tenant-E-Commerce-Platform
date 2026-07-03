@@ -14,7 +14,6 @@ import {
   Store as StoreIcon,
   LayoutGrid,
   Quote,
-  Star,
   Rocket
 } from 'lucide-vue-next';
 import ProductCard from '@/components/ProductCard.vue';
@@ -45,12 +44,6 @@ const bestSellers = computed(() =>
 );
 const moreToConsider = computed(() => pool.value.slice(0, 12));
 const alsoBought = computed(() => pool.value.slice(6, 18));
-
-const testimonials = [
-  { name: 'سارة م.', text: 'شحن سريع وجودة المنتج فاقت توقعاتي. أصبح سوقي المفضل!' },
-  { name: 'أحمد ك.', text: 'أحب تنوّع المتاجر المستقلة. وجدت بالضبط ما أبحث عنه بسعر رائع.' },
-  { name: 'إيلينا ر.', text: 'الدفع كان سلسًا وميزة المفضلة عملية جدًا. أنصح بـ q-shop بشدة.' }
-];
 
 const services = [
   { icon: RotateCcw, key: 'freeReturn' },
@@ -168,26 +161,6 @@ onMounted(async () => {
       </div>
     </section>
 
-    <!-- Featured stores -->
-    <section v-if="stores.length" class="container py-10">
-      <div class="mb-6 flex items-end justify-between">
-        <h2 class="section-title">{{ $t('home.featuredStores') }}</h2>
-        <RouterLink :to="{ name: 'stores' }" class="text-sm font-medium text-primary-600 hover:underline">{{ $t('home.viewAll') }}</RouterLink>
-      </div>
-      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <RouterLink v-for="s in stores" :key="s.id" :to="{ name: 'store', params: { slug: s.slug } }" class="card group overflow-hidden transition hover:-translate-y-0.5 hover:shadow-pop">
-          <div class="h-24 overflow-hidden bg-lightbg"><img :src="storeBanner(s)" alt="" class="h-full w-full object-cover transition group-hover:scale-105" @error="onImgError" /></div>
-          <div class="flex items-center gap-3 p-4">
-            <img :src="storeLogo(s)" :alt="s.name" class="-mt-8 h-12 w-12 rounded-xl border-2 border-white object-cover shadow" @error="onImgError" />
-            <div class="min-w-0">
-              <p class="truncate font-heading font-semibold group-hover:text-primary-600">{{ s.name }}</p>
-              <p class="clamp-1 text-xs text-muted">{{ s.description || $t('home.independentStore') }}</p>
-            </div>
-          </div>
-        </RouterLink>
-      </div>
-    </section>
-
     <!-- Promo banners -->
     <section class="container grid gap-4 py-10 lg:grid-cols-2">
       <RouterLink :to="{ name: 'products', query: { on_sale: 1 } }" class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-6 transition hover:shadow-pop">
@@ -253,22 +226,29 @@ onMounted(async () => {
       <ProductCarousel v-if="alsoBought.length" :title="$t('rec.alsoBought')" :products="alsoBought" :adding-id="adding" @add="add" />
     </div>
 
-    <!-- Testimonials -->
-    <section class="bg-lightbg py-14">
+    <!-- Featured stores (moved to the end) -->
+    <section v-if="stores.length" class="bg-lightbg py-14">
       <div class="container">
-        <h2 class="section-title mb-8 text-center">{{ $t('home.testimonials') }}</h2>
-        <div class="grid gap-6 md:grid-cols-3">
-          <div v-for="tm in testimonials" :key="tm.name" class="card p-6">
-            <Quote class="h-8 w-8 text-primary-200" />
-            <p class="mt-3 text-muted">{{ tm.text }}</p>
-            <div class="mt-4 flex items-center gap-3">
-              <span class="grid h-10 w-10 place-items-center rounded-full bg-primary-100 font-bold text-primary-700">{{ tm.name.charAt(0) }}</span>
-              <div>
-                <p class="font-semibold">{{ tm.name }}</p>
-                <p class="flex items-center gap-1 text-xs text-muted"><Star class="h-3 w-3 fill-primary-600 text-primary-600" /> {{ $t('home.verifiedBuyer') }}</p>
+        <div class="mb-6 flex items-end justify-between">
+          <h2 class="section-title">{{ $t('home.featuredStores') }}</h2>
+          <RouterLink :to="{ name: 'stores' }" class="text-sm font-medium text-primary-600 hover:underline">{{ $t('home.viewAll') }}</RouterLink>
+        </div>
+        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <RouterLink v-for="s in stores" :key="s.id" :to="{ name: 'store', params: { slug: s.slug } }" class="card group overflow-hidden transition hover:-translate-y-0.5 hover:shadow-pop">
+            <div class="h-24 overflow-hidden bg-lightbg"><img :src="storeBanner(s)" alt="" class="h-full w-full object-cover transition group-hover:scale-105" @error="onImgError" /></div>
+            <div class="flex items-center gap-3 p-4">
+              <img :src="storeLogo(s)" :alt="s.name" class="-mt-8 h-12 w-12 rounded-xl border-2 border-white object-cover shadow dark:border-slate-800" @error="onImgError" />
+              <div class="min-w-0">
+                <p class="truncate font-heading font-semibold group-hover:text-primary-600">{{ s.name }}</p>
+                <p class="clamp-1 text-xs text-muted">{{ s.description || $t('home.independentStore') }}</p>
               </div>
             </div>
-          </div>
+          </RouterLink>
+        </div>
+        <div class="mt-8 text-center">
+          <RouterLink :to="{ name: 'testimonials' }" class="btn btn-outline btn-lg">
+            <Quote class="h-4 w-4" /> {{ $t('home.testimonials') }}
+          </RouterLink>
         </div>
       </div>
     </section>

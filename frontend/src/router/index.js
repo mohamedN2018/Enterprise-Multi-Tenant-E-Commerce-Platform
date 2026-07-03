@@ -17,6 +17,7 @@ const routes = [
       { path: 'store/:slug', name: 'store', component: () => import('@/pages/store/StorePage.vue') },
       { path: 'products', name: 'products', component: () => import('@/pages/store/Products.vue') },
       { path: 'support', name: 'support', component: () => import('@/pages/store/Support.vue') },
+      { path: 'testimonials', name: 'testimonials', component: () => import('@/pages/store/Testimonials.vue') },
       {
         path: 'product/:id',
         name: 'product',
@@ -147,6 +148,7 @@ const TITLE_KEYS = {
   store: 'nav.stores',
   products: 'shop.title',
   support: 'support.title',
+  testimonials: 'home.testimonials',
   product: 'product.shopDetail',
   cart: 'cart.title',
   checkout: 'checkout.title',

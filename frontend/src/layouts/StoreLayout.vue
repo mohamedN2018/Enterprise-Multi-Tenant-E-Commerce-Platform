@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   Phone,
@@ -63,8 +63,19 @@ const search = () => {
 
 const goCategory = (name) => {
   catOpen.value = false;
+  mobileNav.value = false;
   router.push({ name: 'products', query: { category: name } });
 };
+
+// Close all menus whenever the route changes.
+watch(
+  () => router.currentRoute.value.fullPath,
+  () => {
+    mobileNav.value = false;
+    catOpen.value = false;
+    accountOpen.value = false;
+  }
+);
 
 const logout = async () => {
   await auth.logout();
@@ -85,19 +96,19 @@ onMounted(async () => {
 
 <template>
   <div class="flex min-h-screen flex-col bg-white text-ink">
-    <!-- Top thin bar -->
-    <div class="hidden border-b border-slate-200 lg:block">
-      <div class="container flex h-11 items-center justify-between text-sm">
-        <div class="flex items-center gap-2 text-muted">
+    <!-- Top thin bar (responsive: controls stay visible on mobile) -->
+    <div class="border-b border-slate-200 dark:border-slate-800">
+      <div class="container flex h-11 items-center gap-4 text-sm">
+        <div class="hidden items-center gap-2 text-muted lg:flex">
           <RouterLink :to="{ name: 'support' }" class="hover:text-primary-600">{{ t('nav.help') }}</RouterLink><span>/</span>
           <RouterLink :to="{ name: 'support' }" class="hover:text-primary-600">{{ t('nav.support') }}</RouterLink><span>/</span>
           <RouterLink :to="{ name: 'support' }" class="hover:text-primary-600">{{ t('nav.contact') }}</RouterLink>
         </div>
-        <div class="flex items-center gap-1 text-muted">
-          <span class="text-ink">{{ t('nav.callUs') }}:</span>
-          <a href="tel:+01212345678" class="hover:text-primary-600" dir="ltr">(+012) 1234 567890</a>
-        </div>
-        <div class="flex items-center gap-3 text-muted">
+        <div class="ms-auto flex items-center gap-3 text-muted">
+          <div class="hidden items-center gap-1 lg:flex">
+            <span class="text-ink">{{ t('nav.callUs') }}:</span>
+            <a href="tel:+01212345678" class="hover:text-primary-600" dir="ltr">(+012) 1234 567890</a>
+          </div>
           <button class="flex items-center gap-1 hover:text-primary-600" @click="setLocale(locale === 'ar' ? 'en' : 'ar')">
             <Languages class="h-4 w-4" /> {{ locale === 'ar' ? 'English' : 'العربية' }}
           </button>
@@ -106,12 +117,12 @@ onMounted(async () => {
           </button>
           <div class="relative">
             <button class="flex items-center gap-1 hover:text-primary-600" @click="accountOpen = !accountOpen">
-              <User class="h-4 w-4" /> {{ auth.isAuthenticated ? auth.displayName : t('nav.myAccount') }}
+              <User class="h-4 w-4" /> <span class="hidden sm:inline">{{ auth.isAuthenticated ? auth.displayName : t('nav.myAccount') }}</span>
               <ChevronDown class="h-3 w-3" />
             </button>
             <div
               v-if="accountOpen"
-              class="absolute end-0 z-40 mt-2 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-pop dark:border-slate-700 dark:bg-slate-800"
+              class="absolute end-0 z-[100] mt-2 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-pop dark:border-slate-700 dark:bg-slate-800"
               @click="accountOpen = false"
             >
               <template v-if="auth.isAuthenticated">
@@ -136,7 +147,7 @@ onMounted(async () => {
     <div class="border-b border-slate-100 bg-white dark:bg-slate-900">
       <div class="container flex flex-wrap items-center gap-3 py-3 lg:gap-4 lg:py-4">
         <RouterLink :to="{ name: 'home' }" class="flex shrink-0 items-center">
-          <img src="/brand/qtech-logo.png" alt="q-shop" class="h-9 w-auto lg:h-12" />
+          <img :src="theme === 'dark' ? '/brand/dark-logo.png' : '/brand/qtech-logo.png'" alt="q-shop" class="h-9 w-auto lg:h-12" />
         </RouterLink>
 
         <form class="order-3 flex w-full flex-1 lg:order-none lg:w-auto" @submit.prevent="search">
@@ -163,7 +174,7 @@ onMounted(async () => {
                 <ShoppingCart class="h-4 w-4" />
                 <span v-if="cartCount" class="absolute -end-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-secondary-500 px-1 text-[11px] font-bold text-white">{{ cartCount }}</span>
               </span>
-              <span class="hidden font-semibold sm:inline">{{ cartTotal }} {{ currency }}</span>
+              <span class="whitespace-nowrap text-sm font-semibold sm:text-base">{{ cartTotal }} {{ currency }}</span>
             </button>
           </div>
         </div>
@@ -178,7 +189,7 @@ onMounted(async () => {
           <button class="flex h-full w-full items-center gap-2 py-3.5 text-lg font-medium text-white" @click="catOpen = !catOpen">
             <Menu class="h-5 w-5" /> {{ t('nav.allCategories') }} <ChevronDown class="ms-auto h-4 w-4" />
           </button>
-          <div v-if="catOpen" class="absolute start-0 top-full z-40 w-64 rounded-b-lg bg-lightbg py-1 shadow-pop dark:border dark:border-slate-700">
+          <div v-if="catOpen" class="absolute start-0 top-full z-[100] w-64 rounded-b-lg bg-lightbg py-1 shadow-pop dark:border dark:border-slate-700">
             <button
               v-for="c in categories"
               :key="c.name"
@@ -214,13 +225,33 @@ onMounted(async () => {
       </div>
 
       <!-- Mobile nav -->
-      <div v-if="mobileNav" class="border-t border-white/10 bg-primary-600 lg:hidden">
-        <div class="container py-2">
-          <RouterLink v-for="item in nav" :key="item.label" :to="item.to" class="block py-2 font-medium text-white" @click="mobileNav = false">{{ t('nav.' + item.key) }}</RouterLink>
-          <RouterLink :to="{ name: 'account' }" class="block py-2 font-medium text-white" @click="mobileNav = false">{{ t('nav.account') }}</RouterLink>
-          <RouterLink v-if="!auth.isAuthenticated" :to="{ name: 'login' }" class="block py-2 font-medium text-white" @click="mobileNav = false">{{ t('nav.login') }}</RouterLink>
-          <p class="mt-2 border-t border-white/10 pt-2 text-xs font-semibold uppercase text-white/70">{{ t('nav.categories') }}</p>
-          <button v-for="c in categories" :key="c.name" class="block w-full py-1.5 text-start text-sm text-white/90" @click="goCategory(c.name)">{{ c.name }}</button>
+      <div v-if="mobileNav" class="max-h-[80vh] overflow-y-auto border-t border-white/10 bg-primary-600 lg:hidden">
+        <div class="container space-y-1 py-3">
+          <!-- Primary links -->
+          <RouterLink v-for="item in nav" :key="item.label" :to="item.to" class="block rounded-lg px-3 py-2.5 font-heading font-medium text-white hover:bg-white/10" @click="mobileNav = false">{{ t('nav.' + item.key) }}</RouterLink>
+
+          <!-- Account -->
+          <div class="mt-2 space-y-1 border-t border-white/10 pt-2">
+            <template v-if="auth.isAuthenticated">
+              <RouterLink :to="{ name: 'account' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-white hover:bg-white/10" @click="mobileNav = false"><User class="h-4 w-4" /> {{ t('nav.myAccount') }}</RouterLink>
+              <RouterLink :to="{ name: 'admin-dashboard' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-white hover:bg-white/10" @click="mobileNav = false"><LayoutDashboard class="h-4 w-4" /> {{ t('nav.dashboard') }}</RouterLink>
+              <button class="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-white hover:bg-white/10" @click="logout"><LogOut class="h-4 w-4" /> {{ t('nav.logout') }}</button>
+            </template>
+            <template v-else>
+              <RouterLink :to="{ name: 'login' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-white hover:bg-white/10" @click="mobileNav = false"><User class="h-4 w-4" /> {{ t('nav.login') }}</RouterLink>
+              <RouterLink :to="{ name: 'register' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-white hover:bg-white/10" @click="mobileNav = false"><ChevronDown class="h-4 w-4 rotate-[-90deg] rtl:rotate-90" /> {{ t('nav.register') }}</RouterLink>
+            </template>
+            <RouterLink :to="{ name: 'support' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-white hover:bg-white/10" @click="mobileNav = false"><Phone class="h-4 w-4" /> {{ t('nav.support') }}</RouterLink>
+          </div>
+
+          <!-- Categories -->
+          <div v-if="categories.length" class="mt-2 border-t border-white/10 pt-2">
+            <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-white/70">{{ t('nav.categories') }}</p>
+            <button v-for="c in categories" :key="c.name" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-white/90 hover:bg-white/10" @click="goCategory(c.name)">
+              <span>{{ c.name }}</span>
+              <span class="text-xs text-white/60">({{ c.product_count }})</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
