@@ -6,6 +6,7 @@ import { useUiStore } from '@/stores/ui';
 import { shop } from '@/services/shop';
 import { storefront } from '@/services/storefront';
 import { errorMessage } from '@/services/http';
+import { t } from '@/i18n';
 
 // Adds a storefront product to the (store-scoped) wishlist, resolving the
 // default variant when the caller only has a list-level product.
@@ -22,7 +23,7 @@ export function useWishlist() {
 
   const add = async (product, { variant = null } = {}) => {
     if (!auth.isAuthenticated) {
-      ui.info('Please sign in to save items.');
+      ui.info(t('product.signInToSave'));
       router.push({ name: 'login', query: { redirect: route.fullPath } });
       return false;
     }
@@ -41,16 +42,16 @@ export function useWishlist() {
         chosen = pickVariant(detail.variants);
       }
       if (!chosen) {
-        ui.error('This product is currently unavailable.');
+        ui.error(t('product.unavailableToast'));
         return false;
       }
       await shop.addWishlist(cart.headers, { variant_id: chosen.id });
-      ui.success('Saved to wishlist.');
+      ui.success(t('product.savedToWishlist'));
       return true;
     } catch (e) {
       const msg = errorMessage(e);
       // A duplicate is a friendly "already saved", not an error.
-      ui.info(/already|exist/i.test(msg) ? 'Already in your wishlist.' : msg);
+      ui.info(/already|exist/i.test(msg) ? t('product.alreadyInWishlist') : msg);
       return false;
     } finally {
       saving.value = null;

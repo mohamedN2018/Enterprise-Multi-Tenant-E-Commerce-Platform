@@ -49,12 +49,13 @@ export default {
       yourRating: 'تقييمك', reviewTitle: 'عنوان (اختياري)', reviewBody: 'شاركنا تجربتك…', submitReview: 'إرسال التقييم',
       signInToReview: 'سجّل الدخول', toWriteReview: 'لكتابة تقييم.', noReviews: 'لا توجد تقييمات بعد',
       noReviewsMsg: 'كن أول من يقيّم هذا المنتج بعد الشراء.', related: 'منتجات ذات صلة', verified: 'موثّق',
-      sale: 'خصم', moreFromStore: 'المزيد من هذا المتجر', wishlist: 'حفظ في المفضلة',
+      sale: 'خصم', new: 'جديد', moreFromStore: 'المزيد من هذا المتجر', wishlist: 'حفظ في المفضلة',
       notFound: 'المنتج غير موجود', notFoundMsg: 'ربما تم حذف هذا المنتج أو لم يعد متاحًا.',
       browseProducts: 'تصفّح المنتجات', noDescription: 'لا يوجد وصف لهذا المنتج.',
       detail: 'التفاصيل', shopDetail: 'تفاصيل المنتج', loading: 'جارٍ تحميل المنتج…', out: 'غير متوفر',
       reviewsCount: 'تقييم', signInReviewToast: 'من فضلك سجّل الدخول لكتابة تقييم.', reviewSubmitted: 'تم إرسال تقييمك للمراجعة. شكرًا لك!',
-      signInToShop: 'من فضلك سجّل الدخول لبدء التسوّق.', addedToCart: 'تمت الإضافة إلى السلة.', unavailableToast: 'هذا المنتج غير متاح حاليًا.'
+      signInToShop: 'من فضلك سجّل الدخول لبدء التسوّق.', addedToCart: 'تمت الإضافة إلى السلة.', unavailableToast: 'هذا المنتج غير متاح حاليًا.',
+      signInToSave: 'من فضلك سجّل الدخول لحفظ المنتجات.', savedToWishlist: 'تم الحفظ في المفضلة.', alreadyInWishlist: 'موجود بالفعل في مفضلتك.'
     },
     shop: {
       title: 'المتجر', productsFound: 'منتج', categories: 'الأقسام', filter: 'تصفية', onSaleOnly: 'العروض فقط',
@@ -72,7 +73,7 @@ export default {
       startShopping: 'ابدأ التسوق', signInTitle: 'سجّل الدخول لعرض سلتك',
       signInMsg: 'سلتك محفوظة في حسابك لتكمل من حيث توقفت.', orderSummary: 'ملخص الطلب',
       checkout: 'إتمام الدفع', continueShopping: 'مواصلة التسوق', coupon: 'كود الخصم', shoppingAt: 'تتسوّق من',
-      each: 'للوحدة', couponApplied: 'تم تطبيق الكوبون.'
+      each: 'للوحدة', couponApplied: 'تم تطبيق الكوبون.', itemRemoved: 'تمت إزالة العنصر.'
     },
     checkout: {
       title: 'الدفع', shippingAddress: 'عنوان الشحن', newAddress: 'عنوان جديد', shippingMethod: 'طريقة الشحن',
@@ -196,7 +197,26 @@ export default {
       loyaltyPoints: 'نقاط الولاء', redeemGift: 'استبدال بطاقة هدية', redeemPoints: 'استبدال النقاط',
       language: 'اللغة', theme: 'المظهر', light: 'نهاري', dark: 'ليلي', arabic: 'العربية', english: 'الإنجليزية',
       preferences: 'التفضيلات', notifPrefs: 'تفضيلات الإشعارات', inApp: 'إشعارات داخل التطبيق', emailNotif: 'إشعارات بريدية',
-      savePrefs: 'حفظ التفضيلات', activeSessions: 'الجلسات النشطة', signOutAll: 'تسجيل الخروج من الكل', revoke: 'إلغاء'
+      savePrefs: 'حفظ التفضيلات', activeSessions: 'الجلسات النشطة', signOutAll: 'تسجيل الخروج من الكل', revoke: 'إلغاء',
+      addressRemoved: 'تم حذف العنوان.', movedToCart: 'تم النقل إلى السلة.', returnRequested: 'تم إرسال طلب الإرجاع.',
+      sessionRevoked: 'تم إنهاء الجلسة.', allSessionsRevoked: 'تم إنهاء جميع الجلسات الأخرى.', prefsSaved: 'تم حفظ التفضيلات.',
+      codeCopied: 'تم نسخ رمز الإحالة.', codeApplied: 'تم تطبيق رمز الإحالة.', passwordChanged: 'تم تغيير كلمة المرور. سجّل الدخول من جديد.',
+      giftRedeemed: 'تم إضافة {amount} {currency} إلى محفظتك.', pointsRedeemed: 'تم استبدال {points} نقطة بمبلغ {credit} {currency}.',
+      storeAlert: 'زُر متجرًا لعرض طلباتك وعناوينك ومفضلتك ومكافآتك الخاصة به.', browseStores: 'تصفّح المتاجر',
+      loadingOrders: 'جارٍ تحميل الطلبات…', orderNum: 'الطلب', itemsWord: 'منتج', noOrdersMsg: 'عند إتمام طلب، سيظهر هنا.',
+      loadingAddresses: 'جارٍ تحميل العناوين…', defaultLabel: 'افتراضي', setDefault: 'تعيين كافتراضي',
+      noAddresses: 'لا توجد عناوين محفوظة', noAddressesMsg: 'أضف عنوانًا أثناء الدفع وسيُحفظ هنا.',
+      loadingWishlist: 'جارٍ تحميل المفضلة…', wishlistEmpty: 'قائمة مفضلتك فارغة', wishlistEmptyMsg: 'احفظ المنتجات التي تحبها لشرائها لاحقًا.',
+      loadingReturns: 'جارٍ تحميل المرتجعات…', returnLabel: 'إرجاع', refund: 'المبلغ المسترد', noReturns: 'لا توجد مرتجعات',
+      noReturnsMsg: 'اطلب إرجاعًا من أي طلب في تبويب الطلبات.',
+      loadingRewards: 'جارٍ تحميل المكافآت…', giftCardCode: 'رمز بطاقة الهدية', redeem: 'استبدال', pointsPlaceholder: 'النقاط', walletActivity: 'حركة المحفظة',
+      loadingDownloads: 'جارٍ تحميل التنزيلات…', digitalItem: 'منتج رقمي', downloadsWord: 'تنزيلات', left: 'متبقٍ', expires: 'ينتهي',
+      keysLabel: 'المفاتيح', download: 'تنزيل', unavailable: 'غير متاح', noDownloads: 'لا توجد تنزيلات', noDownloadsMsg: 'ستظهر منتجاتك الرقمية هنا بعد الشراء.',
+      loadingReferrals: 'جارٍ تحميل الإحالات…', inviteFriends: 'ادعُ أصدقاءك', referralIntro: 'شارك رمزك — تحصلان معًا على مكافآت عند تسوّقهم.',
+      copy: 'نسخ', haveCode: 'لديك رمز إحالة؟', enterCode: 'أدخل رمز صديق', yourReferrals: 'إحالاتك', friend: 'صديق',
+      loadingSessions: 'جارٍ تحميل الجلسات…', device: 'جهاز', noSessions: 'لا توجد جلسات نشطة', noSessionsMsg: 'ستظهر هنا جلسات تسجيل دخولك.',
+      profileEmail: 'البريد الإلكتروني', returnModalMsg: 'اطلب إرجاعًا لعناصر هذا الطلب. سيقوم فريقنا بمراجعته.',
+      reason: 'السبب', reasonPlaceholder: 'لماذا تُرجع هذه العناصر؟', submitRequest: 'إرسال الطلب', requestReturnTitle: 'طلب إرجاع'
     },
     auth: {
       signIn: 'تسجيل الدخول', signInSubtitle: 'أهلاً بعودتك. من فضلك أدخل بياناتك.', password: 'كلمة المرور',
@@ -205,7 +225,17 @@ export default {
       alreadyHave: 'لديك حساب بالفعل؟', welcomeBack: 'أهلاً بعودتك!', accountCreated: 'تم إنشاء الحساب! سجّل الدخول من فضلك.',
       passwordsNoMatch: 'كلمتا المرور غير متطابقتين.',
       sellerSignIn: 'دخول البائعين', sellerSubtitle: 'ادخل إلى لوحة تحكم متجرك.',
-      sellerLoginLink: 'هل أنت بائع أو موظف؟ ادخل من هنا', customerLoginLink: 'العودة لدخول العملاء'
+      sellerLoginLink: 'هل أنت بائع أو موظف؟ ادخل من هنا', customerLoginLink: 'العودة لدخول العملاء',
+      backToSignIn: 'العودة لتسجيل الدخول', checkEmail: 'تحقّق من بريدك',
+      resetSentMsg: 'إذا كان هناك حساب مطابق لـ {email}، فقد أرسلنا رابطًا لإعادة تعيين كلمة المرور.',
+      forgotSubtitle: 'أدخل بريدك وسنرسل لك رابط إعادة التعيين.', sendResetLink: 'إرسال رابط إعادة التعيين',
+      resetTitle: 'إعادة تعيين كلمة المرور', resetSubtitle: 'اختر كلمة مرور جديدة لحسابك.', resetToken: 'رمز إعادة التعيين',
+      resetTokenPlaceholder: 'الصق الرمز من بريدك', resetDone: 'تم إعادة تعيين كلمة المرور. يمكنك تسجيل الدخول الآن.',
+      resetBtn: 'إعادة تعيين كلمة المرور', newPassword: 'كلمة المرور الجديدة', confirmNewPassword: 'تأكيد كلمة المرور الجديدة',
+      verifying: 'جارٍ التحقق من بريدك…', emailVerified: 'تم توثيق البريد!', verifiedMsg: 'تم توثيق حسابك. يمكنك تسجيل الدخول.',
+      verifyFailed: 'فشل التحقق', linkInvalid: 'قد يكون الرابط غير صالح أو منتهي الصلاحية.', resendTo: 'إعادة إرسال التوثيق إلى',
+      resendEmailBtn: 'إعادة إرسال البريد', verifyTitle: 'وثّق بريدك', verifyPrompt: 'أدخل الرمز من بريد التوثيق.',
+      verifyToken: 'رمز التوثيق', verifyBtn: 'تحقّق', resendSuccess: 'إذا كان حسابك يحتاج توثيقًا، فرسالة جديدة في طريقها إليك.'
     },
     "analyticsPage": {"title":"التحليلات","subtitle":"نشاط المتجر ورؤى الأحداث.","daysShort":"{n} يوم","totalEvents":"إجمالي الأحداث","orders":"الطلبات","confirmed":"المؤكدة","revenue":"الإيرادات","when":"التوقيت","event":"الحدث","user":"المستخدم","refreshed":"تم تحديث التحليلات.","eventsByType":"الأحداث حسب النوع","recentEvents":"الأحداث الأخيرة","noEventsYet":"لم يتم تسجيل أي أحداث بعد.","emptyEventsTitle":"لا توجد أحداث","emptyEventsMessage":"سيتم تسجيل النشاط هنا.","guest":"زائر"},
     "platformPage": {"store":"المتجر","currency":"العملة","totalStores":"إجمالي المتاجر","totalProducts":"إجمالي المنتجات","categories":"الفئات","myStores":"متاجري","loadingPlatform":"جارٍ تحميل المنصة…","adminsOnlyTitle":"مسؤولو المنصة فقط","adminsOnlyMessage":"هذه المنطقة مقصورة على المسؤولين العامّين.","backToDashboard":"العودة إلى لوحة التحكم","title":"نظرة عامة على المنصة","subtitle":"عرض شامل للسوق لمسؤولي المنصة العامّين.","djangoAdmin":"إدارة Django","revenueAcrossStores":"الإيرادات عبر متاجري ({n})","ordersAcrossStores":"الطلبات عبر متاجري","allStoresTitle":"جميع المتاجر على المنصة","emptyStoresTitle":"لا توجد متاجر","emptyStoresMessage":"لا توجد متاجر نشطة في السوق بعد.","view":"عرض","manage":"إدارة","notAMember":"لست عضواً","managementNote":"تقتصر الإدارة على المتاجر التي تنتمي إليها. استخدم إدارة Django لإدارة المستخدمين والمتاجر على مستوى المنصة."},
@@ -340,12 +370,13 @@ export default {
       yourRating: 'Your rating', reviewTitle: 'Title (optional)', reviewBody: 'Share your experience…', submitReview: 'Submit review',
       signInToReview: 'Sign in', toWriteReview: 'to write a review.', noReviews: 'No reviews yet',
       noReviewsMsg: 'Be the first to review this product after purchase.', related: 'Related Products', verified: 'Verified',
-      sale: 'Sale', moreFromStore: 'More from this store', wishlist: 'Save to wishlist',
+      sale: 'Sale', new: 'New', moreFromStore: 'More from this store', wishlist: 'Save to wishlist',
       notFound: 'Product not found', notFoundMsg: 'This product may have been removed or is no longer available.',
       browseProducts: 'Browse products', noDescription: 'No description provided for this product.',
       detail: 'Detail', shopDetail: 'Shop Detail', loading: 'Loading product…', out: 'out',
       reviewsCount: 'reviews', signInReviewToast: 'Please sign in to write a review.', reviewSubmitted: 'Review submitted for moderation. Thank you!',
-      signInToShop: 'Please sign in to start shopping.', addedToCart: 'Added to cart.', unavailableToast: 'This product is currently unavailable.'
+      signInToShop: 'Please sign in to start shopping.', addedToCart: 'Added to cart.', unavailableToast: 'This product is currently unavailable.',
+      signInToSave: 'Please sign in to save items.', savedToWishlist: 'Saved to wishlist.', alreadyInWishlist: 'Already in your wishlist.'
     },
     shop: {
       title: 'Shop', productsFound: 'products found', categories: 'Categories', filter: 'Filter', onSaleOnly: 'On sale only',
@@ -363,7 +394,7 @@ export default {
       startShopping: 'Start shopping', signInTitle: 'Sign in to view your cart',
       signInMsg: 'Your cart is saved to your account so you can pick up where you left off.', orderSummary: 'Order summary',
       checkout: 'Checkout', continueShopping: 'Continue shopping', coupon: 'Coupon code', shoppingAt: 'Shopping at',
-      each: 'each', couponApplied: 'Coupon applied.'
+      each: 'each', couponApplied: 'Coupon applied.', itemRemoved: 'Item removed.'
     },
     checkout: {
       title: 'Checkout', shippingAddress: 'Shipping address', newAddress: 'New address', shippingMethod: 'Shipping method',
@@ -487,7 +518,26 @@ export default {
       loyaltyPoints: 'Loyalty points', redeemGift: 'Redeem gift card', redeemPoints: 'Redeem points',
       language: 'Language', theme: 'Theme', light: 'Light', dark: 'Dark', arabic: 'Arabic', english: 'English',
       preferences: 'Preferences', notifPrefs: 'Notification preferences', inApp: 'In-app notifications', emailNotif: 'Email notifications',
-      savePrefs: 'Save preferences', activeSessions: 'Active sessions', signOutAll: 'Sign out all', revoke: 'Revoke'
+      savePrefs: 'Save preferences', activeSessions: 'Active sessions', signOutAll: 'Sign out all', revoke: 'Revoke',
+      addressRemoved: 'Address removed.', movedToCart: 'Moved to cart.', returnRequested: 'Return requested.',
+      sessionRevoked: 'Session revoked.', allSessionsRevoked: 'All other sessions revoked.', prefsSaved: 'Preferences saved.',
+      codeCopied: 'Referral code copied.', codeApplied: 'Referral code applied.', passwordChanged: 'Password changed. Please sign in again.',
+      giftRedeemed: 'Redeemed {amount} {currency} to your wallet.', pointsRedeemed: 'Redeemed {points} points for {credit} {currency}.',
+      storeAlert: 'Visit a store to see your store-specific orders, addresses, wishlist and rewards.', browseStores: 'Browse stores',
+      loadingOrders: 'Loading orders…', orderNum: 'Order', itemsWord: 'items', noOrdersMsg: 'When you place an order, it will appear here.',
+      loadingAddresses: 'Loading addresses…', defaultLabel: 'Default', setDefault: 'Set default',
+      noAddresses: 'No saved addresses', noAddressesMsg: 'Add an address during checkout and it will be saved here.',
+      loadingWishlist: 'Loading wishlist…', wishlistEmpty: 'Your wishlist is empty', wishlistEmptyMsg: 'Save products you love to buy them later.',
+      loadingReturns: 'Loading returns…', returnLabel: 'Return', refund: 'Refund', noReturns: 'No returns',
+      noReturnsMsg: 'Request a return from any order in your Orders tab.',
+      loadingRewards: 'Loading rewards…', giftCardCode: 'Gift card code', redeem: 'Redeem', pointsPlaceholder: 'Points', walletActivity: 'Wallet activity',
+      loadingDownloads: 'Loading downloads…', digitalItem: 'Digital item', downloadsWord: 'downloads', left: 'left', expires: 'expires',
+      keysLabel: 'Keys', download: 'Download', unavailable: 'Unavailable', noDownloads: 'No downloads', noDownloadsMsg: 'Digital products you purchase will appear here.',
+      loadingReferrals: 'Loading referrals…', inviteFriends: 'Invite friends', referralIntro: 'Share your code — you both earn rewards when they shop.',
+      copy: 'Copy', haveCode: 'Have a referral code?', enterCode: "Enter a friend's code", yourReferrals: 'Your referrals', friend: 'Friend',
+      loadingSessions: 'Loading sessions…', device: 'Device', noSessions: 'No active sessions', noSessionsMsg: 'Sessions from your sign-ins will appear here.',
+      profileEmail: 'Email', returnModalMsg: 'Request a return for the items in this order. Our team will review it.',
+      reason: 'Reason', reasonPlaceholder: 'Why are you returning these items?', submitRequest: 'Submit request', requestReturnTitle: 'Request return'
     },
     auth: {
       signIn: 'Sign in', signInSubtitle: 'Welcome back. Please enter your details.', password: 'Password',
@@ -496,7 +546,17 @@ export default {
       alreadyHave: 'Already have an account?', welcomeBack: 'Welcome back!', accountCreated: 'Account created! Please sign in.',
       passwordsNoMatch: 'Passwords do not match.',
       sellerSignIn: 'Seller sign in', sellerSubtitle: 'Access your store dashboard.',
-      sellerLoginLink: 'Are you a seller or staff? Sign in here', customerLoginLink: 'Back to customer sign in'
+      sellerLoginLink: 'Are you a seller or staff? Sign in here', customerLoginLink: 'Back to customer sign in',
+      backToSignIn: 'Back to sign in', checkEmail: 'Check your email',
+      resetSentMsg: "If an account matches {email}, we've sent a link to reset your password.",
+      forgotSubtitle: "Enter your email and we'll send you a reset link.", sendResetLink: 'Send reset link',
+      resetTitle: 'Reset password', resetSubtitle: 'Choose a new password for your account.', resetToken: 'Reset token',
+      resetTokenPlaceholder: 'Paste the token from your email', resetDone: 'Password reset. You can now sign in.',
+      resetBtn: 'Reset password', newPassword: 'New password', confirmNewPassword: 'Confirm new password',
+      verifying: 'Verifying your email…', emailVerified: 'Email verified!', verifiedMsg: 'Your account is now verified. You can sign in.',
+      verifyFailed: 'Verification failed', linkInvalid: 'The link may be invalid or expired.', resendTo: 'Resend verification to',
+      resendEmailBtn: 'Resend email', verifyTitle: 'Verify your email', verifyPrompt: 'Enter the token from your verification email.',
+      verifyToken: 'Verification token', verifyBtn: 'Verify', resendSuccess: 'If your account needs verification, a new email is on its way.'
     },
     "analyticsPage": {"title":"Analytics","subtitle":"Store activity and event insights.","daysShort":"{n}d","totalEvents":"Total events","orders":"Orders","confirmed":"Confirmed","revenue":"Revenue","when":"When","event":"Event","user":"User","refreshed":"Analytics refreshed.","eventsByType":"Events by type","recentEvents":"Recent events","noEventsYet":"No events recorded yet.","emptyEventsTitle":"No events","emptyEventsMessage":"Activity will be logged here.","guest":"guest"},
     "platformPage": {"store":"Store","currency":"Currency","totalStores":"Total stores","totalProducts":"Total products","categories":"Categories","myStores":"My stores","loadingPlatform":"Loading platform…","adminsOnlyTitle":"Platform admins only","adminsOnlyMessage":"This area is restricted to super-administrators.","backToDashboard":"Back to dashboard","title":"Platform overview","subtitle":"Marketplace-wide view for super-administrators.","djangoAdmin":"Django admin","revenueAcrossStores":"Revenue across my {n} store(s)","ordersAcrossStores":"Orders across my stores","allStoresTitle":"All stores on the platform","emptyStoresTitle":"No stores","emptyStoresMessage":"No active stores on the marketplace yet.","view":"View","manage":"Manage","notAMember":"Not a member","managementNote":"Management is limited to stores you belong to. Use the Django admin for platform-wide user & store administration."},

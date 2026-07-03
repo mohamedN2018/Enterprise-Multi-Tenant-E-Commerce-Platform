@@ -18,9 +18,9 @@ const bg = computed(() => props.image || heroImage('page-header', 1600, 400));
     <div class="container relative text-center text-white">
       <h1 class="font-heading text-3xl font-black uppercase tracking-wide lg:text-4xl">{{ title }}</h1>
       <nav class="mt-3 flex items-center justify-center gap-1.5 text-sm">
-        <RouterLink :to="{ name: 'home' }" class="text-white/80 hover:text-primary-400">Home</RouterLink>
+        <RouterLink :to="{ name: 'home' }" class="text-white/80 hover:text-primary-400">{{ $t('nav.home') }}</RouterLink>
         <template v-for="(item, i) in items" :key="i">
-          <ChevronRight class="h-4 w-4 text-white/50" />
+          <ChevronRight class="h-4 w-4 text-white/50 rtl:rotate-180" />
           <RouterLink v-if="item.to && i < items.length - 1" :to="item.to" class="text-white/80 hover:text-primary-400">{{ item.label }}</RouterLink>
           <span v-else class="text-primary-400">{{ item.label }}</span>
         </template>

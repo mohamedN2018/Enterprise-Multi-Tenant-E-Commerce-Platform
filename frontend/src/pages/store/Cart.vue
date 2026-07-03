@@ -13,6 +13,7 @@ import { useAddToCart } from '@/composables/useAddToCart';
 import { storefront } from '@/services/storefront';
 import { errorMessage } from '@/services/http';
 import { productImage, onImgError } from '@/utils/media';
+import { t } from '@/i18n';
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -45,7 +46,7 @@ const remove = async (item) => {
   busyItem.value = item.id;
   try {
     await cart.removeItem(item.id);
-    ui.success('Item removed.');
+    ui.success(t('cart.itemRemoved'));
   } catch (e) {
     ui.error(errorMessage(e));
   } finally {
@@ -58,7 +59,7 @@ const applyCoupon = async () => {
   couponBusy.value = true;
   try {
     await cart.applyCoupon(coupon.value.trim());
-    ui.success('Coupon applied.');
+    ui.success(t('cart.couponApplied'));
     coupon.value = '';
   } catch (e) {
     ui.error(errorMessage(e));

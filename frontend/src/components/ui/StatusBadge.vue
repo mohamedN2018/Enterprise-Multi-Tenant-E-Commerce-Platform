@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import { t } from '@/i18n';
 
 const props = defineProps({
   status: { type: [String, Boolean], default: '' },
@@ -41,7 +42,14 @@ const map = {
 
 const key = computed(() => String(props.status).toLowerCase());
 const tone = computed(() => tones[map[key.value]] || tones.indigo);
-const text = computed(() => props.label || String(props.status).replace(/_/g, ' '));
+// Prefer an explicit label; otherwise localize the status via the shared
+// status.* namespace, falling back to a humanized value when unknown.
+const text = computed(() => {
+  if (props.label) return props.label;
+  const path = `status.${key.value}`;
+  const tr = t(path);
+  return tr === path ? String(props.status).replace(/_/g, ' ') : tr;
+});
 </script>
 
 <template>

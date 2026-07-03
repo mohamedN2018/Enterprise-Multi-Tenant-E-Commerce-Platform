@@ -33,8 +33,8 @@ const storeName = computed(() => p.value.store?.name || p.value.store_slug);
         <RouterLink :to="to">
           <img :src="img" :alt="p.name" loading="lazy" class="aspect-[4/3] w-full object-cover" @error="onImgError" />
         </RouterLink>
-        <div v-if="onSale" class="corner-badge bg-secondary-500">Sale</div>
-        <div v-else-if="p.is_new" class="corner-badge bg-primary-600">New</div>
+        <div v-if="onSale" class="corner-badge bg-secondary-500">{{ $t('product.sale') }}</div>
+        <div v-else-if="p.is_new" class="corner-badge bg-primary-600">{{ $t('product.new') }}</div>
         <RouterLink :to="to" class="product-eye absolute inset-0 flex items-center justify-center bg-white/20 opacity-0">
           <span class="grid h-12 w-12 place-items-center rounded-full bg-primary-600 text-white transition hover:bg-secondary-500">
             <Eye class="h-5 w-5" />
@@ -67,8 +67,8 @@ const storeName = computed(() => p.value.store?.name || p.value.store_slug);
           <Star v-for="n in 5" :key="n" class="h-4 w-4" :class="n <= rating ? 'fill-primary-600 text-primary-600' : 'text-slate-300'" />
         </div>
         <div class="flex gap-2">
-          <RouterLink :to="{ name: 'products', query: { store: p.store_slug } }" class="grid h-8 w-8 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500" title="More from this store"><Shuffle class="h-3.5 w-3.5" /></RouterLink>
-          <button class="grid h-8 w-8 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500 disabled:opacity-50" title="Save to wishlist" :disabled="wishSaving === p.id" @click="saveWishlist(p)"><Heart class="h-3.5 w-3.5" /></button>
+          <RouterLink :to="{ name: 'products', query: { store: p.store_slug } }" class="grid h-8 w-8 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500" :title="$t('product.moreFromStore')"><Shuffle class="h-3.5 w-3.5" /></RouterLink>
+          <button class="grid h-8 w-8 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500 disabled:opacity-50" :title="$t('product.wishlist')" :disabled="wishSaving === p.id" @click="saveWishlist(p)"><Heart class="h-3.5 w-3.5" /></button>
         </div>
       </div>
     </div>

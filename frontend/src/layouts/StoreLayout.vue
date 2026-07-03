@@ -153,14 +153,14 @@ onMounted(async () => {
         </form>
 
         <div class="ms-auto flex items-center gap-2 lg:gap-3">
-          <RouterLink :to="{ name: 'products' }" class="hidden h-11 w-11 place-items-center rounded-full border border-slate-200 text-ink hover:border-primary-500 hover:text-primary-600 sm:grid" title="Compare">
+          <RouterLink :to="{ name: 'products' }" class="hidden h-11 w-11 place-items-center rounded-full border border-slate-200 text-ink hover:border-primary-500 hover:text-primary-600 sm:grid" :title="t('nav.compare')">
             <Shuffle class="h-4 w-4" />
           </RouterLink>
-          <RouterLink :to="{ name: 'account' }" class="grid h-11 w-11 place-items-center rounded-full border border-slate-200 text-ink hover:border-primary-500 hover:text-primary-600" title="Wishlist">
+          <RouterLink :to="{ name: 'account' }" class="grid h-11 w-11 place-items-center rounded-full border border-slate-200 text-ink hover:border-primary-500 hover:text-primary-600" :title="t('nav.wishlist')">
             <Heart class="h-4 w-4" />
           </RouterLink>
           <div class="relative">
-            <button class="flex items-center gap-2 text-ink hover:text-primary-600" title="Cart" @click="cart.openDrawer()">
+            <button class="flex items-center gap-2 text-ink hover:text-primary-600" :title="t('nav.myCart')" @click="cart.openDrawer()">
               <span class="relative grid h-11 w-11 place-items-center rounded-full border border-slate-200">
                 <ShoppingCart class="h-4 w-4" />
                 <span v-if="cartCount" class="absolute -end-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-secondary-500 px-1 text-[11px] font-bold text-white">{{ cartCount }}</span>
