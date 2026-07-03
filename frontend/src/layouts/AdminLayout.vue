@@ -140,7 +140,7 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
   <div class="min-h-screen bg-slate-100 text-ink dark:!bg-slate-950">
     <!-- Sidebar -->
     <aside
-      class="fixed inset-y-0 start-0 z-40 flex w-64 flex-col border-e border-slate-200 bg-white transition-transform lg:translate-x-0 dark:border-slate-800 dark:bg-slate-900"
+      class="fixed inset-y-0 start-0 z-40 flex w-64 flex-col border-e border-slate-200 bg-white transition-transform lg:!translate-x-0 dark:border-slate-800 dark:bg-slate-900"
       :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'"
     >
       <div class="flex h-16 items-center gap-2 border-b border-slate-100 px-4 dark:border-slate-800">
