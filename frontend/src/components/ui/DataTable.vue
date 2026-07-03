@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-vue-next';
 import EmptyState from './EmptyState.vue';
+import { t } from '@/i18n';
 
 // columns: [{ key, label, align?, width?, class?, sortable? }]
 // Use named slots `cell-<key>` (scope: { row, value }) for custom rendering.
@@ -10,7 +11,7 @@ const props = defineProps({
   rows: { type: Array, default: () => [] },
   rowKey: { type: String, default: 'id' },
   loading: { type: Boolean, default: false },
-  emptyTitle: { type: String, default: 'No records found' },
+  emptyTitle: { type: String, default: '' },
   emptyMessage: { type: String, default: '' },
   clickable: { type: Boolean, default: false },
   selectable: { type: Boolean, default: false },
@@ -62,7 +63,7 @@ const toggleRow = (id) => {
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-slate-100 bg-slate-50/70 text-left text-xs uppercase tracking-wide text-slate-500">
+          <tr class="border-b border-slate-100 bg-slate-50/70 text-start text-xs uppercase tracking-wide text-slate-500">
             <th v-if="selectable" class="w-10 px-4 py-3">
               <input type="checkbox" :checked="allSelected" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" @change="toggleAll" />
             </th>
@@ -70,7 +71,7 @@ const toggleRow = (id) => {
               v-for="col in columns"
               :key="col.key"
               class="whitespace-nowrap px-4 py-3 font-semibold"
-              :class="[col.align === 'right' ? 'text-right' : '', col.class, col.sortable ? 'cursor-pointer select-none hover:text-ink' : '']"
+              :class="[col.align === 'right' ? 'text-end' : '', col.class, col.sortable ? 'cursor-pointer select-none hover:text-ink' : '']"
               :style="col.width ? { width: col.width } : null"
               @click="toggleSort(col)"
             >
@@ -109,7 +110,7 @@ const toggleRow = (id) => {
                 v-for="col in columns"
                 :key="col.key"
                 class="px-4 py-3 align-middle"
-                :class="[col.align === 'right' ? 'text-right' : '', col.cellClass]"
+                :class="[col.align === 'right' ? 'text-end' : '', col.cellClass]"
               >
                 <slot :name="`cell-${col.key}`" :row="row" :value="value(row, col.key)">
                   {{ value(row, col.key) ?? '—' }}
@@ -121,7 +122,7 @@ const toggleRow = (id) => {
       </table>
     </div>
     <div v-if="!loading && !rows.length" class="p-4">
-      <EmptyState :title="emptyTitle" :message="emptyMessage" />
+      <EmptyState :title="emptyTitle || t('common.noResults')" :message="emptyMessage" />
     </div>
   </div>
 </template>

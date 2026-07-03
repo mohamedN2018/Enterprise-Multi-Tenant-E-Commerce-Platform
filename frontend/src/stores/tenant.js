@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { activeStore, apiGet } from '@/services/http';
+import { t } from '@/i18n';
 import { useAuthStore } from './auth';
 
 // Roles that may write store data / manage members, mirroring the backend:
@@ -7,13 +8,6 @@ import { useAuthStore } from './auth';
 //   team management (change role / remove) & store deletion   → owner only
 const WRITE_ROLES = ['owner', 'manager', 'platform'];
 const OWNER_ROLES = ['owner', 'platform'];
-
-const ROLE_LABELS = {
-  platform: 'Platform Admin',
-  owner: 'Owner',
-  manager: 'Manager',
-  employee: 'Employee'
-};
 
 // The admin's member stores, the selected one (X-Store-Id), and the caller's
 // role within it (drives permission-gated UI).
@@ -34,7 +28,7 @@ export const useTenantStore = defineStore('tenant', {
     canManageMembers: (s) => WRITE_ROLES.includes(s.role), // view + add
     canAdminTeam: (s) => OWNER_ROLES.includes(s.role), // change role / remove
     canDeleteStore: (s) => OWNER_ROLES.includes(s.role),
-    roleLabel: (s) => ROLE_LABELS[s.role] || 'Member'
+    roleLabel: (s) => (s.role ? t(`roles.${s.role}`) : t('roles.member'))
   },
   actions: {
     async refresh() {

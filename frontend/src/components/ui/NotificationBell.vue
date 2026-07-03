@@ -59,21 +59,21 @@ onBeforeUnmount(() => timer && clearInterval(timer));
 
 <template>
   <div class="relative">
-    <button class="relative grid h-10 w-10 place-items-center rounded-lg text-ink hover:bg-lightbg" @click="toggle" aria-label="Notifications">
+    <button class="relative grid h-10 w-10 place-items-center rounded-lg text-ink hover:bg-lightbg" @click="toggle" :aria-label="$t('notificationsPage.title')">
       <Bell class="h-5 w-5" />
-      <span v-if="unread" class="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-secondary-500 px-1 text-[11px] font-bold text-white">
+      <span v-if="unread" class="absolute -end-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-secondary-500 px-1 text-[11px] font-bold text-white">
         {{ unread > 9 ? '9+' : unread }}
       </span>
     </button>
 
     <div v-if="open" class="fixed inset-0 z-30" @click="open = false"></div>
-    <div v-if="open" class="absolute right-0 z-40 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-pop">
+    <div v-if="open" class="absolute end-0 z-40 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-pop">
       <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <p class="font-heading font-semibold text-ink">Notifications</p>
-        <button v-if="unread" class="text-xs font-medium text-primary-600 hover:underline" @click="markAll"><CheckCheck class="mr-1 inline h-3.5 w-3.5" />Mark all read</button>
+        <p class="font-heading font-semibold text-ink">{{ $t('notificationsPage.title') }}</p>
+        <button v-if="unread" class="text-xs font-medium text-primary-600 hover:underline" @click="markAll"><CheckCheck class="me-1 inline h-3.5 w-3.5" />{{ $t('notificationsPage.markAllRead') }}</button>
       </div>
       <div class="max-h-80 overflow-y-auto">
-        <p v-if="loading" class="px-4 py-6 text-center text-sm text-muted">Loading…</p>
+        <p v-if="loading" class="px-4 py-6 text-center text-sm text-muted">{{ $t('common.loading') }}</p>
         <template v-else-if="items.length">
           <RouterLink
             v-for="n in items"
@@ -92,10 +92,10 @@ onBeforeUnmount(() => timer && clearInterval(timer));
             </div>
           </RouterLink>
         </template>
-        <p v-else class="px-4 py-6 text-center text-sm text-muted">You're all caught up.</p>
+        <p v-else class="px-4 py-6 text-center text-sm text-muted">{{ $t('notificationsPage.allCaughtUp') }}</p>
       </div>
       <RouterLink :to="{ name: 'admin-notifications' }" class="block border-t border-slate-100 px-4 py-2.5 text-center text-sm font-medium text-primary-600 hover:bg-lightbg" @click="open = false">
-        View all notifications
+        {{ $t('notificationsPage.viewAll') }}
       </RouterLink>
     </div>
   </div>

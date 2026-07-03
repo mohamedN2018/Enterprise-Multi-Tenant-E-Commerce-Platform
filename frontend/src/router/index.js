@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { t } from '@/i18n';
 
 // Layouts are eager (small, always needed); pages are lazy for route-splitting.
 import StoreLayout from '@/layouts/StoreLayout.vue';
@@ -139,54 +140,55 @@ const router = createRouter({
   }
 });
 
-// Dynamic document titles.
-const TITLES = {
-  home: 'Home',
-  stores: 'Stores',
-  store: 'Store',
-  products: 'Shop',
-  support: 'Support',
-  product: 'Product',
-  cart: 'Cart',
-  checkout: 'Checkout',
-  'order-confirmation': 'Order Confirmation',
-  account: 'My Account',
-  login: 'Sign in',
-  'seller-login': 'Seller sign in',
-  register: 'Register',
-  'forgot-password': 'Forgot password',
-  'reset-password': 'Reset password',
-  'verify-email': 'Verify email',
-  'admin-dashboard': 'Dashboard',
-  'admin-platform': 'Platform',
-  'admin-analytics': 'Analytics',
-  'admin-products': 'Products',
-  'admin-categories': 'Categories',
-  'admin-brands': 'Brands',
-  'admin-attributes': 'Attributes',
-  'admin-orders': 'Orders',
-  'admin-order-detail': 'Order',
-  'admin-inventory': 'Inventory',
-  'admin-shipping': 'Shipping',
-  'admin-returns': 'Returns',
-  'admin-promotions': 'Promotions',
-  'admin-campaigns': 'Campaigns',
-  'admin-giftcards': 'Gift cards',
-  'admin-reviews': 'Reviews',
-  'admin-payments': 'Payments',
-  'admin-payouts': 'Payouts',
-  'admin-finance': 'Finance',
-  'admin-pricing': 'Pricing',
-  'admin-procurement': 'Procurement',
-  'admin-fraud': 'Fraud',
-  'admin-notifications': 'Notifications',
-  'admin-team': 'Team',
-  'admin-settings': 'Settings',
-  'not-found': 'Not found'
+// Dynamic document titles — resolved through i18n so the tab follows the locale.
+const TITLE_KEYS = {
+  home: 'nav.home',
+  stores: 'stores.title',
+  store: 'nav.stores',
+  products: 'shop.title',
+  support: 'support.title',
+  product: 'product.shopDetail',
+  cart: 'cart.title',
+  checkout: 'checkout.title',
+  'order-confirmation': 'order.confirmation',
+  account: 'account.title',
+  login: 'auth.signIn',
+  'seller-login': 'auth.sellerSignIn',
+  register: 'auth.createAccount',
+  'forgot-password': 'auth.forgotPassword',
+  'reset-password': 'auth.resetTitle',
+  'verify-email': 'auth.verifyTitle',
+  'admin-dashboard': 'admin.dashboard',
+  'admin-platform': 'admin.platform',
+  'admin-analytics': 'admin.analytics',
+  'admin-products': 'admin.products',
+  'admin-categories': 'admin.categories',
+  'admin-brands': 'admin.brands',
+  'admin-attributes': 'admin.attributes',
+  'admin-orders': 'admin.orders',
+  'admin-order-detail': 'orderDetailPage.title',
+  'admin-inventory': 'admin.inventory',
+  'admin-shipping': 'admin.shipping',
+  'admin-returns': 'admin.returns',
+  'admin-promotions': 'admin.promotions',
+  'admin-campaigns': 'admin.campaigns',
+  'admin-giftcards': 'admin.giftCards',
+  'admin-reviews': 'admin.reviews',
+  'admin-payments': 'admin.payments',
+  'admin-payouts': 'admin.payouts',
+  'admin-finance': 'admin.finance',
+  'admin-pricing': 'admin.pricing',
+  'admin-procurement': 'admin.procurement',
+  'admin-fraud': 'admin.fraud',
+  'admin-notifications': 'admin.notifications',
+  'admin-team': 'admin.team',
+  'admin-settings': 'admin.settings',
+  'not-found': 'common.pageNotFound'
 };
 router.afterEach((to) => {
-  const t = TITLES[to.name];
-  document.title = t ? `${t} · q-shop` : 'q-shop Marketplace';
+  const key = TITLE_KEYS[to.name];
+  const label = key ? t(key) : '';
+  document.title = label ? `${label} · q-shop` : 'q-shop';
 });
 
 router.beforeEach(async (to) => {

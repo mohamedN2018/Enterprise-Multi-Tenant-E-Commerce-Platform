@@ -190,7 +190,7 @@ onMounted(async () => {
               <span>{{ c.name }}</span>
               <span class="text-xs opacity-70">({{ c.product_count }})</span>
             </button>
-            <p v-if="!categories.length" class="px-4 py-3 text-sm text-muted">No categories</p>
+            <p v-if="!categories.length" class="px-4 py-3 text-sm text-muted">{{ t('categoriesPage.noCategories') }}</p>
           </div>
         </div>
 

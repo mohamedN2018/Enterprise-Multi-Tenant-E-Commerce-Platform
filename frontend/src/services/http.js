@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { t } from '@/i18n';
 
 const BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -95,7 +96,7 @@ export const errorMessage = (err) => {
     if (Array.isArray(first) && first.length) return String(first[0]);
     if (typeof first === 'string') return first;
   }
-  return body?.message || err?.message || 'Something went wrong.';
+  return body?.message || err?.message || t('common.somethingWrong');
 };
 
 export default http;

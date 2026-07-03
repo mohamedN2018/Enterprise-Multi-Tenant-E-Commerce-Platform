@@ -37,12 +37,12 @@ const go = (n) => {
 <template>
   <div class="flex flex-col items-center justify-between gap-3 sm:flex-row">
     <p class="text-sm text-slate-500">
-      Showing <span class="font-medium text-ink">{{ from }}</span>–<span class="font-medium text-ink">{{ to }}</span>
-      of <span class="font-medium text-ink">{{ total }}</span>
+      {{ $t('common.showingPrefix') }} <span class="font-medium text-ink">{{ from }}</span>–<span class="font-medium text-ink">{{ to }}</span>
+      {{ $t('common.showingOf') }} <span class="font-medium text-ink">{{ total }}</span>
     </p>
     <nav class="flex items-center gap-1">
       <button class="btn btn-light btn-sm" :disabled="page <= 1" @click="go(page - 1)">
-        <ChevronLeft class="h-4 w-4" />
+        <ChevronLeft class="h-4 w-4 rtl:rotate-180" />
       </button>
       <template v-for="(p, i) in window" :key="i">
         <span v-if="p === '…'" class="px-2 text-slate-400">…</span>
@@ -56,7 +56,7 @@ const go = (n) => {
         </button>
       </template>
       <button class="btn btn-light btn-sm" :disabled="page >= pages" @click="go(page + 1)">
-        <ChevronRight class="h-4 w-4" />
+        <ChevronRight class="h-4 w-4 rtl:rotate-180" />
       </button>
     </nav>
   </div>
