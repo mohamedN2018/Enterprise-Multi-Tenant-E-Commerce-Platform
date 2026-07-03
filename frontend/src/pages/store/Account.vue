@@ -38,6 +38,7 @@ import { useUiStore } from '@/stores/ui';
 import { shop } from '@/services/shop';
 import { apiPost, errorMessage } from '@/services/http';
 import { productImage, onImgError } from '@/utils/media';
+import { useValidation, required, min, sameAs } from '@/utils/validators';
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -352,7 +353,16 @@ const applyReferral = async () => {
 // --- Security -------------------------------------------------------------
 const pwd = ref({ current_password: '', new_password: '', new_password_confirm: '' });
 const pwdBusy = ref(false);
+const { errors: pwdErrors, run: runPwd, clear: clearPwd } = useValidation(
+  () => pwd.value,
+  () => ({
+    current_password: [required()],
+    new_password: [min(8)],
+    new_password_confirm: [sameAs(() => pwd.value.new_password)]
+  })
+);
 const changePassword = async () => {
+  if (!runPwd()) return;
   pwdBusy.value = true;
   try {
     await apiPost('/auth/password/change/', pwd.value);
@@ -700,10 +710,10 @@ onMounted(() => {
         <!-- Security -->
         <section v-else-if="tab === 'security'" class="card max-w-lg p-6">
           <h2 class="section-title mb-4">{{ $t('account.changePassword') }}</h2>
-          <form class="space-y-4" @submit.prevent="changePassword">
-            <FormField v-model="pwd.current_password" :label="$t('account.currentPassword')" type="password" autocomplete="current-password" required />
-            <FormField v-model="pwd.new_password" :label="$t('account.newPassword')" type="password" autocomplete="new-password" required />
-            <FormField v-model="pwd.new_password_confirm" :label="$t('account.confirmPassword')" type="password" autocomplete="new-password" required />
+          <form class="space-y-4" novalidate @submit.prevent="changePassword">
+            <FormField v-model="pwd.current_password" :label="$t('account.currentPassword')" type="password" autocomplete="current-password" :error="pwdErrors.current_password" @update:model-value="clearPwd('current_password')" />
+            <FormField v-model="pwd.new_password" :label="$t('account.newPassword')" type="password" autocomplete="new-password" :error="pwdErrors.new_password" @update:model-value="clearPwd('new_password')" />
+            <FormField v-model="pwd.new_password_confirm" :label="$t('account.confirmPassword')" type="password" autocomplete="new-password" :error="pwdErrors.new_password_confirm" @update:model-value="clearPwd('new_password_confirm')" />
             <button type="submit" class="btn btn-primary" :disabled="pwdBusy">
               <Spinner v-if="pwdBusy" :size="18" /><span v-else>{{ $t('account.updatePassword') }}</span>
             </button>

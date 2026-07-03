@@ -15,6 +15,7 @@ import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
 import { t } from '@/i18n';
+import { useValidation, required, iso2 } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -34,8 +35,13 @@ const dashboardComponent = computed(() => {
 const showCreate = ref(false);
 const creating = ref(false);
 const form = ref({ name: '', currency: 'USD', country: '', description: '' });
+const { errors, run, clear } = useValidation(
+  () => form.value,
+  { name: [required()], country: [iso2({ optional: true })] }
+);
 
 const createStore = async () => {
+  if (!run()) return;
   creating.value = true;
   try {
     const res = await seller.createStore(form.value);
@@ -85,11 +91,11 @@ onMounted(async () => {
 
     <!-- Open store modal (contracted sellers) -->
     <Modal v-model="showCreate" :title="$t('admin.openStore')">
-      <form id="create-store" class="grid gap-4" @submit.prevent="createStore">
-        <FormField v-model="form.name" :label="$t('admin.storeName')" placeholder="Acme Supplies" required />
+      <form id="create-store" class="grid gap-4" novalidate @submit.prevent="createStore">
+        <FormField v-model="form.name" :label="$t('admin.storeName')" placeholder="Acme Supplies" :error="errors.name" @update:model-value="clear('name')" />
         <div class="grid grid-cols-2 gap-4">
           <FormField v-model="form.currency" :label="$t('admin.currency')" placeholder="USD" maxlength="3" />
-          <FormField v-model="form.country" :label="$t('admin.countryIso')" placeholder="US" maxlength="2" />
+          <FormField v-model="form.country" :label="$t('admin.countryIso')" placeholder="US" maxlength="2" :error="errors.country" @update:model-value="clear('country')" />
         </div>
         <FormField v-model="form.description" :label="$t('common.description')" :placeholder="$t('admin.whatSell')" />
       </form>

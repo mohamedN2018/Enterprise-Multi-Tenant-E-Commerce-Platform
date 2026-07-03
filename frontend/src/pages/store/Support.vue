@@ -19,6 +19,7 @@ import FormField from '@/components/ui/FormField.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
+import { useValidation, required, email } from '@/utils/validators';
 
 const ui = useUiStore();
 
@@ -52,7 +53,12 @@ const filteredFaqs = computed(() => {
 const toggle = (i) => (openIndex.value = openIndex.value === i ? -1 : i);
 
 const form = ref({ name: '', email: '', subject: '', message: '' });
+const { errors, run, clear } = useValidation(
+  () => form.value,
+  { name: [required()], email: [email()], subject: [required()], message: [required()] }
+);
 const submit = () => {
+  if (!run()) return;
   const body = `${form.value.message}\n\n— ${form.value.name} (${form.value.email})`;
   const href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(form.value.subject)}&body=${encodeURIComponent(body)}`;
   window.location.href = href;
@@ -141,13 +147,14 @@ const submit = () => {
           <div class="card p-5">
             <h3 class="font-heading font-semibold text-ink">{{ $t('support.contactTitle') }}</h3>
             <p class="mt-1 text-sm text-muted">{{ $t('support.contactSubtitle') }}</p>
-            <form class="mt-4 space-y-3" @submit.prevent="submit">
-              <FormField v-model="form.name" :label="$t('support.yourName')" required />
-              <FormField v-model="form.email" :label="$t('common.email')" type="email" placeholder="you@example.com" required />
-              <FormField v-model="form.subject" :label="$t('support.subject')" required />
+            <form class="mt-4 space-y-3" novalidate @submit.prevent="submit">
+              <FormField v-model="form.name" :label="$t('support.yourName')" :error="errors.name" @update:model-value="clear('name')" />
+              <FormField v-model="form.email" :label="$t('common.email')" type="email" placeholder="you@example.com" :error="errors.email" @update:model-value="clear('email')" />
+              <FormField v-model="form.subject" :label="$t('support.subject')" :error="errors.subject" @update:model-value="clear('subject')" />
               <div>
                 <label class="label">{{ $t('support.message') }}</label>
-                <textarea v-model="form.message" rows="4" class="input" required></textarea>
+                <textarea v-model="form.message" rows="4" class="input" :class="errors.message ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : ''" @input="clear('message')"></textarea>
+                <p v-if="errors.message" class="mt-1 text-xs text-rose-600">{{ errors.message }}</p>
               </div>
               <button type="submit" class="btn btn-primary w-full"><Send class="h-4 w-4" /> {{ $t('support.send') }}</button>
               <p class="text-center text-xs text-slate-400">{{ $t('support.responseTime') }}</p>

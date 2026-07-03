@@ -10,6 +10,7 @@ import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
 import { t } from '@/i18n';
+import { useValidation, url, required } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -27,6 +28,10 @@ const savingSettings = ref(false);
 const pos = ref({ enabled: false, provider: '', endpoint: '', api_key: '', last_synced: null });
 const posBusy = ref(false);
 const importing = ref(false);
+const { errors: posErrors, run: runPos, clear: clearPos } = useValidation(
+  () => pos.value,
+  { endpoint: [url()], api_key: [required()] }
+);
 
 const load = async () => {
   loading.value = true;
@@ -62,6 +67,7 @@ const persistPos = async () => {
 };
 
 const connectPos = async () => {
+  if (!runPos()) return;
   posBusy.value = true;
   try {
     pos.value.enabled = true;
@@ -253,8 +259,8 @@ onMounted(load);
 
         <div class="grid gap-4 sm:grid-cols-2">
           <FormField v-model="pos.provider" :label="$t('admin.posProvider')" placeholder="q-shop POS" :disabled="!tenant.canWrite" />
-          <FormField v-model="pos.endpoint" :label="$t('admin.posEndpoint')" :hint="$t('admin.posEndpointHint')" placeholder="https://pos.example.com/api" :disabled="!tenant.canWrite" />
-          <FormField v-model="pos.api_key" :label="$t('admin.posApiKey')" type="password" placeholder="••••••••" :disabled="!tenant.canWrite" class="sm:col-span-2" />
+          <FormField v-model="pos.endpoint" :label="$t('admin.posEndpoint')" :hint="$t('admin.posEndpointHint')" placeholder="https://pos.example.com/api" :disabled="!tenant.canWrite" :error="posErrors.endpoint" @update:model-value="clearPos('endpoint')" />
+          <FormField v-model="pos.api_key" :label="$t('admin.posApiKey')" type="password" placeholder="••••••••" :disabled="!tenant.canWrite" class="sm:col-span-2" :error="posErrors.api_key" @update:model-value="clearPos('api_key')" />
         </div>
 
         <div v-if="pos.last_synced" class="mt-3 text-xs text-muted">

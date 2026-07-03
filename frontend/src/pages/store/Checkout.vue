@@ -11,6 +11,7 @@ import { useUiStore } from '@/stores/ui';
 import { shop } from '@/services/shop';
 import { errorMessage } from '@/services/http';
 import { t } from '@/i18n';
+import { useValidation, required, iso2 } from '@/utils/validators';
 
 const router = useRouter();
 const cart = useCartStore();
@@ -56,7 +57,19 @@ const loadAddresses = async () => {
   }
 };
 
+const { errors, run, clear } = useValidation(
+  () => form.value,
+  {
+    full_name: [required()],
+    line1: [required()],
+    city: [required()],
+    postal_code: [required()],
+    country: [iso2()]
+  }
+);
+
 const saveAddress = async () => {
+  if (!run()) return;
   savingAddress.value = true;
   try {
     const res = await shop.createAddress(cart.headers, form.value);
@@ -154,14 +167,14 @@ onMounted(async () => {
             </label>
           </div>
 
-          <form v-if="showForm" class="mt-4 grid gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2" @submit.prevent="saveAddress">
-            <FormField v-model="form.full_name" :label="$t('checkout.fullName')" required class="sm:col-span-2" />
-            <FormField v-model="form.line1" :label="$t('checkout.line1')" required class="sm:col-span-2" />
+          <form v-if="showForm" class="mt-4 grid gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2" novalidate @submit.prevent="saveAddress">
+            <FormField v-model="form.full_name" :label="$t('checkout.fullName')" :error="errors.full_name" class="sm:col-span-2" @update:model-value="clear('full_name')" />
+            <FormField v-model="form.line1" :label="$t('checkout.line1')" :error="errors.line1" class="sm:col-span-2" @update:model-value="clear('line1')" />
             <FormField v-model="form.line2" :label="$t('checkout.line2')" />
-            <FormField v-model="form.city" :label="$t('common.city')" required />
+            <FormField v-model="form.city" :label="$t('common.city')" :error="errors.city" @update:model-value="clear('city')" />
             <FormField v-model="form.region" :label="$t('checkout.region')" />
-            <FormField v-model="form.postal_code" :label="$t('checkout.postal')" required />
-            <FormField v-model="form.country" :label="$t('common.country')" maxlength="2" placeholder="US" required />
+            <FormField v-model="form.postal_code" :label="$t('checkout.postal')" :error="errors.postal_code" @update:model-value="clear('postal_code')" />
+            <FormField v-model="form.country" :label="$t('common.country')" maxlength="2" placeholder="US" :error="errors.country" @update:model-value="clear('country')" />
             <FormField v-model="form.phone" :label="$t('common.phone')" />
             <div class="sm:col-span-2">
               <button type="submit" class="btn btn-primary btn-sm" :disabled="savingAddress">

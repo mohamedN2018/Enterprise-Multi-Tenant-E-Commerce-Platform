@@ -12,6 +12,7 @@ import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
 import { t } from '@/i18n';
+import { useValidation, email } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -62,12 +63,13 @@ const load = async () => {
 const showInvite = ref(false);
 const inviting = ref(false);
 const form = ref({ email: '', role: 'employee' });
+const { errors, run, clear } = useValidation(() => form.value, { email: [email()] });
 
 // Block adding an employee past the agreed cap (client-side guard).
 const inviteBlocked = computed(() => form.value.role === 'employee' && limitReached.value);
 
 const invite = async () => {
-  if (inviteBlocked.value) return;
+  if (inviteBlocked.value || !run()) return;
   inviting.value = true;
   try {
     await seller.addMember(storeId.value, form.value);
@@ -186,8 +188,8 @@ onMounted(load);
     </DataTable>
 
     <Modal v-model="showInvite" :title="$t('team.addTeamMember')">
-      <form id="invite-form" class="grid gap-4" @submit.prevent="invite">
-        <FormField v-model="form.email" :label="$t('team.emailAddress')" type="email" placeholder="teammate@example.com" required />
+      <form id="invite-form" class="grid gap-4" novalidate @submit.prevent="invite">
+        <FormField v-model="form.email" :label="$t('team.emailAddress')" type="email" placeholder="teammate@example.com" :error="errors.email" @update:model-value="clear('email')" />
         <div>
           <label class="label">{{ $t('team.role') }}</label>
           <select v-model="form.role" class="input">

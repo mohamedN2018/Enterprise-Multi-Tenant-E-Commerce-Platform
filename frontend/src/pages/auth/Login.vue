@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
 import { errorMessage } from '@/services/http';
 import { t } from '@/i18n';
+import { useValidation, email, required } from '@/utils/validators';
 
 const route = useRoute();
 const router = useRouter();
@@ -22,8 +23,14 @@ const form = ref({ email: '', password: '' });
 const loading = ref(false);
 const error = ref('');
 
+const { errors, run, clear } = useValidation(
+  () => form.value,
+  { email: [email()], password: [required()] }
+);
+
 const submit = async () => {
   error.value = '';
+  if (!run()) return;
   loading.value = true;
   try {
     await auth.login(form.value.email, form.value.password);
@@ -51,14 +58,15 @@ const submit = async () => {
       {{ error }}
     </div>
 
-    <form class="mt-6 space-y-4" @submit.prevent="submit">
+    <form class="mt-6 space-y-4" novalidate @submit.prevent="submit">
       <FormField
         v-model="form.email"
         :label="$t('common.email')"
         type="email"
         placeholder="you@example.com"
         autocomplete="email"
-        required
+        :error="errors.email"
+        @update:model-value="clear('email')"
       />
       <FormField
         v-model="form.password"
@@ -66,7 +74,8 @@ const submit = async () => {
         type="password"
         placeholder="••••••••"
         autocomplete="current-password"
-        required
+        :error="errors.password"
+        @update:model-value="clear('password')"
       />
       <div class="text-end">
         <RouterLink :to="{ name: 'forgot-password' }" class="text-sm font-medium text-primary-600 hover:underline">{{ $t('auth.forgotPassword') }}</RouterLink>

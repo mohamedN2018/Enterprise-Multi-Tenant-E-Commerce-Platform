@@ -18,6 +18,12 @@ export default {
       sku: 'SKU', stock: 'المخزون', close: 'إغلاق', cannotUndo: 'لا يمكن التراجع عن هذا الإجراء.',
       somethingWrong: 'حدث خطأ ما. حاول مرة أخرى.', showingPrefix: 'عرض', showingOf: 'من'
     },
+    valid: {
+      required: 'هذا الحقل مطلوب', email: 'أدخل بريدًا إلكترونيًا صحيحًا', min: 'يجب ألا يقل عن {n} أحرف',
+      max: 'يجب ألا يزيد عن {n} حرفًا', match: 'القيمتان غير متطابقتين', url: 'أدخل رابطًا صحيحًا يبدأ بـ http/https',
+      iso2: 'أدخل رمز دولة من حرفين (مثل US)', number: 'أدخل رقمًا صحيحًا', numberMin: 'يجب ألا يقل عن {n}',
+      positive: 'أدخل قيمة أكبر من صفر', phone: 'أدخل رقم هاتف صحيح', fixErrors: 'يرجى تصحيح الحقول المميّزة.'
+    },
     nav: {
       home: 'الرئيسية', shop: 'المتجر', stores: 'المتاجر', account: 'حسابي', help: 'مساعدة',
       support: 'الدعم', contact: 'تواصل معنا', callUs: 'اتصل بنا', myAccount: 'حسابي',
@@ -351,6 +357,12 @@ export default {
       deleteSelected: 'Delete selected', saveChanges: 'Save changes', physical: 'Physical', digital: 'Digital',
       sku: 'SKU', stock: 'Stock', close: 'Close', cannotUndo: 'This action cannot be undone.',
       somethingWrong: 'Something went wrong. Please try again.', showingPrefix: 'Showing', showingOf: 'of'
+    },
+    valid: {
+      required: 'This field is required', email: 'Enter a valid email address', min: 'Must be at least {n} characters',
+      max: 'Must be at most {n} characters', match: 'Values do not match', url: 'Enter a valid URL starting with http/https',
+      iso2: 'Enter a 2-letter country code (e.g. US)', number: 'Enter a valid number', numberMin: 'Must be at least {n}',
+      positive: 'Enter a value greater than zero', phone: 'Enter a valid phone number', fixErrors: 'Please fix the highlighted fields.'
     },
     nav: {
       home: 'Home', shop: 'Shop', stores: 'Stores', account: 'Account', help: 'Help', support: 'Support',
