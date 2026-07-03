@@ -55,16 +55,30 @@ Backend routes (proxied through the frontend, or reachable internally):
 `/api/v1/` · `/api/docs/` (Swagger) · `/health/` · `/django-admin/` (Django admin;
 the React seller console is at `/admin`).
 
-## Local development (hot-reload)
+## Local development
+
+**Database:** development settings use **SQLite** by default (a `backend/db.sqlite3`
+file — no DB server to run), while production uses **PostgreSQL** via `DATABASE_URL`.
+
+Simplest local setup (SQLite, no Docker, no Redis — Celery runs inline):
 
 ```bash
-cp .env.example .env          # for dev you may set DJANGO_SETTINGS_MODULE=config.settings.development
-docker compose -f docker-compose.dev.yml up --build
-# backend → http://localhost:8000   frontend (Vite) → http://localhost:3000
+cd backend
+cp .env.example .env           # keep DATABASE_URL commented out → SQLite
+pip install -r requirements/development.txt
+python manage.py migrate
+python manage.py seed_demo     # demo data (works with DEBUG=True; no --force needed)
+python manage.py runserver     # http://localhost:8000  (settings default to development)
+# in another shell:
+cd frontend && npm install && npm run start   # Vite → http://localhost:3000
 ```
 
-Without Docker: run the backend from `backend/` (`pip install -r requirements/development.txt`,
-`python manage.py migrate runserver`) and the frontend from `frontend/` (`npm install && npm run start`).
+Prefer Postgres locally? Either set `DATABASE_URL=postgres://…` in `backend/.env`, or
+run the full containerised dev stack (hot-reload, bundled Postgres/Redis):
+
+```bash
+docker compose -f docker-compose.dev.yml up --build
+```
 
 ## Deploy on Dokploy
 
