@@ -25,14 +25,16 @@ export default {
       positive: 'أدخل قيمة أكبر من صفر', phone: 'أدخل رقم هاتف صحيح', fixErrors: 'يرجى تصحيح الحقول المميّزة.'
     },
     nav: {
-      home: 'الرئيسية', shop: 'المتجر', stores: 'المتاجر', account: 'حسابي', help: 'مساعدة',
-      support: 'الدعم', contact: 'تواصل معنا', callUs: 'اتصل بنا', myAccount: 'حسابي',
+      home: 'الرئيسية', shop: 'المتجر', stores: 'المتاجر', account: 'حسابي', help: 'مركز المساعدة',
+      deals: 'العروض', trackOrder: 'تتبّع طلبك',
+      support: 'الدعم', contact: 'راسلنا', callUs: 'اتصل بنا', myAccount: 'حسابي',
       login: 'تسجيل الدخول', register: 'إنشاء حساب', logout: 'تسجيل الخروج', dashboard: 'لوحة التحكم',
       myCart: 'سلتي', allCategories: 'كل الأقسام', wishlist: 'المفضلة', compare: 'مقارنة',
       searchPlaceholder: 'ابحث عن منتج…', yourCart: 'سلتك', viewCart: 'عرض السلة', checkout: 'الدفع',
       cartEmpty: 'سلتك فارغة.', menu: 'القائمة', categories: 'الأقسام',
       seeAllResults: 'عرض كل النتائج لـ «{q}»', noSearchResults: 'لا توجد نتائج مطابقة', searchHint: 'اكتب حرفين على الأقل للبحث'
     },
+    prefs: { title: 'التفضيلات', subtitle: 'اختر لغة الواجهة ومظهرها.', language: 'اللغة' },
     home: {
       heroBadge: 'أهلاً بك في q-shop', heroTitle: 'كل ما تحب، من', heroHighlight: 'متاجر مستقلة',
       heroSubtitle: 'تسوّق آلاف المنتجات في الإلكترونيات والأزياء والمنزل وأكثر — سلة واحدة، دفع آمن، وتوصيل سريع من بائعين موثوقين.',
@@ -393,13 +395,15 @@ export default {
       positive: 'Enter a value greater than zero', phone: 'Enter a valid phone number', fixErrors: 'Please fix the highlighted fields.'
     },
     nav: {
-      home: 'Home', shop: 'Shop', stores: 'Stores', account: 'Account', help: 'Help', support: 'Support',
+      home: 'Home', shop: 'Shop', stores: 'Stores', account: 'Account', help: 'Help Center', support: 'Support',
+      deals: 'Deals', trackOrder: 'Track order',
       contact: 'Contact', callUs: 'Call Us', myAccount: 'My Account', login: 'Login', register: 'Register',
       logout: 'Log Out', dashboard: 'Dashboard', myCart: 'My Cart', allCategories: 'All Categories',
       wishlist: 'Wishlist', compare: 'Compare', searchPlaceholder: 'Search Looking For?', yourCart: 'Your cart',
       viewCart: 'View cart', checkout: 'Checkout', cartEmpty: 'Your cart is empty.', menu: 'Menu', categories: 'Categories',
       seeAllResults: 'See all results for “{q}”', noSearchResults: 'No matching results', searchHint: 'Type at least 2 characters to search'
     },
+    prefs: { title: 'Preferences', subtitle: 'Choose your interface language and appearance.', language: 'Language' },
     home: {
       heroBadge: 'Welcome to q-shop', heroTitle: 'Everything you love, from', heroHighlight: 'independent stores',
       heroSubtitle: 'Shop thousands of products across electronics, fashion, home and more — one cart, secure checkout, and fast delivery from verified sellers.',

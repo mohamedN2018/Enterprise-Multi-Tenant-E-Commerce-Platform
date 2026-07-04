@@ -5,6 +5,7 @@ import PageHeader from '@/components/ui/PageHeader.vue';
 import FormField from '@/components/ui/FormField.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import PreferencesCard from '@/components/PreferencesCard.vue';
 import { useTenantStore } from '@/stores/tenant';
 import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
@@ -150,6 +151,9 @@ onMounted(load);
         <span v-if="!tenant.canWrite" class="chip border-slate-200 bg-slate-100 text-slate-600">{{ $t('common.readOnly') }}</span>
       </template>
     </PageHeader>
+
+    <!-- User preferences (language + theme) — always available, store-independent. -->
+    <PreferencesCard class="mb-6" />
 
     <div v-if="loading" class="flex min-h-[40vh] items-center justify-center">
       <Spinner :size="28" :label="$t('settingsPage.loading')" />

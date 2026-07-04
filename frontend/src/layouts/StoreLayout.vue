@@ -19,9 +19,9 @@ import {
   Linkedin,
   Mail,
   MapPin,
-  Sun,
-  Moon,
-  Languages
+  LifeBuoy,
+  Truck,
+  Tag
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useCartStore } from '@/stores/cart';
@@ -34,8 +34,12 @@ import SearchBox from '@/components/SearchBox.vue';
 const router = useRouter();
 const auth = useAuthStore();
 const cart = useCartStore();
-const { t, locale, setLocale } = useI18n();
-const { theme, toggleTheme } = useTheme();
+const { t } = useI18n();
+const { theme } = useTheme();
+
+// Support contact points (each shortcut has a distinct function).
+const SUPPORT_PHONE = '+0121234567890';
+const SUPPORT_EMAIL = 'support@q-shop.com';
 
 const categories = ref([]);
 const catOpen = ref(false);
@@ -46,7 +50,8 @@ const searchOpen = ref(false);
 const nav = [
   { key: 'home', to: { name: 'home' } },
   { key: 'shop', to: { name: 'products' } },
-  { key: 'stores', to: { name: 'stores' } }
+  { key: 'stores', to: { name: 'stores' } },
+  { key: 'deals', to: { name: 'products', query: { on_sale: 1 } } }
 ];
 
 const cartCount = computed(() => cart.count);
@@ -89,25 +94,20 @@ onMounted(async () => {
 
 <template>
   <div class="flex min-h-screen flex-col bg-white text-ink">
-    <!-- Top thin bar (responsive: controls stay visible on mobile) -->
+    <!-- Top thin bar: support shortcuts + account (each item has a function) -->
     <div class="border-b border-slate-200 dark:border-slate-800">
       <div class="container flex h-11 items-center gap-4 text-sm">
-        <div class="hidden items-center gap-2 text-muted lg:flex">
-          <RouterLink :to="{ name: 'support' }" class="hover:text-primary-600">{{ t('nav.help') }}</RouterLink><span>/</span>
-          <RouterLink :to="{ name: 'support' }" class="hover:text-primary-600">{{ t('nav.support') }}</RouterLink><span>/</span>
-          <RouterLink :to="{ name: 'support' }" class="hover:text-primary-600">{{ t('nav.contact') }}</RouterLink>
+        <div class="hidden items-center gap-4 text-muted lg:flex">
+          <RouterLink :to="{ name: 'support' }" class="flex items-center gap-1.5 hover:text-primary-600"><LifeBuoy class="h-4 w-4" /> {{ t('nav.help') }}</RouterLink>
+          <a :href="`tel:${SUPPORT_PHONE}`" class="flex items-center gap-1.5 hover:text-primary-600" dir="ltr"><Phone class="h-4 w-4" /> {{ t('nav.support') }}</a>
+          <a :href="`mailto:${SUPPORT_EMAIL}`" class="flex items-center gap-1.5 hover:text-primary-600"><Mail class="h-4 w-4" /> {{ t('nav.contact') }}</a>
+          <RouterLink :to="{ name: 'account' }" class="flex items-center gap-1.5 hover:text-primary-600"><Truck class="h-4 w-4" /> {{ t('nav.trackOrder') }}</RouterLink>
         </div>
         <div class="ms-auto flex items-center gap-3 text-muted">
           <div class="hidden items-center gap-1 lg:flex">
             <span class="text-ink">{{ t('nav.callUs') }}:</span>
-            <a href="tel:+01212345678" class="hover:text-primary-600" dir="ltr">(+012) 1234 567890</a>
+            <a :href="`tel:${SUPPORT_PHONE}`" class="hover:text-primary-600" dir="ltr">(+012) 1234 567890</a>
           </div>
-          <button class="flex items-center gap-1 hover:text-primary-600" @click="setLocale(locale === 'ar' ? 'en' : 'ar')">
-            <Languages class="h-4 w-4" /> {{ locale === 'ar' ? 'English' : 'العربية' }}
-          </button>
-          <button class="hover:text-primary-600" :title="theme === 'dark' ? t('account.light') : t('account.dark')" @click="toggleTheme()">
-            <component :is="theme === 'dark' ? Sun : Moon" class="h-4 w-4" />
-          </button>
           <div class="relative">
             <button class="flex items-center gap-1 hover:text-primary-600" @click="accountOpen = !accountOpen">
               <User class="h-4 w-4" /> <span class="hidden sm:inline">{{ auth.isAuthenticated ? auth.displayName : t('nav.myAccount') }}</span>
@@ -207,15 +207,16 @@ onMounted(async () => {
         <nav class="hidden flex-1 items-center lg:flex">
           <RouterLink
             v-for="item in nav"
-            :key="item.label"
+            :key="item.key"
             :to="item.to"
             class="px-4 py-3.5 font-heading text-[17px] font-medium text-white/90 transition hover:text-white"
             active-class="text-white"
           >
             {{ t('nav.' + item.key) }}
           </RouterLink>
+          <RouterLink :to="{ name: 'support' }" class="px-4 py-3.5 font-heading text-[17px] font-medium text-white/90 transition hover:text-white">{{ t('nav.support') }}</RouterLink>
           <RouterLink :to="{ name: 'account' }" class="px-4 py-3.5 font-heading text-[17px] font-medium text-white/90 transition hover:text-white">{{ t('nav.account') }}</RouterLink>
-          <a href="tel:+01234567890" class="btn btn-secondary ms-auto my-2 rounded-full" dir="ltr"><Phone class="h-4 w-4" /> +0123 456 7890</a>
+          <a :href="`tel:${SUPPORT_PHONE}`" class="btn btn-secondary ms-auto my-2 rounded-full" dir="ltr"><Phone class="h-4 w-4" /> (+012) 1234 567890</a>
         </nav>
 
         <!-- Mobile nav toggle -->
@@ -266,7 +267,7 @@ onMounted(async () => {
     </main>
 
     <!-- Footer -->
-    <footer class="mt-16 bg-ink text-slate-300">
+    <footer class="bg-ink text-slate-300">
       <div class="container grid gap-8 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <img src="/brand/dark-logo.png" alt="q-shop" class="mb-4 h-16 w-auto" />

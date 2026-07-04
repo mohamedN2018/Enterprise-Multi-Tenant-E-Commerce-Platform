@@ -6,7 +6,7 @@ import FormField from '@/components/ui/FormField.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
-import { errorMessage } from '@/services/http';
+import { errorMessage, apiGet } from '@/services/http';
 import { t } from '@/i18n';
 import { useValidation, email, required } from '@/utils/validators';
 
@@ -28,6 +28,22 @@ const { errors, run, clear } = useValidation(
   { email: [email()], password: [required()] }
 );
 
+// Auto-detect the signed-in identity and pick their landing route.
+const landingRoute = async () => {
+  if (auth.user?.is_superuser) return { name: 'admin-platform' };
+  let isSeller = sellerMode.value;
+  if (!isSeller) {
+    try {
+      const res = await apiGet('/stores/');
+      const stores = Array.isArray(res) ? res : res?.results || [];
+      isSeller = stores.length > 0;
+    } catch {
+      /* treat as buyer on error */
+    }
+  }
+  return isSeller ? { name: 'seller-dashboard' } : { name: 'home' };
+};
+
 const submit = async () => {
   error.value = '';
   if (!run()) return;
@@ -36,9 +52,13 @@ const submit = async () => {
     await auth.login(form.value.email, form.value.password);
     ui.success(t('auth.welcomeBack'));
     const redirect = route.query.redirect;
-    if (typeof redirect === 'string') router.push(redirect);
-    else if (auth.user?.is_superuser) router.push({ name: 'admin-platform' });
-    else router.push({ name: sellerMode.value ? 'seller-dashboard' : 'home' });
+    if (typeof redirect === 'string') {
+      router.push(redirect);
+    } else {
+      // Smart routing: recognise WHO signed in and send them to the right place —
+      // super admin → control center, store staff → seller console, buyer → shop.
+      router.push(await landingRoute());
+    }
   } catch (e) {
     error.value = errorMessage(e);
   } finally {
