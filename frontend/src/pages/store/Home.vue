@@ -26,7 +26,7 @@ import { storefront } from '@/services/storefront';
 import { useAddToCart } from '@/composables/useAddToCart';
 import { catImage, storeBanner, storeLogo, productImage, onImgError } from '@/utils/media';
 import { getRecentlyViewed } from '@/utils/recent';
-import { catLabel } from '@/utils/i18nData';
+import { catName } from '@/utils/i18nData';
 import { t } from '@/i18n';
 
 const router = useRouter();
@@ -127,7 +127,7 @@ onMounted(async () => {
                   <span class="h-8 w-8 shrink-0 overflow-hidden rounded-full ring-1 ring-white/20">
                     <img :src="catImage(c.name, 64)" :alt="c.name" class="h-full w-full object-cover" @error="onImgError" />
                   </span>
-                  <span class="min-w-0 flex-1 truncate">{{ catLabel(c.name) }}</span>
+                  <span class="min-w-0 flex-1 truncate">{{ catName(c) }}</span>
                   <ChevronLeft class="h-4 w-4 shrink-0 text-white/40 rtl:rotate-180" />
                 </button>
               </li>
@@ -230,7 +230,7 @@ onMounted(async () => {
           </div>
           <div class="flex items-center justify-between gap-2 p-4">
             <div class="min-w-0">
-              <p class="truncate font-heading font-bold text-ink group-hover:text-primary-600">{{ catLabel(c.name) }}</p>
+              <p class="truncate font-heading font-bold text-ink group-hover:text-primary-600">{{ catName(c) }}</p>
               <p class="text-xs text-muted">{{ c.product_count }} {{ $t('home.items') }}</p>
             </div>
             <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-600 transition group-hover:bg-primary-600 group-hover:text-white dark:bg-primary-600/10">

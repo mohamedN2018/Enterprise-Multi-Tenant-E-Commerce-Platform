@@ -33,6 +33,7 @@ class StoreRole(models.TextChoices):
 
 class Store(BaseModel):
     name = models.CharField(max_length=255)
+    name_en = models.CharField(max_length=255, blank=True)
     slug = models.SlugField(max_length=255, unique=True, db_index=True)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -46,6 +47,7 @@ class Store(BaseModel):
         db_index=True,
     )
     description = models.TextField(blank=True)
+    description_en = models.TextField(blank=True)
 
     # Contact
     email = models.EmailField(blank=True)

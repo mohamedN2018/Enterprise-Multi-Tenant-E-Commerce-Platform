@@ -38,7 +38,7 @@ const changePage = (n) => {
 const showModal = ref(false);
 const editing = ref(null);
 const saving = ref(false);
-const blank = () => ({ name: '', description: '', position: 0, is_active: true });
+const blank = () => ({ name: '', name_en: '', description: '', position: 0, is_active: true });
 const form = ref(blank());
 const { errors, run, clear } = useValidation(() => form.value, { name: [required()] });
 
@@ -49,7 +49,7 @@ const openCreate = () => {
 };
 const openEdit = (c) => {
   editing.value = c;
-  form.value = { name: c.name, description: c.description || '', position: c.position, is_active: c.is_active };
+  form.value = { name: c.name, name_en: c.name_en || '', description: c.description || '', position: c.position, is_active: c.is_active };
   showModal.value = true;
 };
 const save = async () => {
@@ -128,7 +128,8 @@ onMounted(async () => {
 
     <Modal v-model="showModal" :title="editing ? $t('categoriesPage.editCategory') : $t('categoriesPage.newCategory')">
       <form id="category-form" class="grid gap-4" novalidate @submit.prevent="save">
-        <FormField v-model="form.name" :label="$t('common.name')" :error="errors.name" @update:model-value="clear('name')" />
+        <FormField v-model="form.name" :label="$t('common.nameAr')" :error="errors.name" @update:model-value="clear('name')" />
+        <FormField v-model="form.name_en" :label="$t('common.nameEn')" :hint="$t('common.nameEnHint')" />
         <div>
           <label class="label">{{ $t('common.description') }}</label>
           <textarea v-model="form.description" rows="2" class="input"></textarea>

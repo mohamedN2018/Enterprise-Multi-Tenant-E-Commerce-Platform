@@ -89,7 +89,9 @@ class StorefrontCategoryListView(BaseAPIView):
                 store__status=StoreStatus.ACTIVE,
                 store__is_deleted=False,
             )
-            .values("name")
+            # Dedup by (name, name_en) so both language labels travel together;
+            # `name` stays the canonical filter key, `name_en` is the display label.
+            .values("name", "name_en")
             .annotate(
                 product_count=Count(
                     "products",

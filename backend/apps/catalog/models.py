@@ -62,6 +62,7 @@ COMPOSITE_KINDS = frozenset({ProductKind.BUNDLE, ProductKind.KIT, ProductKind.CO
 
 class Category(TenantOwnedModel, SEOFields):
     name = models.CharField(max_length=255)
+    name_en = models.CharField(max_length=255, blank=True)
     slug = models.SlugField(max_length=255)
     parent = models.ForeignKey(
         "self",
@@ -93,6 +94,7 @@ class Category(TenantOwnedModel, SEOFields):
 
 class Brand(TenantOwnedModel, SEOFields):
     name = models.CharField(max_length=255)
+    name_en = models.CharField(max_length=255, blank=True)
     slug = models.SlugField(max_length=255)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True, db_index=True)
@@ -115,8 +117,10 @@ class Brand(TenantOwnedModel, SEOFields):
 
 class Product(TenantOwnedModel, SEOFields):
     name = models.CharField(max_length=255)
+    name_en = models.CharField(max_length=255, blank=True)
     slug = models.SlugField(max_length=255)
     description = models.TextField(blank=True)
+    description_en = models.TextField(blank=True)
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,

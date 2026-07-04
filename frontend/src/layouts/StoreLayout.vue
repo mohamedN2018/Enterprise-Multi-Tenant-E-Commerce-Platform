@@ -30,7 +30,7 @@ import { useCartStore } from '@/stores/cart';
 import { storefront } from '@/services/storefront';
 import { useI18n } from '@/i18n';
 import { useTheme } from '@/theme';
-import { catLabel } from '@/utils/i18nData';
+import { catName } from '@/utils/i18nData';
 import CartFlyout from '@/components/CartFlyout.vue';
 import SearchBox from '@/components/SearchBox.vue';
 
@@ -213,7 +213,7 @@ onMounted(async () => {
                 @click="goCategory(c.name)"
               >
                 <span class="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-primary-50 text-primary-600 transition group-hover:bg-primary-600 group-hover:text-white dark:bg-primary-600/10"><Tag class="h-3.5 w-3.5" /></span>
-                <span class="min-w-0 flex-1 truncate">{{ catLabel(c.name) }}</span>
+                <span class="min-w-0 flex-1 truncate">{{ catName(c) }}</span>
                 <span class="text-xs text-muted">{{ c.product_count }}</span>
               </button>
               <p v-if="!categories.length" class="col-span-2 px-4 py-3 text-sm text-muted">{{ t('categoriesPage.noCategories') }}</p>
@@ -240,7 +240,7 @@ onMounted(async () => {
             class="whitespace-nowrap px-3 py-3.5 font-heading text-[15px] font-medium text-white/75 transition hover:text-white"
             @click="goCategory(c.name)"
           >
-            {{ catLabel(c.name) }}
+            {{ catName(c) }}
           </button>
           <a :href="`tel:${SUPPORT_PHONE}`" class="btn btn-secondary ms-auto my-2 shrink-0 rounded-full" dir="ltr"><Phone class="h-4 w-4" /> (+012) 1234 567890</a>
         </nav>
@@ -275,7 +275,7 @@ onMounted(async () => {
           <div v-if="categories.length" class="mt-2 border-t border-white/10 pt-2">
             <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-white/70">{{ t('nav.categories') }}</p>
             <button v-for="c in categories" :key="c.name" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-white/90 hover:bg-white/10" @click="goCategory(c.name)">
-              <span>{{ catLabel(c.name) }}</span>
+              <span>{{ catName(c) }}</span>
               <span class="text-xs text-white/60">({{ c.product_count }})</span>
             </button>
           </div>

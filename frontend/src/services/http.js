@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { t } from '@/i18n';
+import { t, locale } from '@/i18n';
 
 const BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -36,6 +36,8 @@ const http = axios.create({ baseURL: BASE_URL, headers: { 'Content-Type': 'appli
 http.interceptors.request.use((config) => {
   const token = tokens.access;
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  // Tell the API which language to return localized content (names, etc.) in.
+  config.headers['Accept-Language'] = locale.value || 'ar';
   // Respect an explicit per-call X-Store-Id (storefront targets a store);
   // otherwise fall back to the admin's active store.
   const sid = activeStore.id;

@@ -101,7 +101,7 @@ const priceRange = (p) => {
 const showModal = ref(false);
 const editing = ref(null);
 const saving = ref(false);
-const blank = () => ({ name: '', description: '', product_type: 'physical', status: 'draft', category: '', brand: '' });
+const blank = () => ({ name: '', name_en: '', description: '', description_en: '', product_type: 'physical', status: 'draft', category: '', brand: '' });
 const form = ref(blank());
 const { errors: pErrors, run: runProduct, clear: clearProduct } = useValidation(() => form.value, { name: [required()] });
 
@@ -114,7 +114,9 @@ const openEdit = (p) => {
   editing.value = p;
   form.value = {
     name: p.name,
+    name_en: p.name_en || '',
     description: p.description || '',
+    description_en: p.description_en || '',
     product_type: p.product_type,
     status: p.status,
     category: p.category || '',
@@ -310,7 +312,8 @@ onMounted(async () => {
     <!-- Create / edit modal -->
     <Modal v-model="showModal" :title="editing ? $t('prod.editProduct') : $t('prod.newProduct')" size="lg">
       <form id="product-form" class="grid gap-4" novalidate @submit.prevent="save">
-        <FormField v-model="form.name" :label="$t('common.name')" :error="pErrors.name" @update:model-value="clearProduct('name')" />
+        <FormField v-model="form.name" :label="$t('common.nameAr')" :error="pErrors.name" @update:model-value="clearProduct('name')" />
+        <FormField v-model="form.name_en" :label="$t('common.nameEn')" :hint="$t('common.nameEnHint')" />
         <div>
           <label class="label">{{ $t('common.description') }}</label>
           <textarea v-model="form.description" rows="3" class="input"></textarea>

@@ -42,6 +42,7 @@ const load = async () => {
     const s = tenant.active;
     profile.value = {
       name: s.name,
+      name_en: s.name_en || '',
       description: s.description || '',
       email: s.email || '',
       phone: s.phone || '',
@@ -167,6 +168,7 @@ onMounted(load);
         <h2 class="mb-4 flex items-center gap-2 font-semibold"><StoreIcon class="h-5 w-5 text-primary-600" /> {{ $t('settingsPage.storeProfile') }}</h2>
         <form class="grid gap-4" @submit.prevent="saveProfile">
           <FormField v-model="profile.name" :label="$t('settingsPage.storeName')" required />
+          <FormField v-model="profile.name_en" :label="$t('common.nameEn')" :hint="$t('common.nameEnHint')" />
           <div>
             <label class="label">{{ $t('common.description') }}</label>
             <textarea v-model="profile.description" rows="3" class="input"></textarea>

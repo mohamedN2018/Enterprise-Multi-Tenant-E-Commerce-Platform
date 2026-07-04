@@ -32,6 +32,7 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "name",
+            "name_en",
             "slug",
             "parent",
             "description",
@@ -52,6 +53,7 @@ class BrandSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "name",
+            "name_en",
             "slug",
             "description",
             "is_active",
@@ -134,8 +136,10 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "name",
+            "name_en",
             "slug",
             "description",
+            "description_en",
             "category",
             "brand",
             "product_type",

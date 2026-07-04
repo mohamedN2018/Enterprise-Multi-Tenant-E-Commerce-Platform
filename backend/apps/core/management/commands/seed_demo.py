@@ -13,6 +13,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+from django.db.models import Q
 
 # Rich demo catalog: category -> [(name, price, description), ...].
 CATALOG = {
@@ -168,6 +169,123 @@ REVIEW_SNIPPETS = [
 ]
 
 
+# Arabic-first content: the primary `name` is Arabic, `name_en` the English key
+# used for idempotent lookups + SKUs. (Egyptian market: everything reads Arabic.)
+CATEGORY_AR = {
+    "Electronics": "إلكترونيات",
+    "Home & Kitchen": "المنزل والمطبخ",
+    "Sports & Outdoors": "الرياضة والهواء الطلق",
+    "Accessories": "إكسسوارات",
+    "Fashion": "أزياء",
+    "Beauty & Care": "الجمال والعناية",
+    "Books & Media": "الكتب والوسائط",
+    "Toys & Games": "الألعاب والترفيه",
+    "Pet Supplies": "مستلزمات الحيوانات",
+    "Grocery & Gourmet": "البقالة والأطعمة",
+}
+STORE_AR = {
+    "Demo Store": "المتجر التجريبي",
+    "Style Studio": "ستوديو الأناقة",
+    "TechHub": "مركز التقنية",
+    "Home Haven": "واحة المنزل",
+    "Fit & Active": "لياقة ونشاط",
+    "Glow Beauty": "توهّج الجمال",
+    "Page Turner": "عاشق الكتب",
+    "Playful Kids": "أطفال مرحون",
+    "Paws & Co": "عالم الحيوانات",
+    "Gourmet Market": "سوق الذوّاقة",
+}
+PRODUCT_AR = {
+    "Wireless Headphones": "سماعات لاسلكية",
+    "4K Monitor": "شاشة 4K",
+    "Mechanical Keyboard": "لوحة مفاتيح ميكانيكية",
+    "USB-C Cable": "كابل USB-C",
+    "Bluetooth Speaker": "سماعة بلوتوث",
+    "Gaming Mouse": "ماوس ألعاب",
+    "1080p Webcam": "كاميرا ويب 1080p",
+    "Noise-Cancelling Earbuds": "سماعات أذن عازلة للضوضاء",
+    "Portable SSD 1TB": "قرص SSD محمول 1 تيرابايت",
+    "Smart LED Bulb": "لمبة ذكية LED",
+    "Laptop Stand": "حامل لابتوب",
+    "LED Desk Lamp": "مصباح مكتب LED",
+    "Coffee Maker": "ماكينة قهوة",
+    "Air Fryer 5L": "قلّاية هوائية 5 لتر",
+    "Ceramic Mug Set": "طقم أكواب سيراميك",
+    "Non-Stick Frying Pan": "مقلاة غير لاصقة",
+    "Robot Vacuum": "مكنسة روبوت",
+    "Electric Kettle": "غلّاية كهربائية",
+    "Knife Block Set": "طقم سكاكين بحامل",
+    "Scented Candle": "شمعة معطّرة",
+    "Yoga Mat": "سجادة يوجا",
+    "Adjustable Dumbbell Set": "طقم دمبل قابل للتعديل",
+    "Insulated Water Bottle": "زجاجة ماء حرارية",
+    "Resistance Bands": "أحزمة مقاومة",
+    "Two-Person Tent": "خيمة لشخصين",
+    "Trekking Poles": "عصي تسلّق",
+    "Jump Rope": "حبل قفز",
+    "Foam Roller": "أسطوانة تدليك",
+    "Cycling Helmet": "خوذة دراجة",
+    "Power Bank 20000mAh": "باور بانك 20000 مللي أمبير",
+    "Smart Watch": "ساعة ذكية",
+    "Laptop Backpack": "حقيبة لابتوب",
+    "Clear Phone Case": "جراب هاتف شفّاف",
+    "Leather Belt": "حزام جلد",
+    "Travel Wallet": "محفظة سفر",
+    "Baseball Cap": "قبعة كاب",
+    "Compact Umbrella": "مظلة صغيرة",
+    "Cotton T-Shirt": "تي شيرت قطن",
+    "Denim Jacket": "جاكيت جينز",
+    "Running Shoes": "حذاء جري",
+    "Leather Wallet": "محفظة جلد",
+    "Polarized Sunglasses": "نظارة شمسية مستقطبة",
+    "Hooded Sweatshirt": "سويت شيرت بقبعة",
+    "Chino Trousers": "بنطلون تشينو",
+    "Wool Scarf": "وشاح صوف",
+    "Ankle Boots": "حذاء بوت",
+    "Summer Dress": "فستان صيفي",
+    "Vitamin C Serum": "سيروم فيتامين سي",
+    "Lip Balm Trio": "ثلاثي مرطّب الشفاه",
+    "Sonic Toothbrush": "فرشاة أسنان سونيك",
+    "Facial Cleanser": "غسول للوجه",
+    "Ionic Hair Dryer": "مجفّف شعر أيوني",
+    "Moisturizing Cream": "كريم مرطّب",
+    "Eau de Parfum 50ml": "عطر او دو بارفان 50 مل",
+    "Sheet Mask Pack": "باقة أقنعة ورقية",
+    "Atomic Habits": "العادات الذرية",
+    "Clean Code": "الكود النظيف",
+    "Sapiens": "العاقل",
+    "The Alchemist": "الخيميائي",
+    "Deluxe Cookbook": "كتاب طبخ فاخر",
+    "Vinyl Record Player": "مشغّل أسطوانات فينيل",
+    "Hardcover Notebook": "دفتر بغلاف صلب",
+    "Fountain Pen": "قلم حبر",
+    "Building Blocks Set": "طقم مكعّبات بناء",
+    "Remote Control Car": "سيارة تحكّم عن بُعد",
+    "Classic Board Game": "لعبة لوحية كلاسيكية",
+    "Plush Teddy Bear": "دبدوب قطيفة",
+    "1000-Piece Puzzle": "بازل 1000 قطعة",
+    "Mini Drone": "درون صغير",
+    "Action Figure": "مجسّم شخصية",
+    "Art Supplies Kit": "طقم أدوات رسم",
+    "Dog Chew Toy": "لعبة عض للكلاب",
+    "Cat Scratching Post": "عمود خدش للقطط",
+    "Large Pet Bed": "سرير حيوانات كبير",
+    "Automatic Feeder": "مغذّي أوتوماتيكي",
+    "Aquarium Starter Kit": "طقم حوض سمك",
+    "Dog Leash": "مقود كلب",
+    "Bird Cage": "قفص طيور",
+    "Pet Grooming Brush": "فرشاة تنظيف الحيوانات",
+    "Organic Coffee Beans": "حبوب قهوة عضوية",
+    "Matcha Green Tea": "شاي ماتشا أخضر",
+    "Dark Chocolate Box": "علبة شوكولاتة داكنة",
+    "Extra Virgin Olive Oil": "زيت زيتون بكر ممتاز",
+    "Raw Honey Jar": "برطمان عسل خام",
+    "Spice Collection": "تشكيلة بهارات",
+    "Protein Bars (12)": "ألواح بروتين (12)",
+    "Pasta Sampler": "تشكيلة مكرونة",
+}
+
+
 class Command(BaseCommand):
     help = "Seed a demo store with published, stocked products (development only)."
 
@@ -194,9 +312,15 @@ class Command(BaseCommand):
 
         demo_store = None
         for store_name, category_names in STORES:
-            store = Store.all_objects.filter(name=store_name).first()
+            name_ar = STORE_AR.get(store_name, store_name)
+            store = Store.all_objects.filter(Q(name_en=store_name) | Q(name=store_name)).first()
             if store is None:
-                store = StoreService().create_store(owner=owner, data={"name": store_name})
+                store = StoreService().create_store(
+                    owner=owner, data={"name": name_ar, "name_en": store_name}
+                )
+            elif store.name != name_ar or store.name_en != store_name:
+                store.name, store.name_en = name_ar, store_name
+                store.save(update_fields=["name", "name_en", "updated_at"])
             self._seed_catalog(store=store, category_names=category_names)
             self._seed_shipping(store=store)
             self._seed_reviews(store=store)
@@ -287,23 +411,32 @@ class Command(BaseCommand):
         )
         catalog, inventory = CatalogService(), InventoryService()
         for cat_name in category_names:
+            cat_ar = CATEGORY_AR.get(cat_name, cat_name)
             category = Category.all_objects.filter(
-                store=store, name=cat_name, is_deleted=False
-            ).first()
+                store=store, is_deleted=False
+            ).filter(Q(name_en=cat_name) | Q(name=cat_name)).first()
             if category is None:
-                category = catalog.create_category(store=store, data={"name": cat_name})
+                category = catalog.create_category(
+                    store=store, data={"name": cat_ar, "name_en": cat_name}
+                )
+            elif category.name != cat_ar or category.name_en != cat_name:
+                category.name, category.name_en = cat_ar, cat_name
+                category.save(update_fields=["name", "name_en", "updated_at"])
             for idx, (name, price, description) in enumerate(CATALOG[cat_name]):
                 on_sale = idx % 3 == 0  # ~1/3 of products are on offer
+                name_ar = PRODUCT_AR.get(name, name)
                 product = Product.all_objects.filter(
-                    store=store, name=name, is_deleted=False
-                ).first()
+                    store=store, is_deleted=False
+                ).filter(Q(name_en=name) | Q(name=name)).first()
                 if product is None:
                     product = catalog.create_product(
                         store=store,
                         data={
-                            "name": name,
+                            "name": name_ar,
+                            "name_en": name,
                             "status": ProductStatus.PUBLISHED,
                             "description": description,
+                            "description_en": description,
                             "category": category,
                         },
                     )
@@ -316,9 +449,18 @@ class Command(BaseCommand):
                         store=store, variant=variant, warehouse=warehouse, quantity=50
                     )
                 else:
+                    fields = []
                     if product.category_id is None:
                         product.category = category
-                        product.save(update_fields=["category", "updated_at"])
+                        fields.append("category")
+                    if product.name != name_ar or product.name_en != name:
+                        product.name, product.name_en = name_ar, name
+                        fields += ["name", "name_en"]
+                    if not product.description_en:
+                        product.description_en = product.description
+                        fields.append("description_en")
+                    if fields:
+                        product.save(update_fields=[*fields, "updated_at"])
                     variant = product.variants.first()
                 # Mark deals: a "was" price ~30% above the current price.
                 if on_sale and variant and not variant.compare_at_price:

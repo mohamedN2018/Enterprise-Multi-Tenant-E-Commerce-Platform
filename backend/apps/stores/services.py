@@ -22,7 +22,9 @@ from apps.stores.repositories import StoreMembershipRepository, StoreRepository
 
 _UPDATABLE_STORE_FIELDS = (
     "name",
+    "name_en",
     "description",
+    "description_en",
     "email",
     "phone",
     "status",
@@ -57,9 +59,11 @@ class StoreService(BaseService):
         slug = data.get("slug") or self._unique_slug(data["name"])
         store = self.store_repo.create(
             name=data["name"],
+            name_en=data.get("name_en", ""),
             slug=slug,
             owner=owner,
             description=data.get("description", ""),
+            description_en=data.get("description_en", ""),
             email=data.get("email", ""),
             phone=data.get("phone", ""),
             currency=data.get("currency", "EGP"),

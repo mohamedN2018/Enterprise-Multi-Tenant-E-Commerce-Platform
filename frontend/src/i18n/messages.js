@@ -9,6 +9,7 @@ export default {
       remove: 'إزالة', apply: 'تطبيق', submit: 'إرسال', yes: 'نعم', no: 'لا', readOnly: 'للقراءة فقط',
       export: 'تصدير', refresh: 'تحديث', filters: 'الفلاتر', reset: 'إعادة تعيين', clear: 'مسح',
       selected: 'محدد', of: 'من', items: 'عناصر', date: 'التاريخ', name: 'الاسم', email: 'البريد الإلكتروني',
+      nameAr: 'الاسم (عربي)', nameEn: 'الاسم (إنجليزي)', nameEnHint: 'اختياري — يظهر للزوّار عند اختيار الإنجليزية.',
       phone: 'الهاتف', country: 'الدولة', city: 'المدينة', description: 'الوصف', type: 'النوع',
       active: 'مفعّل', inactive: 'غير مفعّل', more: 'المزيد', noResults: 'لا توجد نتائج',
       pageNotFound: 'الصفحة غير موجودة', pageNotFoundMsg: 'الصفحة التي تبحث عنها غير موجودة أو ربما تم نقلها.',
@@ -41,12 +42,6 @@ export default {
       trustedTitle: 'تسوّق من متاجر موثوقة', trustedText: 'آلاف المنتجات في مكان واحد.',
       dealsTitle: 'عروض وخصومات', dealsText: 'أفضل الأسعار من بائعين مستقلين.',
       secureTitle: 'دفع آمن', secureText: 'حماية كاملة لكل عملية شراء.'
-    },
-    catmap: {
-      'Fashion': 'أزياء', 'Electronics': 'إلكترونيات', 'Beauty & Care': 'الجمال والعناية',
-      'Accessories': 'إكسسوارات', 'Home & Kitchen': 'المنزل والمطبخ', 'Sports & Outdoors': 'الرياضة والهواء الطلق',
-      'Grocery & Gourmet': 'البقالة والأطعمة', 'Books & Media': 'الكتب والوسائط',
-      'Pet Supplies': 'مستلزمات الحيوانات', 'Toys & Games': 'الألعاب والترفيه'
     },
     home: {
       heroBadge: 'أهلاً بك في q-shop', heroTitle: 'كل ما تحب، من', heroHighlight: 'متاجر مستقلة',
@@ -394,6 +389,7 @@ export default {
       submit: 'Submit', yes: 'Yes', no: 'No', readOnly: 'Read-only', export: 'Export', refresh: 'Refresh',
       filters: 'Filters', reset: 'Reset', clear: 'Clear', selected: 'selected', of: 'of', items: 'items',
       date: 'Date', name: 'Name', email: 'Email', phone: 'Phone', country: 'Country', city: 'City',
+      nameAr: 'Name (Arabic)', nameEn: 'Name (English)', nameEnHint: 'Optional — shown to visitors who choose English.',
       description: 'Description', type: 'Type', active: 'Active', inactive: 'Inactive', more: 'More', noResults: 'No results',
       pageNotFound: 'Page not found', pageNotFoundMsg: "The page you're looking for doesn't exist or may have been moved.",
       backHome: 'Back home', browseProducts: 'Browse products',

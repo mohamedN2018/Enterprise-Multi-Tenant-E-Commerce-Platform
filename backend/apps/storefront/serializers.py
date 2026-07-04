@@ -10,9 +10,20 @@ from django.db.models import Sum
 from rest_framework import serializers
 
 from apps.catalog.models import Category, Product, ProductVariant
+from apps.core.i18n import localized
 from apps.inventory.models import StockItem
 from apps.reviews.models import Review
 from apps.stores.models import Store
+
+
+class LocalizedNameMixin:
+    """Serve ``name``/``description`` in the request's language (Arabic default)."""
+
+    def get_name(self, obj):
+        return localized(obj, "name", self.context)
+
+    def get_description(self, obj):
+        return localized(obj, "description", self.context)
 
 
 class StorefrontReviewSerializer(serializers.ModelSerializer):
@@ -30,14 +41,19 @@ class StorefrontReviewSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class StorefrontStoreSerializer(serializers.ModelSerializer):
+class StorefrontStoreSerializer(LocalizedNameMixin, serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+
     class Meta:
         model = Store
         fields = ("id", "name", "slug", "description", "logo", "banner", "currency", "country")
         read_only_fields = fields
 
 
-class StorefrontCategorySerializer(serializers.ModelSerializer):
+class StorefrontCategorySerializer(LocalizedNameMixin, serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
     product_count = serializers.IntegerField(read_only=True)
     store_slug = serializers.CharField(source="store.slug", read_only=True)
 
@@ -74,9 +90,11 @@ class StorefrontVariantSerializer(serializers.ModelSerializer):
         return max((agg["on_hand"] or 0) - (agg["reserved"] or 0), 0) > 0
 
 
-class StorefrontProductSerializer(serializers.ModelSerializer):
+class StorefrontProductSerializer(LocalizedNameMixin, serializers.ModelSerializer):
     """List representation: the product plus its cheapest sellable price."""
 
+    name = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
     price = serializers.SerializerMethodField()
     compare_at_price = serializers.SerializerMethodField()
     currency = serializers.CharField(source="store.currency", read_only=True)

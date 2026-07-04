@@ -23,11 +23,13 @@ class StoreSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "name",
+            "name_en",
             "slug",
             "owner",
             "owner_email",
             "status",
             "description",
+            "description_en",
             "email",
             "phone",
             "logo",
@@ -53,6 +55,7 @@ class StoreSerializer(serializers.ModelSerializer):
 
 class StoreCreateSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=255)
+    name_en = serializers.CharField(required=False, allow_blank=True, default="", max_length=255)
     description = serializers.CharField(required=False, allow_blank=True, default="")
     email = serializers.EmailField(required=False, allow_blank=True, default="")
     phone = serializers.CharField(required=False, allow_blank=True, default="", max_length=32)
@@ -67,7 +70,9 @@ class StoreUpdateSerializer(serializers.ModelSerializer):
         model = Store
         fields = (
             "name",
+            "name_en",
             "description",
+            "description_en",
             "status",
             "email",
             "phone",
