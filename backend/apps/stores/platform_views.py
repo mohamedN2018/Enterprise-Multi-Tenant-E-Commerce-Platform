@@ -85,7 +85,7 @@ class PlatformStoreListCreateView(BaseAPIView):
             data={
                 "name": data["name"],
                 "description": data.get("description", ""),
-                "currency": data.get("currency", "USD"),
+                "currency": data.get("currency", "EGP"),
                 "country": data.get("country", ""),
             },
         )

@@ -25,7 +25,7 @@ class Wallet(TenantOwnedModel):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wallets"
     )
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default="EGP")
 
     class Meta(TenantOwnedModel.Meta):
         verbose_name = "Wallet"

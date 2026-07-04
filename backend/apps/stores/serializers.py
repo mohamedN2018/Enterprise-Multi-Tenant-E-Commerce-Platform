@@ -56,7 +56,7 @@ class StoreCreateSerializer(serializers.Serializer):
     description = serializers.CharField(required=False, allow_blank=True, default="")
     email = serializers.EmailField(required=False, allow_blank=True, default="")
     phone = serializers.CharField(required=False, allow_blank=True, default="", max_length=32)
-    currency = serializers.CharField(required=False, default="USD", max_length=3)
+    currency = serializers.CharField(required=False, default="EGP", max_length=3)
     language = serializers.CharField(required=False, default="en", max_length=10)
     timezone = serializers.CharField(required=False, default="UTC", max_length=64)
     country = serializers.CharField(required=False, allow_blank=True, default="", max_length=2)
@@ -167,7 +167,7 @@ class PlatformStoreCreateSerializer(serializers.Serializer):
     owner_email = serializers.EmailField()
     name = serializers.CharField(max_length=255)
     description = serializers.CharField(required=False, allow_blank=True, default="")
-    currency = serializers.CharField(required=False, default="USD", max_length=3)
+    currency = serializers.CharField(required=False, default="EGP", max_length=3)
     country = serializers.CharField(required=False, allow_blank=True, default="", max_length=2)
     status = serializers.ChoiceField(
         choices=StoreStatus.choices, required=False, default=StoreStatus.ACTIVE

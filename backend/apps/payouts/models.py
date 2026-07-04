@@ -20,7 +20,7 @@ from apps.core.models import TenantOwnedModel
 
 class SellerAccount(TenantOwnedModel):
     balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default="EGP")
     commission_rate = models.DecimalField(
         max_digits=5, decimal_places=2, default=Decimal("0.00")
     )  # platform commission percentage

@@ -28,7 +28,7 @@ class Payment(TenantOwnedModel):
     )
     gateway = models.CharField(max_length=32, db_index=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default="EGP")
     status = models.CharField(
         max_length=16,
         choices=PaymentStatus.choices,

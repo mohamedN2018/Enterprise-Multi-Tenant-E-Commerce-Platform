@@ -60,7 +60,7 @@ class Store(BaseModel):
     verified_at = models.DateTimeField(null=True, blank=True, editable=False)
 
     # Localisation
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default="EGP")
     language = models.CharField(max_length=10, default="en")
     timezone = models.CharField(max_length=64, default="UTC")
     country = models.CharField(max_length=2, blank=True)

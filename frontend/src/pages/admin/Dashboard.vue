@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { Store as StoreIcon, Plus, Globe } from 'lucide-vue-next';
+import { Store as StoreIcon, Plus, Globe, Banknote } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import Spinner from '@/components/ui/Spinner.vue';
@@ -36,7 +36,7 @@ const dashboardComponent = computed(() => {
 // admin does not create stores — they only oversee.
 const showCreate = ref(false);
 const creating = ref(false);
-const form = ref({ name: '', currency: 'USD', country: '', description: '' });
+const form = ref({ name: '', country: '', description: '' });
 const { errors, run, clear } = useValidation(
   () => form.value,
   { name: [required()], country: [iso2({ optional: true })] }
@@ -49,7 +49,7 @@ const createStore = async () => {
     const res = await seller.createStore(form.value);
     ui.success(t('admin.storeCreated'));
     showCreate.value = false;
-    form.value = { name: '', currency: 'USD', country: '', description: '' };
+    form.value = { name: '', country: '', description: '' };
     await tenant.refresh();
     tenant.select(res.data.id);
     await tenant.resolveRole();
@@ -95,10 +95,8 @@ onMounted(async () => {
     <Modal v-model="showCreate" :title="$t('admin.openStore')">
       <form id="create-store" class="grid gap-4" novalidate @submit.prevent="createStore">
         <FormField v-model="form.name" :label="$t('admin.storeName')" placeholder="Acme Supplies" :error="errors.name" @update:model-value="clear('name')" />
-        <div class="grid grid-cols-2 gap-4">
-          <FormField v-model="form.currency" :label="$t('admin.currency')" placeholder="USD" maxlength="3" />
-          <FormField v-model="form.country" :label="$t('admin.countryIso')" placeholder="US" maxlength="2" :error="errors.country" @update:model-value="clear('country')" />
-        </div>
+        <FormField v-model="form.country" :label="$t('admin.countryIso')" placeholder="EG" maxlength="2" :error="errors.country" @update:model-value="clear('country')" />
+        <p class="flex items-center gap-2 rounded-lg bg-lightbg px-3 py-2 text-xs text-muted"><Banknote class="h-4 w-4 text-primary-600" /> {{ $t('admin.currencyNote') }}</p>
         <FormField v-model="form.description" :label="$t('common.description')" :placeholder="$t('admin.whatSell')" />
       </form>
       <template #footer>

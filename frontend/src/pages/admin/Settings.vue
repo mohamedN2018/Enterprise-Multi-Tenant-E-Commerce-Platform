@@ -45,7 +45,7 @@ const load = async () => {
       description: s.description || '',
       email: s.email || '',
       phone: s.phone || '',
-      currency: s.currency || 'USD',
+      currency: s.currency || 'EGP',
       language: s.language || 'en',
       timezone: s.timezone || 'UTC',
       country: s.country || '',
@@ -175,8 +175,7 @@ onMounted(load);
             <FormField v-model="profile.email" :label="$t('settingsPage.contactEmail')" type="email" />
             <FormField v-model="profile.phone" :label="$t('common.phone')" />
           </div>
-          <div class="grid grid-cols-3 gap-4">
-            <FormField v-model="profile.currency" :label="$t('settingsPage.currency')" maxlength="3" />
+          <div class="grid grid-cols-2 gap-4">
             <FormField v-model="profile.language" :label="$t('settingsPage.language')" maxlength="10" />
             <FormField v-model="profile.country" :label="$t('common.country')" maxlength="2" />
           </div>

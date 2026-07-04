@@ -58,7 +58,7 @@ const nav = [
 
 const cartCount = computed(() => cart.count);
 const cartTotal = computed(() => cart.cart?.total || '0.00');
-const currency = computed(() => cart.shopStore?.currency || 'USD');
+const currency = computed(() => cart.shopStore?.currency || 'EGP');
 
 // Real category data surfaced in the nav bar.
 const sortedCats = computed(() =>

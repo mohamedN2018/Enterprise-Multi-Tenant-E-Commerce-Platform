@@ -101,7 +101,7 @@ class Order(TenantOwnedModel):
     status = models.CharField(
         max_length=16, choices=OrderStatus.choices, default=OrderStatus.PENDING, db_index=True
     )
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default="EGP")
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     discount_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     tax_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)

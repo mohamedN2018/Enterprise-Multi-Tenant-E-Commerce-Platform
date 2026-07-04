@@ -22,7 +22,7 @@ export const useTenantStore = defineStore('tenant', {
   getters: {
     active: (s) => s.stores.find((x) => x.id === s.activeId) || null,
     hasStores: (s) => s.stores.length > 0,
-    currency: (s) => s.stores.find((x) => x.id === s.activeId)?.currency || 'USD',
+    currency: (s) => s.stores.find((x) => x.id === s.activeId)?.currency || 'EGP',
     isPlatform: (s) => s.role === 'platform',
     canWrite: (s) => WRITE_ROLES.includes(s.role),
     canManageMembers: (s) => WRITE_ROLES.includes(s.role), // view + add

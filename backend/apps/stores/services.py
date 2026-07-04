@@ -62,7 +62,7 @@ class StoreService(BaseService):
             description=data.get("description", ""),
             email=data.get("email", ""),
             phone=data.get("phone", ""),
-            currency=data.get("currency", "USD"),
+            currency=data.get("currency", "EGP"),
             language=data.get("language", "en"),
             timezone=data.get("timezone", "UTC"),
             country=data.get("country", ""),
