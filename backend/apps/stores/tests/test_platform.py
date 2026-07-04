@@ -26,6 +26,21 @@ def _platform_seller(user_id):
     return reverse("v1:platform:seller-detail", kwargs={"user_id": user_id})
 
 
+def _limit_requests(store_id):
+    return reverse("v1:stores:limit-requests", kwargs={"store_id": store_id})
+
+
+PLATFORM_REQUESTS = reverse("v1:platform:request-list")
+
+
+def _approve(request_id):
+    return reverse("v1:platform:request-approve", kwargs={"request_id": request_id})
+
+
+def _reject(request_id):
+    return reverse("v1:platform:request-reject", kwargs={"request_id": request_id})
+
+
 @pytest.fixture
 def superadmin(make_user):
     admin = make_user(email="root@example.com")
@@ -158,3 +173,80 @@ def test_admin_raises_employee_limit(client_for, make_store, make_user, superadm
         ).status_code
         == 201
     )
+
+
+# --- Limit-increase requests ------------------------------------------------
+def test_owner_requests_more_employees(client_for, make_store):
+    store, owner = make_store()
+    resp = client_for(owner).post(
+        _limit_requests(store.id), {"requested_limit": 3, "note": "hiring"}, format="json"
+    )
+    assert resp.status_code == 201
+    assert resp.json()["data"]["status"] == "pending"
+    assert resp.json()["data"]["requested_limit"] == 3
+
+    listed = client_for(owner).get(_limit_requests(store.id))
+    assert len(listed.json()["data"]) == 1
+
+
+def test_request_must_exceed_current_limit(client_for, make_store):
+    store, owner = make_store()  # max_employees defaults to 1
+    resp = client_for(owner).post(_limit_requests(store.id), {"requested_limit": 1}, format="json")
+    assert resp.status_code == 400
+    assert resp.json()["error_code"] == "invalid_limit"
+
+
+def test_duplicate_pending_request_conflicts(client_for, make_store):
+    store, owner = make_store()
+    client_for(owner).post(_limit_requests(store.id), {"requested_limit": 2}, format="json")
+    dupe = client_for(owner).post(_limit_requests(store.id), {"requested_limit": 3}, format="json")
+    assert dupe.status_code == 409
+    assert dupe.json()["error_code"] == "request_pending"
+
+
+def test_non_owner_cannot_request(client_for, make_store, make_user):
+    from apps.stores.models import StoreMembership, StoreRole
+
+    store, _owner = make_store()
+    manager = make_user()
+    StoreMembership.objects.create(store=store, user=manager, role=StoreRole.MANAGER, is_active=True)
+    resp = client_for(manager).post(_limit_requests(store.id), {"requested_limit": 3}, format="json")
+    assert resp.status_code == 403
+
+
+def test_admin_approves_request_raises_cap(client_for, make_store, make_user, superadmin):
+    store, owner = make_store()
+    make_user(email="e1@example.com")
+    make_user(email="e2@example.com")
+    req = client_for(owner).post(_limit_requests(store.id), {"requested_limit": 2}, format="json")
+    req_id = req.json()["data"]["id"]
+
+    # Admin sees it and approves.
+    pending = client_for(superadmin).get(PLATFORM_REQUESTS + "?status=pending")
+    assert any(r["id"] == req_id for r in pending.json()["data"])
+    approved = client_for(superadmin).post(_approve(req_id))
+    assert approved.status_code == 200
+    assert approved.json()["data"]["status"] == "approved"
+
+    store.settings.refresh_from_db()
+    assert store.settings.max_employees == 2
+
+    # Owner can now add two employees.
+    oc = client_for(owner)
+    assert oc.post(_member_url(store.id), {"email": "e1@example.com", "role": "employee"}, format="json").status_code == 201
+    assert oc.post(_member_url(store.id), {"email": "e2@example.com", "role": "employee"}, format="json").status_code == 201
+
+
+def test_admin_rejects_request_keeps_cap(client_for, make_store, superadmin):
+    store, owner = make_store()
+    req = client_for(owner).post(_limit_requests(store.id), {"requested_limit": 5}, format="json")
+    req_id = req.json()["data"]["id"]
+    resp = client_for(superadmin).post(_reject(req_id))
+    assert resp.status_code == 200
+    assert resp.json()["data"]["status"] == "rejected"
+    store.settings.refresh_from_db()
+    assert store.settings.max_employees == 1
+
+
+def test_requests_list_requires_superuser(client_for, make_user):
+    assert client_for(make_user()).get(PLATFORM_REQUESTS).status_code == 403

@@ -14,8 +14,11 @@ from rest_framework.response import Response
 from apps.core.mixins import BaseAPIView, BaseGenericAPIView
 from apps.core.responses import APIResponse
 from apps.stores.access import MANAGER_OR_OWNER, OWNER_ONLY, StoreAccessMixin
+from apps.stores.models import LimitRequest, LimitRequestKind
 from apps.stores.repositories import StoreRepository
 from apps.stores.serializers import (
+    LimitRequestCreateSerializer,
+    LimitRequestSerializer,
     MembershipCreateSerializer,
     MembershipSerializer,
     MembershipUpdateSerializer,
@@ -24,7 +27,7 @@ from apps.stores.serializers import (
     StoreSettingsSerializer,
     StoreUpdateSerializer,
 )
-from apps.stores.services import MembershipService, StoreService
+from apps.stores.services import LimitRequestService, MembershipService, StoreService
 
 
 class StoreListCreateView(BaseGenericAPIView, generics.ListCreateAPIView):
@@ -147,3 +150,37 @@ class MemberDetailView(StoreAccessMixin, BaseAPIView):
         membership = service.get_member(store=store, member_id=member_id)
         service.remove_member(store=store, membership=membership)
         return APIResponse.success(message="Member removed.")
+
+
+class StoreLimitRequestView(StoreAccessMixin, BaseAPIView):
+    """A store owner views/raises requests to lift their employee cap."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses={200: LimitRequestSerializer(many=True)}, tags=["stores"])
+    def get(self, request: Request, store_id) -> Response:
+        store = self.load_store(store_id, roles=OWNER_ONLY)
+        requests = LimitRequest.objects.filter(store=store).order_by("-created_at")
+        return APIResponse.success(LimitRequestSerializer(requests, many=True).data)
+
+    @extend_schema(
+        request=LimitRequestCreateSerializer,
+        responses={201: LimitRequestSerializer},
+        tags=["stores"],
+    )
+    def post(self, request: Request, store_id) -> Response:
+        store = self.load_store(store_id, roles=OWNER_ONLY)
+        serializer = LimitRequestCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        req = LimitRequestService().create(
+            requested_by=request.user,
+            store=store,
+            kind=LimitRequestKind.EMPLOYEES,
+            requested_limit=serializer.validated_data["requested_limit"],
+            note=serializer.validated_data.get("note", ""),
+        )
+        return APIResponse.success(
+            LimitRequestSerializer(req).data,
+            message="Request submitted.",
+            status_code=status.HTTP_201_CREATED,
+        )

@@ -173,3 +173,54 @@ class StoreMembership(BaseModel):
     @property
     def can_manage(self) -> bool:
         return self.role in {StoreRole.OWNER, StoreRole.MANAGER}
+
+
+class LimitRequestKind(models.TextChoices):
+    EMPLOYEES = "employees", "Employees"
+    STORES = "stores", "Stores"
+
+
+class LimitRequestStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    APPROVED = "approved", "Approved"
+    REJECTED = "rejected", "Rejected"
+
+
+class LimitRequest(BaseModel):
+    """A seller's request to a platform admin to raise a cap (employees or stores).
+
+    Not tenant-scoped: a platform admin lists these across every store, while a
+    store owner sees only their own store's requests.
+    """
+
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="limit_requests"
+    )
+    # Set for employee requests; null for account-level store-count requests.
+    store = models.ForeignKey(
+        Store, on_delete=models.CASCADE, null=True, blank=True, related_name="limit_requests"
+    )
+    kind = models.CharField(
+        max_length=16, choices=LimitRequestKind.choices, default=LimitRequestKind.EMPLOYEES,
+        db_index=True,
+    )
+    current_limit = models.PositiveIntegerField(default=0)
+    requested_limit = models.PositiveIntegerField()
+    note = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=16, choices=LimitRequestStatus.choices,
+        default=LimitRequestStatus.PENDING, db_index=True,
+    )
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta(BaseModel.Meta):
+        verbose_name = "Limit request"
+        verbose_name_plural = "Limit requests"
+        ordering = ("-created_at",)
+        indexes = [models.Index(fields=["status", "kind"])]
+
+    def __str__(self) -> str:
+        return f"{self.kind} {self.current_limit}->{self.requested_limit} ({self.status})"

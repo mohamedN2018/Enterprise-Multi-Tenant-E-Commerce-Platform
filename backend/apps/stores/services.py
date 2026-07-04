@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.accounts.repositories import UserRepository
 from apps.core.exceptions import ConflictError, NotFoundError, ValidationError
 from apps.core.services import BaseService, atomic
 from apps.stores.models import (
+    LimitRequest,
+    LimitRequestKind,
+    LimitRequestStatus,
     Store,
     StoreMembership,
     StoreRole,
@@ -183,3 +187,69 @@ class MembershipService(BaseService):
                 code="invalid_role",
                 errors={"role": ["Role must be 'manager' or 'employee'."]},
             )
+
+
+class LimitRequestService(BaseService):
+    """Seller-raised requests to lift a cap; a platform admin approves/rejects."""
+
+    @atomic
+    def create(self, *, requested_by, store, kind, requested_limit, note=""):
+        if kind == LimitRequestKind.EMPLOYEES:
+            current = store.settings.max_employees
+            pending_qs = LimitRequest.objects.filter(
+                store=store, kind=kind, status=LimitRequestStatus.PENDING
+            )
+        else:
+            current = requested_by.max_stores
+            pending_qs = LimitRequest.objects.filter(
+                requested_by=requested_by, kind=kind, status=LimitRequestStatus.PENDING
+            )
+        if requested_limit <= current:
+            raise ValidationError(
+                "The requested limit must be higher than the current one.",
+                code="invalid_limit",
+                errors={"requested_limit": ["Must be higher than the current limit."]},
+            )
+        if pending_qs.exists():
+            raise ConflictError("A pending request already exists.", code="request_pending")
+        return LimitRequest.objects.create(
+            requested_by=requested_by,
+            store=store,
+            kind=kind,
+            current_limit=current,
+            requested_limit=requested_limit,
+            note=note,
+        )
+
+    @atomic
+    def approve(self, *, request_obj, resolver):
+        self._assert_pending(request_obj)
+        if request_obj.kind == LimitRequestKind.EMPLOYEES:
+            settings_obj = request_obj.store.settings
+            settings_obj.max_employees = request_obj.requested_limit
+            settings_obj.save(update_fields=["max_employees", "updated_at"])
+        else:
+            owner = request_obj.requested_by
+            owner.max_stores = request_obj.requested_limit
+            owner.save(update_fields=["max_stores", "updated_at"])
+        return self._resolve(request_obj, LimitRequestStatus.APPROVED, resolver)
+
+    @atomic
+    def reject(self, *, request_obj, resolver):
+        self._assert_pending(request_obj)
+        return self._resolve(request_obj, LimitRequestStatus.REJECTED, resolver)
+
+    @staticmethod
+    def _assert_pending(request_obj) -> None:
+        if request_obj.status != LimitRequestStatus.PENDING:
+            raise ValidationError(
+                "This request has already been resolved.", code="already_resolved"
+            )
+
+    @staticmethod
+    def _resolve(request_obj, status, resolver):
+        request_obj.status = status
+        request_obj.resolved_by = resolver
+        request_obj.resolved_at = timezone.now()
+        request_obj.save(update_fields=["status", "resolved_by", "resolved_at", "updated_at"])
+        return request_obj

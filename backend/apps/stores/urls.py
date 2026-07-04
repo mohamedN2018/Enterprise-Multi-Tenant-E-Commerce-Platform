@@ -16,4 +16,9 @@ urlpatterns = [
         views.MemberDetailView.as_view(),
         name="member-detail",
     ),
+    path(
+        "<uuid:store_id>/limit-requests/",
+        views.StoreLimitRequestView.as_view(),
+        name="limit-requests",
+    ),
 ]

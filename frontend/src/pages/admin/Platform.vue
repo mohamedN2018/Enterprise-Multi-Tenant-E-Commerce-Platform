@@ -10,7 +10,10 @@ import {
   Eye,
   Building2,
   UserCog,
-  Search
+  Search,
+  Inbox,
+  Check,
+  X
 } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
@@ -32,6 +35,7 @@ const ui = useUiStore();
 const loading = ref(true);
 const stores = ref([]);
 const sellers = ref([]);
+const requests = ref([]);
 
 const STATUSES = ['draft', 'active', 'suspended', 'closed'];
 
@@ -40,13 +44,40 @@ const load = async () => {
   try {
     await tenant.ensureReady();
     if (!tenant.isPlatform) return;
-    const [st, sl] = await Promise.all([platform.stores(), platform.sellers()]);
+    const [st, sl, rq] = await Promise.all([
+      platform.stores(),
+      platform.sellers(),
+      platform.requests({ status: 'pending' })
+    ]);
     stores.value = st.data || [];
     sellers.value = sl.data || [];
+    requests.value = rq.data || [];
   } catch (e) {
     ui.error(errorMessage(e));
   } finally {
     loading.value = false;
+  }
+};
+
+const requestColumns = computed(() => [
+  { key: 'requester_email', label: t('platformPage.seller') },
+  { key: 'target', label: t('platformPage.request') },
+  { key: 'note', label: t('common.description') },
+  { key: 'actions', label: '', align: 'right' }
+]);
+
+const resolvingId = ref(null);
+const resolveReq = async (req, approve) => {
+  resolvingId.value = req.id;
+  try {
+    if (approve) await platform.approveRequest(req.id);
+    else await platform.rejectRequest(req.id);
+    ui.success(approve ? t('platformPage.requestApproved') : t('platformPage.requestRejected'));
+    await load();
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    resolvingId.value = null;
   }
 };
 
@@ -217,6 +248,35 @@ onMounted(load);
           <p class="mt-3 font-heading text-2xl font-bold">{{ k.value }}</p>
           <p class="text-sm text-muted">{{ k.label }}</p>
         </div>
+      </div>
+
+      <!-- Pending limit-increase requests -->
+      <div v-if="requests.length" class="mt-8">
+        <h2 class="section-title mb-4 flex items-center gap-2 text-xl">
+          <Inbox class="h-5 w-5 text-amber-500" /> {{ $t('platformPage.requestsTitle') }}
+          <span class="chip border-amber-200 bg-amber-50 text-amber-700">{{ requests.length }}</span>
+        </h2>
+        <DataTable :columns="requestColumns" :rows="requests">
+          <template #cell-requester_email="{ row }">
+            <div>
+              <p class="font-medium text-ink">{{ row.requester_email }}</p>
+              <p class="text-xs text-muted">{{ row.store_name || '—' }}</p>
+            </div>
+          </template>
+          <template #cell-target="{ row }">
+            <span class="chip border-slate-200 bg-slate-50 text-slate-700">
+              {{ $t('platformPage.reqKind.' + row.kind) }}
+              <span dir="ltr" class="font-semibold">{{ row.current_limit }} → {{ row.requested_limit }}</span>
+            </span>
+          </template>
+          <template #cell-note="{ value }"><span class="text-sm text-muted">{{ value || '—' }}</span></template>
+          <template #cell-actions="{ row }">
+            <div class="flex justify-end gap-2">
+              <button class="btn btn-primary btn-sm" :disabled="resolvingId === row.id" @click="resolveReq(row, true)"><Check class="h-4 w-4" /> {{ $t('platformPage.approve') }}</button>
+              <button class="btn btn-ghost btn-sm text-rose-600" :disabled="resolvingId === row.id" @click="resolveReq(row, false)"><X class="h-4 w-4" /> {{ $t('platformPage.reject') }}</button>
+            </div>
+          </template>
+        </DataTable>
       </div>
 
       <!-- All stores -->

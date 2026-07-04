@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { UserPlus, Trash2, Users } from 'lucide-vue-next';
+import { UserPlus, Trash2, Users, Send } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -12,7 +12,7 @@ import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
 import { t } from '@/i18n';
-import { useValidation, email } from '@/utils/validators';
+import { useValidation, email, positive } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -39,6 +39,9 @@ const maxEmployees = computed(() => {
 const employeeCount = computed(() => members.value.filter((m) => m.role === 'employee').length);
 const limitReached = computed(() => employeeCount.value >= maxEmployees.value);
 
+const requests = ref([]);
+const pendingReq = computed(() => requests.value.find((r) => r.status === 'pending') || null);
+
 const load = async () => {
   loading.value = true;
   try {
@@ -52,10 +55,46 @@ const load = async () => {
     } catch {
       settings.value = null;
     }
+    if (tenant.canAdminTeam) {
+      try {
+        const r = await seller.limitRequests(storeId.value);
+        requests.value = r.data || [];
+      } catch {
+        requests.value = [];
+      }
+    }
   } catch (e) {
     ui.error(errorMessage(e));
   } finally {
     loading.value = false;
+  }
+};
+
+// Owner asks the platform admin to raise the employee cap.
+const showReq = ref(false);
+const reqBusy = ref(false);
+const reqForm = ref({ requested_limit: 2, note: '' });
+const { errors: reqErr, run: runReq, clear: clearReq } = useValidation(() => reqForm.value, { requested_limit: [positive()] });
+const openReq = () => {
+  reqForm.value = { requested_limit: maxEmployees.value + 1, note: '' };
+  showReq.value = true;
+};
+const submitReq = async () => {
+  if (!runReq()) return;
+  reqBusy.value = true;
+  try {
+    await seller.requestLimit(storeId.value, {
+      requested_limit: Number(reqForm.value.requested_limit),
+      note: reqForm.value.note
+    });
+    ui.success(t('team.requestSent'));
+    showReq.value = false;
+    const r = await seller.limitRequests(storeId.value);
+    requests.value = r.data || [];
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    reqBusy.value = false;
   }
 };
 
@@ -126,8 +165,10 @@ onMounted(load);
       </template>
     </PageHeader>
 
-    <div v-if="limitReached && tenant.canManageMembers" class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-      {{ $t('team.limitReachedMsg', { max: maxEmployees }) }}
+    <div v-if="limitReached && tenant.canManageMembers" class="mb-4 flex flex-col gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 sm:flex-row sm:items-center sm:justify-between">
+      <span>{{ $t('team.limitReachedMsg', { max: maxEmployees }) }}</span>
+      <span v-if="pendingReq" class="chip whitespace-nowrap border-amber-300 bg-amber-100 text-amber-800">{{ $t('team.requestPending', { n: pendingReq.requested_limit }) }}</span>
+      <button v-else-if="tenant.canAdminTeam" class="btn btn-outline btn-sm whitespace-nowrap" @click="openReq"><Send class="h-4 w-4" /> {{ $t('team.requestIncrease') }}</button>
     </div>
 
     <DataTable :columns="columns" :rows="members" :loading="loading" :empty-title="$t('team.noMembers')" :empty-message="$t('team.noMembersMsg')">
@@ -189,6 +230,23 @@ onMounted(load);
           <button class="btn btn-ghost" @click="confirmRemove = null">{{ $t('common.cancel') }}</button>
           <button class="btn btn-danger" :disabled="removing" @click="doRemove">
             <Spinner v-if="removing" :size="18" /><span v-else>{{ $t('team.remove') }}</span>
+          </button>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Owner requests a higher employee cap from the platform admin -->
+    <Modal v-model="showReq" :title="$t('team.requestIncrease')" size="sm">
+      <form id="req-form" class="grid gap-3" novalidate @submit.prevent="submitReq">
+        <p class="text-sm text-muted">{{ $t('team.requestIncreaseHint', { current: maxEmployees }) }}</p>
+        <FormField v-model.number="reqForm.requested_limit" :label="$t('team.maxEmployees')" type="number" min="1" :error="reqErr.requested_limit" @update:model-value="clearReq('requested_limit')" />
+        <FormField v-model="reqForm.note" :label="$t('team.requestNote')" :placeholder="$t('team.requestNotePlaceholder')" />
+      </form>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button class="btn btn-ghost" @click="showReq = false">{{ $t('common.cancel') }}</button>
+          <button form="req-form" type="submit" class="btn btn-primary" :disabled="reqBusy">
+            <Spinner v-if="reqBusy" :size="18" /><span v-else>{{ $t('team.sendRequest') }}</span>
           </button>
         </div>
       </template>

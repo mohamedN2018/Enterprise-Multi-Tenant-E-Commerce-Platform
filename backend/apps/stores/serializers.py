@@ -5,7 +5,13 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from apps.accounts.models import User
-from apps.stores.models import Store, StoreMembership, StoreSettings, StoreStatus
+from apps.stores.models import (
+    LimitRequest,
+    Store,
+    StoreMembership,
+    StoreSettings,
+    StoreStatus,
+)
 
 
 # --- Store -----------------------------------------------------------------
@@ -185,3 +191,29 @@ class SellerSerializer(serializers.ModelSerializer):
 
 class SellerUpdateSerializer(serializers.Serializer):
     max_stores = serializers.IntegerField(min_value=1)
+
+
+class LimitRequestSerializer(serializers.ModelSerializer):
+    requester_email = serializers.EmailField(source="requested_by.email", read_only=True)
+    store_name = serializers.CharField(source="store.name", read_only=True, default=None)
+
+    class Meta:
+        model = LimitRequest
+        fields = (
+            "id",
+            "kind",
+            "current_limit",
+            "requested_limit",
+            "note",
+            "status",
+            "requester_email",
+            "store_name",
+            "created_at",
+            "resolved_at",
+        )
+        read_only_fields = fields
+
+
+class LimitRequestCreateSerializer(serializers.Serializer):
+    requested_limit = serializers.IntegerField(min_value=1)
+    note = serializers.CharField(required=False, allow_blank=True, default="", max_length=500)

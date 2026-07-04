@@ -18,15 +18,16 @@ from apps.core.exceptions import NotFoundError, ValidationError
 from apps.core.mixins import BaseAPIView
 from apps.core.permissions import IsSuperAdmin
 from apps.core.responses import APIResponse
-from apps.stores.models import Store, StoreRole, StoreStatus
+from apps.stores.models import LimitRequest, Store, StoreRole, StoreStatus
 from apps.stores.serializers import (
+    LimitRequestSerializer,
     PlatformStoreCreateSerializer,
     PlatformStoreSerializer,
     PlatformStoreUpdateSerializer,
     SellerSerializer,
     SellerUpdateSerializer,
 )
-from apps.stores.services import StoreService
+from apps.stores.services import LimitRequestService, StoreService
 
 
 def _stores_qs():
@@ -186,3 +187,46 @@ class PlatformSellerDetailView(BaseAPIView):
             )
         ).get(id=user.id)
         return APIResponse.success(SellerSerializer(fresh).data, message="Seller limit updated.")
+
+
+class PlatformRequestListView(BaseAPIView):
+    permission_classes = [IsSuperAdmin]
+
+    @extend_schema(responses={200: LimitRequestSerializer(many=True)}, tags=["platform"])
+    def get(self, request: Request) -> Response:
+        qs = LimitRequest.objects.select_related("requested_by", "store").order_by("-created_at")
+        status_filter = (request.query_params.get("status") or "").strip()
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return APIResponse.success(LimitRequestSerializer(qs, many=True).data)
+
+
+class PlatformRequestActionView(BaseAPIView):
+    permission_classes = [IsSuperAdmin]
+    action = "approve"
+
+    def _get(self, request_id) -> LimitRequest:
+        req = LimitRequest.objects.filter(id=request_id).select_related("store", "requested_by").first()
+        if req is None:
+            raise NotFoundError("Request not found.")
+        return req
+
+    @extend_schema(responses={200: LimitRequestSerializer}, tags=["platform"])
+    def post(self, request: Request, request_id) -> Response:
+        req = self._get(request_id)
+        svc = LimitRequestService()
+        if self.action == "approve":
+            req = svc.approve(request_obj=req, resolver=request.user)
+            message = "Request approved."
+        else:
+            req = svc.reject(request_obj=req, resolver=request.user)
+            message = "Request rejected."
+        return APIResponse.success(LimitRequestSerializer(req).data, message=message)
+
+
+class PlatformRequestApproveView(PlatformRequestActionView):
+    action = "approve"
+
+
+class PlatformRequestRejectView(PlatformRequestActionView):
+    action = "reject"
