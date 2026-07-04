@@ -6,9 +6,26 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from apps.pricing.models import CustomerGroup, CustomerGroupMembership, PriceRule
+from apps.pricing.models import (
+    CustomerGroup,
+    CustomerGroupMembership,
+    PriceRule,
+    PriceRuleType,
+)
 
 _ZERO = Decimal("0")
+_HUNDRED = Decimal("100")
+
+
+def _validate_percent_within_bounds(attrs: dict) -> dict:
+    """A percentage discount above 100% would resolve to a negative price."""
+    if attrs.get("rule_type") == PriceRuleType.PERCENT_DISCOUNT:
+        value = attrs.get("value")
+        if value is not None and value > _HUNDRED:
+            raise serializers.ValidationError(
+                {"value": "A percentage discount cannot exceed 100%."}
+            )
+    return attrs
 
 
 class CustomerGroupSerializer(serializers.ModelSerializer):
@@ -52,15 +69,23 @@ class CreatePriceRuleSerializer(serializers.Serializer):
     variant_id = serializers.UUIDField()
     customer_group_id = serializers.UUIDField(required=False, allow_null=True)
     min_quantity = serializers.IntegerField(min_value=1, default=1)
-    rule_type = serializers.CharField(default="fixed")
+    rule_type = serializers.ChoiceField(
+        choices=PriceRuleType.choices, default=PriceRuleType.FIXED
+    )
     value = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=_ZERO)
     is_active = serializers.BooleanField(default=True)
+
+    def validate(self, attrs):
+        return _validate_percent_within_bounds(attrs)
 
 
 class UpdatePriceRuleSerializer(serializers.Serializer):
     min_quantity = serializers.IntegerField(min_value=1, required=False)
-    rule_type = serializers.CharField(required=False)
+    rule_type = serializers.ChoiceField(choices=PriceRuleType.choices, required=False)
     value = serializers.DecimalField(
         max_digits=12, decimal_places=2, min_value=_ZERO, required=False
     )
     is_active = serializers.BooleanField(required=False)
+
+    def validate(self, attrs):
+        return _validate_percent_within_bounds(attrs)

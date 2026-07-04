@@ -25,8 +25,14 @@ CHANNEL_LAYERS["default"] = {
     "CONFIG": {"hosts": [env("REDIS_URL", default="redis://redis:6379/0")]},
 }
 
-# Cache is expected to be Redis in production.
-CACHES  # noqa: B018  (configured via CACHE_URL in base)
+# Cache MUST be a shared store (Redis) in production. DRF throttle counters live
+# in the cache — a per-process LocMemCache fallback would multiply every rate
+# limit by the worker/pod count and reset on restart, gutting the brute-force /
+# credential-stuffing protection on login, registration and password reset.
+CACHES["default"] = {
+    "BACKEND": "django.core.cache.backends.redis.RedisCache",
+    "LOCATION": env("REDIS_URL", default="redis://redis:6379/0"),
+}
 
 # --- Error monitoring (optional) ---
 SENTRY_DSN = env("DJANGO_SENTRY_DSN", default="")

@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.core.mixins import BaseAPIView, BaseGenericAPIView
+from apps.core.permissions import IsSuperAdmin
 from apps.core.responses import APIResponse
 from apps.payouts.models import LedgerEntry, Payout
 from apps.payouts.serializers import (
@@ -36,10 +37,12 @@ class SellerAccountView(StoreContextMixin, BaseAPIView):
 
 
 class CommissionView(StoreContextMixin, BaseAPIView):
-    permission_classes = [IsAuthenticated]
+    # The platform's commission cut is a platform-level control, NOT something a
+    # seller may set for their own store (rate=0 → seller keeps 100% of gross).
+    # Restricted to super-admins; the target store comes from the X-Store-Id header.
+    permission_classes = [IsSuperAdmin]
 
     def put(self, request: Request) -> Response:
-        self.require_write()
         data = _validated(SetCommissionSerializer, request)
         account = PayoutService().set_commission_rate(store=self.store, rate=data["rate"])
         return APIResponse.success(
@@ -74,10 +77,11 @@ class PayoutListCreateView(StoreContextMixin, BaseGenericAPIView, generics.ListA
 
 
 class PayoutMarkPaidView(StoreContextMixin, BaseAPIView):
-    permission_classes = [IsAuthenticated]
+    # Confirming a payout was actually disbursed is a platform action — a seller
+    # must not be able to mark their own payout PAID. Super-admin only.
+    permission_classes = [IsSuperAdmin]
 
     def post(self, request: Request, payout_id) -> Response:
-        self.require_write()
         service = PayoutService()
         payout = service.mark_paid(payout=service.get_payout(store=self.store, payout_id=payout_id))
         return APIResponse.success(PayoutSerializer(payout).data, message="Payout marked paid.")

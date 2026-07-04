@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from apps.finance.models import Currency, ExchangeRate, TaxRate, TaxZone
@@ -20,6 +22,8 @@ class TaxRateSerializer(serializers.ModelSerializer):
         model = TaxRate
         fields = ("id", "name", "rate", "priority", "is_active", "created_at")
         read_only_fields = ("id", "created_at")
+        # A negative tax rate would charge the buyer less than subtotal.
+        extra_kwargs = {"rate": {"min_value": Decimal("0")}}
 
 
 class CurrencySerializer(serializers.ModelSerializer):
@@ -39,4 +43,8 @@ class ExchangeRateSerializer(serializers.ModelSerializer):
 class CreateExchangeRateSerializer(serializers.Serializer):
     base_code = serializers.CharField(max_length=3)
     target_code = serializers.CharField(max_length=3)
-    rate = serializers.DecimalField(max_digits=18, decimal_places=8)
+    # Must be strictly positive — a zero/negative rate would settle a
+    # foreign-currency order at (or below) zero.
+    rate = serializers.DecimalField(
+        max_digits=18, decimal_places=8, min_value=Decimal("0.00000001")
+    )

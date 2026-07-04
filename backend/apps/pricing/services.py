@@ -61,9 +61,12 @@ class PricingService(BaseService):
 
     @staticmethod
     def _rule_price(rule: PriceRule, base: Decimal) -> Decimal:
+        # Clamp defensively so a malformed rule (e.g. a >100% discount) can never
+        # yield a negative unit price that would credit the buyer at checkout.
         if rule.rule_type == PriceRuleType.PERCENT_DISCOUNT:
-            return base * (Decimal("1") - rule.value / Decimal("100"))
-        return rule.value
+            pct = max(Decimal("0"), min(rule.value, Decimal("100")))
+            return base * (Decimal("1") - pct / Decimal("100"))
+        return max(rule.value, Decimal("0"))
 
     # --- Customer groups ---
     @atomic

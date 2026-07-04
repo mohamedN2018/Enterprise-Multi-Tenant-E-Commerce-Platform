@@ -31,10 +31,11 @@ def test_earning_credited_on_confirm(make_store, make_user, make_variant, store_
     assert account["commission_rate"] == "0.00"
 
 
-def test_commission_is_deducted(make_store, make_user, make_variant, store_client):
+def test_commission_is_deducted(make_store, make_user, make_superuser, make_variant, store_client):
     store, owner = make_store()
     owner_client = store_client(owner, store)
-    owner_client.put(COMMISSION, {"rate": "10"}, format="json")  # 10% platform cut
+    # Commission is a platform control — only a super-admin may set it.
+    store_client(make_superuser(), store).put(COMMISSION, {"rate": "10"}, format="json")
     variant = make_variant(store, price="50.00")
     place_and_confirm(store_client(make_user(), store), variant, qty=2)  # gross 100
 
@@ -63,12 +64,15 @@ def test_payout_insufficient_balance(make_store, make_user, store_client):
     assert resp.json()["error_code"] == "insufficient_balance"
 
 
-def test_mark_payout_paid(make_store, make_user, make_variant, store_client):
+def test_mark_payout_paid(make_store, make_user, make_superuser, make_variant, store_client):
     store, owner = make_store()
     place_and_confirm(store_client(make_user(), store), make_variant(store, price="50.00"), qty=2)
     owner_client = store_client(owner, store)
     payout = owner_client.post(PAYOUTS, {"amount": "50"}, format="json").json()["data"]
-    resp = owner_client.post(reverse("v1:payouts:mark-paid", kwargs={"payout_id": payout["id"]}))
+    mark_paid = reverse("v1:payouts:mark-paid", kwargs={"payout_id": payout["id"]})
+    # A seller must NOT be able to confirm their own disbursement.
+    assert owner_client.post(mark_paid).status_code == 403
+    resp = store_client(make_superuser(), store).post(mark_paid)
     assert resp.status_code == 200
     assert resp.json()["data"]["status"] == "paid"
 
@@ -83,16 +87,27 @@ def test_earning_is_idempotent(make_store, make_user, make_variant, store_client
     assert PayoutService().balance(store=store) == Decimal("100.00")
 
 
-def test_set_commission_requires_write(make_store, make_user, add_member, store_client):
+def test_set_commission_is_admin_only(
+    make_store, make_user, make_superuser, add_member, store_client
+):
+    """Commission is a platform control: sellers (even OWNER) get 403; admin 200."""
     store, owner = make_store()
     employee = make_user()
-    add_member(store, employee, StoreRole.EMPLOYEE)
+    add_member(store, employee, StoreRole.MANAGER)
+    # Neither an employee/manager nor the store OWNER may set commission.
     assert (
         store_client(employee, store).put(COMMISSION, {"rate": "5"}, format="json").status_code
         == 403
     )
     assert (
-        store_client(owner, store).put(COMMISSION, {"rate": "5"}, format="json").status_code == 200
+        store_client(owner, store).put(COMMISSION, {"rate": "5"}, format="json").status_code == 403
+    )
+    # Only a super-admin can.
+    assert (
+        store_client(make_superuser(), store)
+        .put(COMMISSION, {"rate": "5"}, format="json")
+        .status_code
+        == 200
     )
 
 

@@ -30,6 +30,16 @@ def test_first_variant_is_default(store_client, make_store):
     assert resp.json()["data"]["is_default"] is True
 
 
+def test_negative_price_rejected(store_client, make_store):
+    """A negative price would flow into carts/orders/payouts as a credit."""
+    store, owner = make_store()
+    product = _make_product(store)
+    resp = store_client(owner, store).post(
+        _variants_url(product.id), {"sku": "NEG-1", "price": "-5.00"}, format="json"
+    )
+    assert resp.status_code == 400
+
+
 def test_second_variant_not_default_unless_requested(store_client, make_store):
     store, owner = make_store()
     product = _make_product(store)

@@ -92,6 +92,14 @@ class ProductVariantSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("id", "product", "created_at", "updated_at")
+        # Money/weight cannot be negative — a negative price would flow into
+        # carts, order totals and payout ledgers as a credit.
+        extra_kwargs = {
+            "price": {"min_value": Decimal("0")},
+            "compare_at_price": {"min_value": Decimal("0")},
+            "cost_price": {"min_value": Decimal("0")},
+            "weight": {"min_value": Decimal("0")},
+        }
 
     def get_option_values(self, obj) -> list:
         return [
@@ -199,6 +207,23 @@ class DigitalAssetSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("id", "variant", "download_url", "updated_at")
+        extra_kwargs = {
+            "download_limit": {"min_value": 0},
+            "download_expiry_days": {"min_value": 0},
+        }
+
+    # Digital goods are legitimately arbitrary file types, but an unbounded
+    # upload is a disk-fill DoS. Cap the size.
+    MAX_ASSET_MB = 100
+
+    def validate_file(self, value):
+        if value is not None:
+            max_bytes = self.MAX_ASSET_MB * 1024 * 1024
+            if value.size > max_bytes:
+                raise serializers.ValidationError(
+                    f"File too large. Maximum allowed size is {self.MAX_ASSET_MB} MB."
+                )
+        return value
 
 
 class LicenseKeySerializer(serializers.ModelSerializer):

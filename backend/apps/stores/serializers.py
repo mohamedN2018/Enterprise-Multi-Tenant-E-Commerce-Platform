@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from apps.accounts.models import User
@@ -104,6 +106,12 @@ class StoreSettingsSerializer(serializers.ModelSerializer):
             "metadata",
         )
         read_only_fields = ("max_employees",)
+        # A negative default tax rate would charge less than subtotal; the
+        # threshold cannot be negative either.
+        extra_kwargs = {
+            "default_tax_rate": {"min_value": Decimal("0")},
+            "low_stock_threshold": {"min_value": 0},
+        }
 
 
 # --- Membership ------------------------------------------------------------

@@ -178,6 +178,7 @@ class ProductImageView(StoreContextMixin, BaseAPIView):
 
     def post(self, request, product_id):
         from apps.core.exceptions import ValidationError
+        from apps.core.validators import validate_image_upload
 
         self.require_write()
         product = self._get(product_id)
@@ -186,6 +187,7 @@ class ProductImageView(StoreContextMixin, BaseAPIView):
             raise ValidationError(
                 "No image file provided.", code="no_image", errors={"image": ["An image is required."]}
             )
+        validate_image_upload(file)
         product.image = file
         product.save(update_fields=["image", "updated_at"])
         return APIResponse.success(ProductSerializer(product, context={"request": request}).data,

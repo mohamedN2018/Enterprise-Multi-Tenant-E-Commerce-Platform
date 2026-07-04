@@ -71,6 +71,19 @@ def store_client():
 
 
 @pytest.fixture
+def make_superuser(db):
+    counter = {"n": 0}
+
+    def _make() -> User:
+        counter["n"] += 1
+        return User.objects.create_superuser(
+            email=f"admin{counter['n']}@example.com", password=PASSWORD
+        )
+
+    return _make
+
+
+@pytest.fixture
 def make_variant(db):
     counter = {"n": 0}
 

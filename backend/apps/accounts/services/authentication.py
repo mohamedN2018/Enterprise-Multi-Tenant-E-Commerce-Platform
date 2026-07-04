@@ -34,6 +34,11 @@ class AuthenticationService(BaseService):
     def login(self, *, email: str, password: str, remember_me: bool = False, meta: dict) -> dict:
         user = self.user_repo.get_by_email(email)
         if user is None:
+            # Run the password hasher on a throwaway user so an unknown email
+            # takes ~the same time as a wrong password — closes the timing
+            # side-channel that would otherwise reveal which emails exist.
+            # (Mirrors Django's ModelBackend.authenticate mitigation.)
+            User().set_password(password)
             self.security.log(
                 SecurityEventType.LOGIN_FAILED,
                 email=email,

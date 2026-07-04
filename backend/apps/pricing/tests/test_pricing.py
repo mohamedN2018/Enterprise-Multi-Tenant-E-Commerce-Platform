@@ -79,6 +79,28 @@ def test_percent_rule(store_client, make_store, make_user, make_variant):
     assert quote.json()["data"]["unit_price"] == "80.00"
 
 
+def test_percent_over_100_rejected(store_client, make_store, make_variant):
+    """A >100% discount would resolve to a negative unit price — reject at input."""
+    store, owner = make_store()
+    variant = make_variant(store, price="100.00")
+    resp = _create_rule(
+        store_client(owner, store), variant, value="150", rule_type="percent_discount"
+    )
+    assert resp.status_code == 400
+
+
+def test_resolved_price_never_negative(store_client, make_store, make_user, make_variant):
+    """Defense in depth: even a malformed stored rule cannot credit the buyer."""
+    store, _owner = make_store()
+    variant = make_variant(store, price="100.00")
+    # Bypass the serializer to persist an out-of-range rule directly.
+    PriceRule.objects.create(
+        store=store, variant=variant, rule_type="percent_discount", value="500"
+    )
+    quote = _quote(store_client(make_user(), store), variant)
+    assert quote.json()["data"]["unit_price"] == "0.00"
+
+
 def test_tier_pricing(store_client, make_store, make_user, make_variant):
     store, owner = make_store()
     variant = make_variant(store, price="100.00")

@@ -129,7 +129,7 @@ onMounted(load);
         <template #cell-status="{ value }"><StatusBadge :status="value" /></template>
         <template #cell-reference="{ value }"><span class="text-xs text-muted">{{ value || '—' }}</span></template>
         <template #cell-actions="{ row }">
-          <button v-if="tenant.canDeleteStore && row.status !== 'paid'" class="btn btn-ghost btn-sm" @click="markPaid(row)">{{ $t('payoutsPage.markPaid') }}</button>
+          <button v-if="tenant.isPlatform && row.status !== 'paid'" class="btn btn-ghost btn-sm" @click="markPaid(row)">{{ $t('payoutsPage.markPaid') }}</button>
           <span v-else class="text-xs text-muted">—</span>
         </template>
       </DataTable>

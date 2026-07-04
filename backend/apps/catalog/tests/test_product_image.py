@@ -71,6 +71,34 @@ def test_remove_product_image(store_client, make_store):
     assert not Product.objects.get(id=product_id).image
 
 
+def test_reject_non_image_disguised_as_png(store_client, make_store):
+    """A text/HTML payload renamed .png must be rejected (spoofed content-type)."""
+    store, owner = make_store()
+    client = store_client(owner, store)
+    product_id = _make_product(store_client, store, owner)
+    url = reverse("v1:catalog:product-image", kwargs={"product_id": product_id})
+    fake = SimpleUploadedFile("evil.png", b"<script>alert(1)</script>", content_type="image/png")
+
+    resp = client.post(url, {"image": fake}, format="multipart")
+
+    assert resp.status_code == 400
+    assert resp.json()["error_code"] == "invalid_image"
+    assert not Product.objects.get(id=product_id).image
+
+
+def test_reject_unsupported_extension(store_client, make_store):
+    store, owner = make_store()
+    client = store_client(owner, store)
+    product_id = _make_product(store_client, store, owner)
+    url = reverse("v1:catalog:product-image", kwargs={"product_id": product_id})
+    bad = SimpleUploadedFile("shell.svg", _png_bytes(), content_type="image/svg+xml")
+
+    resp = client.post(url, {"image": bad}, format="multipart")
+
+    assert resp.status_code == 400
+    assert resp.json()["error_code"] == "invalid_image"
+
+
 def test_employee_cannot_upload_image(store_client, make_store, make_user, add_member):
     store, owner = make_store()
     product_id = _make_product(store_client, store, owner)
