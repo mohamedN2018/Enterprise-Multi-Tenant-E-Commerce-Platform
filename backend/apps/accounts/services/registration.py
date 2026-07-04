@@ -9,7 +9,7 @@ from apps.accounts.models import SecurityEventType, TokenPurpose, User
 from apps.accounts.repositories import OneTimeTokenRepository, UserRepository
 from apps.accounts.services.security import SecurityService
 from apps.accounts.tokens import generate_raw_token
-from apps.core.exceptions import ConflictError, ValidationError
+from apps.core.exceptions import ValidationError
 from apps.core.services import BaseService, atomic
 
 
@@ -26,9 +26,18 @@ class RegistrationService(BaseService):
         self.security = security or SecurityService()
 
     @atomic
-    def register(self, *, email: str, password: str, meta: dict | None = None) -> User:
+    def register(self, *, email: str, password: str, meta: dict | None = None) -> User | None:
         if self.user_repo.email_exists(email):
-            raise ConflictError("An account with this email already exists.", code="email_taken")
+            # Enumeration-safe: never reveal that the address is taken. Log the
+            # attempt and bail — the endpoint responds identically to a fresh
+            # signup, so an attacker can't distinguish existing from new emails.
+            self.security.log(
+                SecurityEventType.REGISTER,
+                email=email,
+                meta=meta,
+                extra={"reason": "duplicate_email"},
+            )
+            return None
         user = self.user_repo.create_user(
             email=email, password=password, is_active=True, is_verified=False
         )

@@ -20,11 +20,11 @@ def test_register_success(api_client):
         {"email": "new@example.com", "password": PASSWORD, "password_confirm": PASSWORD},
         format="json",
     )
-    assert resp.status_code == 201
+    # Enumeration-safe: a generic 202 with no user data.
+    assert resp.status_code == 202
     body = resp.json()
     assert body["success"] is True
-    assert body["data"]["email"] == "new@example.com"
-    assert body["data"]["is_verified"] is False
+    assert body["data"] is None
 
     user = User.objects.get(email="new@example.com")
     assert not user.is_verified
@@ -35,15 +35,23 @@ def test_register_success(api_client):
     assert user.security_events.filter(event_type=SecurityEventType.REGISTER).exists()
 
 
-def test_register_duplicate_email_conflict(api_client, make_user):
+def test_register_duplicate_email_is_not_enumerable(api_client, make_user):
+    """A taken email must return the SAME response as a fresh signup — no 409,
+    no leak — and must not create a second account or send an email."""
     make_user(email="dupe@example.com")
     resp = api_client.post(
         REGISTER_URL,
         {"email": "dupe@example.com", "password": PASSWORD, "password_confirm": PASSWORD},
         format="json",
     )
-    assert resp.status_code == 409
-    assert resp.json()["error_code"] == "email_taken"
+    assert resp.status_code == 202
+    body = resp.json()
+    assert body["success"] is True
+    assert body["data"] is None
+    assert "email_taken" not in resp.content.decode()
+    # No duplicate user, no verification email sent for the existing account.
+    assert User.objects.filter(email="dupe@example.com").count() == 1
+    assert len(mail.outbox) == 0
 
 
 def test_register_password_mismatch(api_client):

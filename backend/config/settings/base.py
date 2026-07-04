@@ -191,6 +191,11 @@ else:
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
+# Number of trusted reverse proxies in front of the app (used to pick the real
+# client IP from X-Forwarded-For without trusting client-supplied values).
+# Single-origin nginx deployment = 1; add one per extra hop (e.g. Traefik).
+TRUSTED_PROXY_COUNT = env.int("TRUSTED_PROXY_COUNT", default=1)
+
 # --- Logging ---------------------------------------------------------------
 # Structured, request-id-tagged logs to stdout (captured by the container/orchestrator).
 LOGGING = {

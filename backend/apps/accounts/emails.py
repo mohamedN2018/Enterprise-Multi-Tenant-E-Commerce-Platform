@@ -11,8 +11,11 @@ from django.core.mail import send_mail
 
 
 def _frontend_url(path: str, raw_token: str) -> str:
+    # The token goes in the URL *fragment* (#), not the query string, so it is
+    # never sent to a server, logged in access logs, or leaked via the Referer
+    # header. The SPA reads it client-side from location.hash.
     base = settings.FRONTEND_URL.rstrip("/")
-    return f"{base}{path}?token={raw_token}"
+    return f"{base}{path}#token={raw_token}"
 
 
 def send_verification_email(email: str, raw_token: str) -> None:

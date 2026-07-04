@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import FormField from '@/components/ui/FormField.vue';
 import Spinner from '@/components/ui/Spinner.vue';
@@ -7,13 +7,16 @@ import { apiPost, errorMessage } from '@/services/http';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
 import { useValidation, required, min, sameAs } from '@/utils/validators';
+import { tokenFromUrl } from '@/utils/urlToken';
 
 const route = useRoute();
 const router = useRouter();
 const ui = useUiStore();
 
+const urlToken = computed(() => tokenFromUrl(route));
+
 const form = ref({
-  token: route.query.token || '',
+  token: urlToken.value,
   new_password: '',
   new_password_confirm: ''
 });
@@ -23,7 +26,7 @@ const error = ref('');
 const { errors, run, clear } = useValidation(
   () => form.value,
   () => ({
-    token: route.query.token ? [] : [required()],
+    token: urlToken.value ? [] : [required()],
     new_password: [min(8)],
     new_password_confirm: [sameAs(() => form.value.new_password, t('auth.passwordsNoMatch'))]
   })
@@ -51,7 +54,7 @@ const submit = async () => {
     <p class="mt-1 text-sm text-muted">{{ $t('auth.resetSubtitle') }}</p>
     <div v-if="error" class="mt-4 rounded-lg border border-secondary-200 bg-secondary-50 px-4 py-2.5 text-sm text-secondary-700">{{ error }}</div>
     <form class="mt-6 space-y-4" novalidate @submit.prevent="submit">
-      <FormField v-if="!route.query.token" v-model="form.token" :label="$t('auth.resetToken')" :placeholder="$t('auth.resetTokenPlaceholder')" :error="errors.token" @update:model-value="clear('token')" />
+      <FormField v-if="!urlToken" v-model="form.token" :label="$t('auth.resetToken')" :placeholder="$t('auth.resetTokenPlaceholder')" :error="errors.token" @update:model-value="clear('token')" />
       <FormField v-model="form.new_password" :label="$t('auth.newPassword')" type="password" autocomplete="new-password" :error="errors.new_password" @update:model-value="clear('new_password')" />
       <FormField v-model="form.new_password_confirm" :label="$t('auth.confirmNewPassword')" type="password" autocomplete="new-password" :error="errors.new_password_confirm" @update:model-value="clear('new_password_confirm')" />
       <button type="submit" class="btn btn-primary btn-lg w-full" :disabled="loading"><Spinner v-if="loading" :size="18" /><span v-else>{{ $t('auth.resetBtn') }}</span></button>

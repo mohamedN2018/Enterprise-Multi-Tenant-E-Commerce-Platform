@@ -35,19 +35,25 @@ class RegisterView(BaseAPIView):
     throttle_scope = "auth_register"
     serializer_class = s.RegisterSerializer
 
-    @extend_schema(request=s.RegisterSerializer, responses={201: UserSerializer}, tags=["auth"])
+    # Identical for a new or an already-registered email — no user data, so the
+    # response can't be used to enumerate which addresses have accounts.
+    _MESSAGE = (
+        "Thanks — if this email is available, we've sent a verification link. "
+        "Check your inbox to finish setting up your account."
+    )
+
+    @extend_schema(request=s.RegisterSerializer, responses={202: None}, tags=["auth"])
     def post(self, request: Request) -> Response:
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = RegistrationService().register(
+        RegistrationService().register(
             email=serializer.validated_data["email"],
             password=serializer.validated_data["password"],
             meta=extract_request_meta(request),
         )
         return APIResponse.success(
-            data=UserSerializer(user).data,
-            message="Registration successful. Check your email to verify your account.",
-            status_code=status.HTTP_201_CREATED,
+            message=self._MESSAGE,
+            status_code=status.HTTP_202_ACCEPTED,
         )
 
 

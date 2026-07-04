@@ -2,11 +2,24 @@
 
 from __future__ import annotations
 
+from django.conf import settings
+
 
 def get_client_ip(request) -> str | None:
+    """The caller's IP, resistant to ``X-Forwarded-For`` spoofing.
+
+    Each trusted reverse proxy *appends* the address it received the request
+    from, so with ``TRUSTED_PROXY_COUNT`` proxies in front of the app the real
+    client is the Nth entry counted from the right. Taking the left-most entry
+    (the old behaviour) trusts a fully client-controlled value — an attacker
+    could forge any IP into the audit log. Falls back to ``REMOTE_ADDR``.
+    """
+    trusted = getattr(settings, "TRUSTED_PROXY_COUNT", 1)
     forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    if forwarded and trusted > 0:
+        parts = [p.strip() for p in forwarded.split(",") if p.strip()]
+        if len(parts) >= trusted:
+            return parts[-trusted]
     return request.META.get("REMOTE_ADDR")
 
 

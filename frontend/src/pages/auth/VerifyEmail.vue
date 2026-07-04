@@ -7,13 +7,14 @@ import Spinner from '@/components/ui/Spinner.vue';
 import { apiPost, errorMessage } from '@/services/http';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
+import { tokenFromUrl } from '@/utils/urlToken';
 
 const route = useRoute();
 const ui = useUiStore();
 
 const state = ref('idle'); // idle | verifying | success | error
 const message = ref('');
-const token = ref(route.query.token || '');
+const token = ref(tokenFromUrl(route));
 const resendEmail = ref('');
 const resending = ref(false);
 
