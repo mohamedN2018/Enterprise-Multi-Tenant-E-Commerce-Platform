@@ -6,16 +6,19 @@ import { locale } from '@/i18n';
 
 // Bilingual customer reviews (self-contained; not part of the shared catalog).
 const reviews = [
-  { name: 'سارة م.', ar: 'شحن سريع وجودة المنتج فاقت توقعاتي. أصبح سوقي المفضل!', en: 'Fast shipping and the quality exceeded my expectations. My favorite marketplace now!' },
-  { name: 'أحمد ك.', ar: 'أحب تنوّع المتاجر المستقلة. وجدت بالضبط ما أبحث عنه بسعر رائع.', en: 'I love the variety of independent stores. Found exactly what I wanted at a great price.' },
-  { name: 'إيلينا ر.', ar: 'الدفع كان سلسًا وميزة المفضلة عملية جدًا. أنصح بـ q-shop بشدة.', en: 'Checkout was smooth and the wishlist is so handy. Highly recommend q-shop.' },
-  { name: 'ياسمين ع.', ar: 'خدمة العملاء ردّت بسرعة وحلّت مشكلتي في دقائق. تجربة احترافية.', en: 'Support replied quickly and solved my issue in minutes. A professional experience.' },
-  { name: 'كريم ن.', ar: 'التوصيل كان في الموعد والتغليف ممتاز. سأعود للشراء بالتأكيد.', en: 'Delivery was on time and the packaging was excellent. I will definitely buy again.' },
-  { name: 'ليلى ف.', ar: 'أسعار منافسة وعروض حقيقية. أفضل مكان للتسوّق من بائعين موثوقين.', en: 'Competitive prices and real deals. The best place to shop from trusted sellers.' }
+  { name: 'سارة م.', nameEn: 'Sara M.', ar: 'شحن سريع وجودة المنتج فاقت توقعاتي. أصبح سوقي المفضل!', en: 'Fast shipping and the quality exceeded my expectations. My favorite marketplace now!' },
+  { name: 'أحمد ك.', nameEn: 'Ahmed K.', ar: 'أحب تنوّع المتاجر المستقلة. وجدت بالضبط ما أبحث عنه بسعر رائع.', en: 'I love the variety of independent stores. Found exactly what I wanted at a great price.' },
+  { name: 'إيلينا ر.', nameEn: 'Elena R.', ar: 'الدفع كان سلسًا وميزة المفضلة عملية جدًا. أنصح بـ q-shop بشدة.', en: 'Checkout was smooth and the wishlist is so handy. Highly recommend q-shop.' },
+  { name: 'ياسمين ع.', nameEn: 'Yasmin A.', ar: 'خدمة العملاء ردّت بسرعة وحلّت مشكلتي في دقائق. تجربة احترافية.', en: 'Support replied quickly and solved my issue in minutes. A professional experience.' },
+  { name: 'كريم ن.', nameEn: 'Karim N.', ar: 'التوصيل كان في الموعد والتغليف ممتاز. سأعود للشراء بالتأكيد.', en: 'Delivery was on time and the packaging was excellent. I will definitely buy again.' },
+  { name: 'ليلى ف.', nameEn: 'Layla F.', ar: 'أسعار منافسة وعروض حقيقية. أفضل مكان للتسوّق من بائعين موثوقين.', en: 'Competitive prices and real deals. The best place to shop from trusted sellers.' }
 ];
 
 const list = computed(() =>
-  reviews.map((r) => ({ name: r.name, text: locale.value === 'en' ? r.en : r.ar }))
+  reviews.map((r) => ({
+    name: locale.value === 'en' ? r.nameEn : r.name,
+    text: locale.value === 'en' ? r.en : r.ar
+  }))
 );
 </script>
 

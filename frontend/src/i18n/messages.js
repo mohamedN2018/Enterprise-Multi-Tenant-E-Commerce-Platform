@@ -35,6 +35,19 @@ export default {
       seeAllResults: 'عرض كل النتائج لـ «{q}»', noSearchResults: 'لا توجد نتائج مطابقة', searchHint: 'اكتب حرفين على الأقل للبحث'
     },
     prefs: { title: 'التفضيلات', subtitle: 'اختر لغة الواجهة ومظهرها.', language: 'اللغة' },
+    authPanel: {
+      title: 'تسوّق أذكى مع q-shop.',
+      subtitle: 'كل ما تحتاجه للتسوّق من متاجر مستقلة موثوقة — منتجات متنوّعة، دفع آمن، وتوصيل سريع.',
+      trustedTitle: 'تسوّق من متاجر موثوقة', trustedText: 'آلاف المنتجات في مكان واحد.',
+      dealsTitle: 'عروض وخصومات', dealsText: 'أفضل الأسعار من بائعين مستقلين.',
+      secureTitle: 'دفع آمن', secureText: 'حماية كاملة لكل عملية شراء.'
+    },
+    catmap: {
+      'Fashion': 'أزياء', 'Electronics': 'إلكترونيات', 'Beauty & Care': 'الجمال والعناية',
+      'Accessories': 'إكسسوارات', 'Home & Kitchen': 'المنزل والمطبخ', 'Sports & Outdoors': 'الرياضة والهواء الطلق',
+      'Grocery & Gourmet': 'البقالة والأطعمة', 'Books & Media': 'الكتب والوسائط',
+      'Pet Supplies': 'مستلزمات الحيوانات', 'Toys & Games': 'الألعاب والترفيه'
+    },
     home: {
       heroBadge: 'أهلاً بك في q-shop', heroTitle: 'كل ما تحب، من', heroHighlight: 'متاجر مستقلة',
       heroSubtitle: 'تسوّق آلاف المنتجات في الإلكترونيات والأزياء والمنزل وأكثر — سلة واحدة، دفع آمن، وتوصيل سريع من بائعين موثوقين.',
@@ -405,6 +418,13 @@ export default {
       seeAllResults: 'See all results for “{q}”', noSearchResults: 'No matching results', searchHint: 'Type at least 2 characters to search'
     },
     prefs: { title: 'Preferences', subtitle: 'Choose your interface language and appearance.', language: 'Language' },
+    authPanel: {
+      title: 'Shop smarter with q-shop.',
+      subtitle: 'Everything you need to shop from trusted independent stores — diverse products, secure payment, and fast delivery.',
+      trustedTitle: 'Shop from trusted stores', trustedText: 'Thousands of products in one place.',
+      dealsTitle: 'Deals & discounts', dealsText: 'Best prices from independent sellers.',
+      secureTitle: 'Secure payment', secureText: 'Full protection on every purchase.'
+    },
     home: {
       heroBadge: 'Welcome to q-shop', heroTitle: 'Everything you love, from', heroHighlight: 'independent stores',
       heroSubtitle: 'Shop thousands of products across electronics, fashion, home and more — one cart, secure checkout, and fast delivery from verified sellers.',

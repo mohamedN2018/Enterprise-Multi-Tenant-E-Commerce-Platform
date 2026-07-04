@@ -1,10 +1,11 @@
 <script setup>
 import { ShieldCheck, Store, TrendingUp } from 'lucide-vue-next';
+import { t } from '@/i18n';
 
 const perks = [
-  { icon: Store, title: 'تسوّق من متاجر موثوقة', text: 'آلاف المنتجات في مكان واحد.' },
-  { icon: TrendingUp, title: 'عروض وخصومات', text: 'أفضل الأسعار من بائعين مستقلين.' },
-  { icon: ShieldCheck, title: 'دفع آمن', text: 'حماية كاملة لكل عملية شراء.' }
+  { icon: Store, key: 'trusted' },
+  { icon: TrendingUp, key: 'deals' },
+  { icon: ShieldCheck, key: 'secure' }
 ];
 </script>
 
@@ -17,18 +18,16 @@ const perks = [
         <img src="/brand/dark-logo.png" alt="q-shop" class="h-16 w-auto" />
       </RouterLink>
       <div class="relative my-auto max-w-md">
-        <h1 class="text-3xl font-bold leading-tight">تسوّق أذكى مع q-shop.</h1>
-        <p class="mt-3 text-primary-100">
-          كل ما تحتاجه للتسوّق من متاجر مستقلة موثوقة — منتجات متنوّعة، دفع آمن، وتوصيل سريع.
-        </p>
+        <h1 class="text-3xl font-bold leading-tight">{{ t('authPanel.title') }}</h1>
+        <p class="mt-3 text-primary-100">{{ t('authPanel.subtitle') }}</p>
         <ul class="mt-8 space-y-5">
-          <li v-for="p in perks" :key="p.title" class="flex gap-4">
+          <li v-for="p in perks" :key="p.key" class="flex gap-4">
             <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/15">
               <component :is="p.icon" class="h-5 w-5" />
             </span>
             <div>
-              <p class="font-semibold">{{ p.title }}</p>
-              <p class="text-sm text-primary-100">{{ p.text }}</p>
+              <p class="font-semibold">{{ t('authPanel.' + p.key + 'Title') }}</p>
+              <p class="text-sm text-primary-100">{{ t('authPanel.' + p.key + 'Text') }}</p>
             </div>
           </li>
         </ul>

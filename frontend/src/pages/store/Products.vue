@@ -10,6 +10,7 @@ import PageHero from '@/components/ui/PageHero.vue';
 import { storefront } from '@/services/storefront';
 import { usePaginated } from '@/composables/usePaginated';
 import { useAddToCart } from '@/composables/useAddToCart';
+import { catLabel } from '@/utils/i18nData';
 
 const route = useRoute();
 const router = useRouter();
@@ -115,7 +116,7 @@ onMounted(async () => {
               <ul>
                 <li v-for="c in categories" :key="c.name" class="flex items-center justify-between border-b border-slate-50 py-2 last:border-0">
                   <button class="text-sm transition hover:text-primary-600" :class="activeCategory === c.name ? 'font-semibold text-primary-600' : 'text-ink'" @click="toggleCategory(c.name)">
-                    {{ c.name }}
+                    {{ catLabel(c.name) }}
                   </button>
                   <span class="text-xs text-muted">({{ c.product_count }})</span>
                 </li>
