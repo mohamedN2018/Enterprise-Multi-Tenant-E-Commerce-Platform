@@ -21,7 +21,9 @@ import {
   MapPin,
   LifeBuoy,
   Truck,
-  Tag
+  Tag,
+  LayoutGrid,
+  Flame
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useCartStore } from '@/stores/cart';
@@ -57,6 +59,13 @@ const nav = [
 const cartCount = computed(() => cart.count);
 const cartTotal = computed(() => cart.cart?.total || '0.00');
 const currency = computed(() => cart.shopStore?.currency || 'USD');
+
+// Real category data surfaced in the nav bar.
+const sortedCats = computed(() =>
+  [...categories.value].sort((a, b) => (b.product_count || 0) - (a.product_count || 0))
+);
+const topCats = computed(() => sortedCats.value.slice(0, 5));
+const totalProducts = computed(() => categories.value.reduce((n, c) => n + (c.product_count || 0), 0));
 
 const goCategory = (name) => {
   catOpen.value = false;
@@ -184,39 +193,55 @@ onMounted(async () => {
     <!-- Orange category nav bar (sticky: follows on scroll) -->
     <div class="sticky top-0 z-40 bg-primary-600 shadow-md">
       <div class="container flex items-stretch">
-        <!-- All categories -->
-        <div class="relative hidden w-64 shrink-0 lg:block">
-          <button class="flex h-full w-full items-center gap-2 py-3.5 text-lg font-medium text-white" @click="catOpen = !catOpen">
-            <Menu class="h-5 w-5" /> {{ t('nav.allCategories') }} <ChevronDown class="ms-auto h-4 w-4" />
+        <!-- All categories — mega menu with real data -->
+        <div class="relative hidden w-60 shrink-0 lg:block" @mouseleave="catOpen = false">
+          <button class="flex h-full w-full items-center gap-2 py-3.5 text-lg font-medium text-white" @click="catOpen = !catOpen" @mouseenter="catOpen = true">
+            <Menu class="h-5 w-5" /> {{ t('nav.allCategories') }}
+            <ChevronDown class="ms-auto h-4 w-4 transition" :class="catOpen ? 'rotate-180' : ''" />
           </button>
-          <div v-if="catOpen" class="absolute start-0 top-full z-[100] w-64 rounded-b-lg bg-lightbg py-1 shadow-pop dark:border dark:border-slate-700">
-            <button
-              v-for="c in categories"
-              :key="c.name"
-              class="flex w-full items-center justify-between border-b border-black/5 px-4 py-2.5 text-sm text-ink transition last:border-0 hover:bg-primary-600 hover:text-white"
-              @click="goCategory(c.name)"
-            >
-              <span>{{ c.name }}</span>
-              <span class="text-xs opacity-70">({{ c.product_count }})</span>
-            </button>
-            <p v-if="!categories.length" class="px-4 py-3 text-sm text-muted">{{ t('categoriesPage.noCategories') }}</p>
+          <div v-if="catOpen" class="absolute start-0 top-full z-[100] w-[560px] overflow-hidden rounded-b-xl border border-slate-200 bg-white shadow-pop dark:border-slate-700 dark:bg-slate-800">
+            <div class="flex items-center justify-between border-b border-slate-100 px-4 py-2.5 dark:border-slate-700">
+              <span class="flex items-center gap-2 text-sm font-bold text-ink"><LayoutGrid class="h-4 w-4 text-primary-600" /> {{ t('nav.allCategories') }}</span>
+              <span class="text-xs text-muted">{{ totalProducts }} {{ t('home.items') }}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-0.5 p-2">
+              <button
+                v-for="c in sortedCats"
+                :key="c.name"
+                class="group flex items-center gap-2 rounded-lg px-3 py-2 text-start text-sm text-ink transition hover:bg-primary-50 dark:hover:bg-slate-700"
+                @click="goCategory(c.name)"
+              >
+                <span class="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-primary-50 text-primary-600 transition group-hover:bg-primary-600 group-hover:text-white dark:bg-primary-600/10"><Tag class="h-3.5 w-3.5" /></span>
+                <span class="min-w-0 flex-1 truncate">{{ c.name }}</span>
+                <span class="text-xs text-muted">{{ c.product_count }}</span>
+              </button>
+              <p v-if="!categories.length" class="col-span-2 px-4 py-3 text-sm text-muted">{{ t('categoriesPage.noCategories') }}</p>
+            </div>
+            <RouterLink :to="{ name: 'products' }" class="block border-t border-slate-100 px-4 py-2.5 text-center text-sm font-medium text-primary-600 hover:bg-lightbg dark:border-slate-700" @click="catOpen = false">{{ t('home.viewAllProducts') }}</RouterLink>
           </div>
         </div>
 
-        <!-- Horizontal nav -->
+        <!-- Horizontal nav: core links + real top categories inline -->
         <nav class="hidden flex-1 items-center lg:flex">
           <RouterLink
             v-for="item in nav"
             :key="item.key"
             :to="item.to"
-            class="px-4 py-3.5 font-heading text-[17px] font-medium text-white/90 transition hover:text-white"
+            class="whitespace-nowrap px-3.5 py-3.5 font-heading text-[16px] font-medium text-white/90 transition hover:text-white"
             active-class="text-white"
           >
-            {{ t('nav.' + item.key) }}
+            <Flame v-if="item.key === 'deals'" class="me-1 inline h-4 w-4 text-secondary-300" />{{ t('nav.' + item.key) }}
           </RouterLink>
-          <RouterLink :to="{ name: 'support' }" class="px-4 py-3.5 font-heading text-[17px] font-medium text-white/90 transition hover:text-white">{{ t('nav.support') }}</RouterLink>
-          <RouterLink :to="{ name: 'account' }" class="px-4 py-3.5 font-heading text-[17px] font-medium text-white/90 transition hover:text-white">{{ t('nav.account') }}</RouterLink>
-          <a :href="`tel:${SUPPORT_PHONE}`" class="btn btn-secondary ms-auto my-2 rounded-full" dir="ltr"><Phone class="h-4 w-4" /> (+012) 1234 567890</a>
+          <span v-if="topCats.length" class="mx-1 h-5 w-px bg-white/25"></span>
+          <button
+            v-for="c in topCats"
+            :key="c.name"
+            class="whitespace-nowrap px-3 py-3.5 font-heading text-[15px] font-medium text-white/75 transition hover:text-white"
+            @click="goCategory(c.name)"
+          >
+            {{ c.name }}
+          </button>
+          <a :href="`tel:${SUPPORT_PHONE}`" class="btn btn-secondary ms-auto my-2 shrink-0 rounded-full" dir="ltr"><Phone class="h-4 w-4" /> (+012) 1234 567890</a>
         </nav>
 
         <!-- Mobile nav toggle -->
