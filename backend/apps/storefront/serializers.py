@@ -36,6 +36,11 @@ def image_url(obj):
     return obj.image.url if obj.image else None
 
 
+def gallery_urls(product) -> list[str]:
+    """All gallery image URLs for a product, ordered; empty if it has none."""
+    return [img.image.url for img in product.images.all() if img.image]
+
+
 class StorefrontReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
@@ -106,6 +111,7 @@ class StorefrontProductSerializer(LocalizedNameMixin, serializers.ModelSerialize
     name = serializers.SerializerMethodField()
     description = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
     price = serializers.SerializerMethodField()
     compare_at_price = serializers.SerializerMethodField()
     currency = serializers.CharField(source="store.currency", read_only=True)
@@ -122,6 +128,7 @@ class StorefrontProductSerializer(LocalizedNameMixin, serializers.ModelSerialize
             "slug",
             "description",
             "image",
+            "images",
             "product_type",
             "price",
             "compare_at_price",
@@ -134,7 +141,18 @@ class StorefrontProductSerializer(LocalizedNameMixin, serializers.ModelSerialize
         read_only_fields = fields
 
     def get_image(self, obj):
-        return image_url(obj)
+        # Primary/cover: first gallery image, else the legacy single image.
+        gallery = gallery_urls(obj)
+        return gallery[0] if gallery else image_url(obj)
+
+    def get_images(self, obj):
+        # Full gallery; fall back to the legacy single image so older products
+        # still return a one-item list instead of nothing.
+        gallery = gallery_urls(obj)
+        if gallery:
+            return gallery
+        legacy = image_url(obj)
+        return [legacy] if legacy else []
 
     def get_compare_at_price(self, obj):
         variant = self._default_variant(obj)

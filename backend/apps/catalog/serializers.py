@@ -22,8 +22,22 @@ from apps.catalog.models import (
     LicenseKey,
     Product,
     ProductAttribute,
+    ProductImage,
     ProductVariant,
 )
+
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProductImage
+        fields = ("id", "image", "alt_text", "position")
+        read_only_fields = fields
+
+    def get_image(self, obj):
+        # Origin-relative URL — the SPA and /media share one nginx origin.
+        return obj.image.url if obj.image else None
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -139,6 +153,7 @@ class ProductSerializer(serializers.ModelSerializer):
     components = BundleComponentSerializer(many=True, read_only=True)
     product_attributes = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
+    images = ProductImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
@@ -150,6 +165,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "description",
             "description_en",
             "image",
+            "images",
             "category",
             "brand",
             "product_type",
@@ -173,6 +189,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "variants",
             "components",
             "product_attributes",
+            "images",
             "created_at",
             "updated_at",
         )
@@ -184,7 +201,11 @@ class ProductSerializer(serializers.ModelSerializer):
         ]
 
     def get_image(self, obj):
+        # Primary/cover = first gallery image; fall back to the legacy field.
         # Origin-relative URL — the SPA and /media share one nginx origin.
+        gallery = list(obj.images.all())
+        if gallery:
+            return gallery[0].image.url
         return obj.image.url if obj.image else None
 
 

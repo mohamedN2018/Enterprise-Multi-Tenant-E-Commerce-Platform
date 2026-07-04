@@ -21,6 +21,21 @@ urlpatterns = [
     path("products/<uuid:product_id>/", views.ProductDetailView.as_view(), name="product-detail"),
     path("products/<uuid:product_id>/image/", views.ProductImageView.as_view(), name="product-image"),
     path(
+        "products/<uuid:product_id>/images/",
+        views.ProductGalleryView.as_view(),
+        name="product-gallery",
+    ),
+    path(
+        "products/<uuid:product_id>/images/reorder/",
+        views.ProductGalleryReorderView.as_view(),
+        name="product-gallery-reorder",
+    ),
+    path(
+        "products/<uuid:product_id>/images/<uuid:image_id>/",
+        views.ProductGalleryItemView.as_view(),
+        name="product-gallery-item",
+    ),
+    path(
         "products/<uuid:product_id>/variants/",
         views.VariantListCreateView.as_view(),
         name="variant-list",

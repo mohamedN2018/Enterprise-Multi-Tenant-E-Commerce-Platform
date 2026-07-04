@@ -8,12 +8,21 @@ Writes route through :class:`CatalogService` and require manager/owner.
 
 from __future__ import annotations
 
+from django.db.models import Max
 from rest_framework import generics
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 
 from apps.catalog.access import StoreContextMixin
-from apps.catalog.models import Attribute, Brand, Category, DownloadGrant, Product, ProductVariant
+from apps.catalog.models import (
+    Attribute,
+    Brand,
+    Category,
+    DownloadGrant,
+    Product,
+    ProductImage,
+    ProductVariant,
+)
 from apps.catalog.serializers import (
     AddLicenseKeysSerializer,
     AddProductAttributeSerializer,
@@ -28,6 +37,7 @@ from apps.catalog.serializers import (
     GenerateVariantsSerializer,
     LicenseKeySerializer,
     ProductAttributeSerializer,
+    ProductImageSerializer,
     ProductSerializer,
     ProductVariantSerializer,
     SetVariantOptionsSerializer,
@@ -129,7 +139,11 @@ class ProductListCreateView(StoreContextMixin, BaseGenericAPIView, generics.List
     ordering_fields = ("created_at", "name")
 
     def get_queryset(self):
-        qs = Product.objects.select_related("category", "brand").prefetch_related("variants").all()
+        qs = (
+            Product.objects.select_related("category", "brand")
+            .prefetch_related("variants", "images")
+            .all()
+        )
         # Optional faceted filter: products having a variant with this option value.
         attribute_value = self.request.query_params.get("attribute_value")
         if attribute_value:
@@ -151,7 +165,9 @@ class ProductDetailView(
     lookup_url_kwarg = "product_id"
 
     def get_queryset(self):
-        return Product.objects.select_related("category", "brand").prefetch_related("variants")
+        return Product.objects.select_related("category", "brand").prefetch_related(
+            "variants", "images"
+        )
 
     def perform_update(self, serializer):
         self.require_write()
@@ -200,6 +216,101 @@ class ProductImageView(StoreContextMixin, BaseAPIView):
         product.image = None
         product.save(update_fields=["image", "updated_at"])
         return APIResponse.success(message="Image removed.")
+
+
+# --- Product gallery (multiple images) ------------------------------------
+MAX_GALLERY_IMAGES = 10
+
+
+class ProductGalleryView(StoreContextMixin, BaseAPIView):
+    """List a product's gallery, or append an image (multipart)."""
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def _product(self, product_id) -> Product:
+        product = Product.objects.filter(id=product_id).first()
+        if product is None:
+            raise NotFoundError("Product not found.")
+        return product
+
+    def get(self, request, product_id):
+        product = self._product(product_id)
+        return APIResponse.success(
+            ProductImageSerializer(product.images.all(), many=True).data
+        )
+
+    def post(self, request, product_id):
+        from apps.core.exceptions import ValidationError
+        from apps.core.validators import validate_image_upload
+
+        self.require_write()
+        product = self._product(product_id)
+        if product.images.count() >= MAX_GALLERY_IMAGES:
+            raise ValidationError(
+                f"A product can have at most {MAX_GALLERY_IMAGES} images.",
+                code="gallery_full",
+                errors={"image": [f"Remove an image before adding more (max {MAX_GALLERY_IMAGES})."]},
+            )
+        file = request.FILES.get("image")
+        if file is None:
+            raise ValidationError(
+                "No image file provided.", code="no_image", errors={"image": ["An image is required."]}
+            )
+        validate_image_upload(file)
+        next_pos = (product.images.aggregate(m=Max("position"))["m"] or 0) + 1
+        image = ProductImage.objects.create(
+            store=product.store, product=product, image=file, position=next_pos
+        )
+        return APIResponse.success(
+            ProductImageSerializer(image).data, message="Image added.", status_code=201
+        )
+
+
+class ProductGalleryItemView(StoreContextMixin, BaseAPIView):
+    """Remove a single gallery image."""
+
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, product_id, image_id):
+        self.require_write()
+        image = ProductImage.objects.filter(product_id=product_id, id=image_id).first()
+        if image is None:
+            raise NotFoundError("Image not found.")
+        image.delete()
+        return APIResponse.success(message="Image removed.")
+
+
+class ProductGalleryReorderView(StoreContextMixin, BaseAPIView):
+    """Reorder a product's gallery from a list of image ids."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, product_id):
+        from apps.core.exceptions import ValidationError
+
+        self.require_write()
+        order = request.data.get("order")
+        if not isinstance(order, list) or not order:
+            raise ValidationError(
+                "Provide an ordered list of image ids.",
+                code="invalid_order",
+                errors={"order": ["A non-empty list of image ids is required."]},
+            )
+        images = {
+            str(img.id): img
+            for img in ProductImage.objects.filter(product_id=product_id)
+        }
+        for position, image_id in enumerate(order):
+            image = images.get(str(image_id))
+            if image is not None and image.position != position:
+                image.position = position
+                image.save(update_fields=["position", "updated_at"])
+        product = Product.objects.filter(id=product_id).first()
+        images_qs = product.images.all() if product else ProductImage.objects.none()
+        return APIResponse.success(
+            ProductImageSerializer(images_qs, many=True).data, message="Gallery reordered."
+        )
 
 
 # --- Variant (nested under product) ---------------------------------------

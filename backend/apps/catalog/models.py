@@ -186,6 +186,29 @@ class Product(TenantOwnedModel, SEOFields):
         self.save(update_fields=["status", "updated_at"])
 
 
+class ProductImage(TenantOwnedModel):
+    """A single image in a product's gallery.
+
+    Products can carry several images; ``position`` orders them and the first
+    (lowest position) is the cover/primary. The legacy ``Product.image`` field
+    is kept as a fallback only — the gallery is the source of truth.
+    """
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
+    image = models.ImageField(upload_to="products/")
+    alt_text = models.CharField(max_length=255, blank=True)
+    position = models.PositiveIntegerField(default=0, db_index=True)
+
+    class Meta(TenantOwnedModel.Meta):
+        verbose_name = "Product image"
+        verbose_name_plural = "Product images"
+        ordering = ("position", "created_at")
+        indexes = [models.Index(fields=["product", "position"])]
+
+    def __str__(self) -> str:
+        return f"{self.product.name} · image {self.position}"
+
+
 class ProductVariant(TenantOwnedModel):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
     name = models.CharField(max_length=255, blank=True)

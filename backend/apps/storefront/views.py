@@ -122,7 +122,7 @@ class StorefrontAllProductsView(BaseGenericAPIView, generics.ListAPIView):
         qs = _annotate_rating(
             Product.all_objects.filter(_PUBLIC_PRODUCTS)
             .select_related("store")
-            .prefetch_related("variants")
+            .prefetch_related("variants", "images")
         )
         params = self.request.query_params
         if params.get("category"):
@@ -154,7 +154,7 @@ class StorefrontProductListView(BaseGenericAPIView, generics.ListAPIView):
                 store=store, status=ProductStatus.PUBLISHED, is_deleted=False
             )
             .select_related("store")
-            .prefetch_related("variants")
+            .prefetch_related("variants", "images")
         ).order_by("-created_at")
 
 
@@ -195,7 +195,7 @@ class StorefrontProductDetailView(BaseAPIView):
                 id=product_id, status=ProductStatus.PUBLISHED, is_deleted=False
             )
             .select_related("store")
-            .prefetch_related("variants")
+            .prefetch_related("variants", "images")
             .first()
         )
         if product is None:

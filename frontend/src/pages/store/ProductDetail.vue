@@ -75,10 +75,12 @@ const activeImage = ref(0);
 
 const gallery = computed(() => {
   if (!product.value) return [];
-  // A real seller-uploaded photo is authoritative — show only it, never fake
-  // "other angles" from an unrelated stock service.
-  if (product.value.image) return [product.value.image];
-  // Placeholder products get a small varied set so the page still feels full.
+  // Real seller-uploaded gallery is authoritative — show exactly those photos,
+  // never fake "other angles" from an unrelated stock service.
+  const real = product.value.images || [];
+  if (real.length) return real;
+  // Products with no uploaded images get a small varied placeholder set so the
+  // page still feels full.
   return [
     productImage(product.value, 800, 600),
     productImage({ id: `${product.value.id}-2` }, 800, 600),

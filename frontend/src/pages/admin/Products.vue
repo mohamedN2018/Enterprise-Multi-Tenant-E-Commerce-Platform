@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { Plus, Search, Pencil, Trash2, Package, Download, Sparkles, Key, Image as ImageIcon, Upload } from 'lucide-vue-next';
+import { Plus, Search, Pencil, Trash2, Package, Download, Sparkles, Key, Upload, X, ArrowUp, ArrowDown, Star } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import Pagination from '@/components/ui/Pagination.vue';
@@ -108,7 +108,7 @@ const { errors: pErrors, run: runProduct, clear: clearProduct } = useValidation(
 const openCreate = () => {
   editing.value = null;
   form.value = blank();
-  resetImage();
+  resetGallery();
   showModal.value = true;
 };
 const openEdit = (p) => {
@@ -123,22 +123,74 @@ const openEdit = (p) => {
     category: p.category || '',
     brand: p.brand || ''
   };
-  resetImage(p.image || '');
+  resetGallery(p);
   showModal.value = true;
 };
 
-// Product image picker (uploaded via a separate multipart call after save).
-const imageFile = ref(null);
-const imagePreview = ref('');
-const resetImage = (existing = '') => {
-  imageFile.value = null;
-  imagePreview.value = existing || '';
+// --- Product gallery (multiple images) ------------------------------------
+// Existing images are managed live (delete/reorder hit the API immediately);
+// newly-picked files stage locally and upload after the product is saved.
+const MAX_IMAGES = 10;
+const galleryImages = ref([]); // persisted: { id, image, alt_text, position }
+const pendingImages = ref([]); // staged: { file, preview }
+const galleryBusy = ref(false);
+const imageCount = computed(() => galleryImages.value.length + pendingImages.value.length);
+
+const resetGallery = async (product = null) => {
+  pendingImages.value = [];
+  galleryImages.value = [];
+  if (product?.id) {
+    try {
+      const res = await seller.productImages(product.id);
+      galleryImages.value = res.data || [];
+    } catch {
+      galleryImages.value = [];
+    }
+  }
 };
-const onPickImage = (e) => {
-  const f = e.target.files?.[0];
-  if (!f) return;
-  imageFile.value = f;
-  imagePreview.value = URL.createObjectURL(f);
+
+const onPickImages = (e) => {
+  const files = Array.from(e.target.files || []);
+  e.target.value = '';
+  for (const f of files) {
+    if (imageCount.value >= MAX_IMAGES) {
+      ui.error(t('prod.maxImages', { n: MAX_IMAGES }));
+      break;
+    }
+    pendingImages.value.push({ file: f, preview: URL.createObjectURL(f) });
+  }
+};
+
+const removePending = (idx) => pendingImages.value.splice(idx, 1);
+
+const removeExisting = async (img) => {
+  if (!editing.value) return;
+  galleryBusy.value = true;
+  try {
+    await seller.deleteProductImage(editing.value.id, img.id);
+    galleryImages.value = galleryImages.value.filter((x) => x.id !== img.id);
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    galleryBusy.value = false;
+  }
+};
+
+const moveExisting = async (idx, dir) => {
+  const to = idx + dir;
+  if (to < 0 || to >= galleryImages.value.length) return;
+  const arr = galleryImages.value.slice();
+  [arr[idx], arr[to]] = [arr[to], arr[idx]];
+  galleryImages.value = arr;
+  if (!editing.value) return;
+  galleryBusy.value = true;
+  try {
+    await seller.reorderProductImages(editing.value.id, arr.map((x) => x.id));
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    galleryBusy.value = false;
+  }
 };
 
 const save = async () => {
@@ -146,7 +198,6 @@ const save = async () => {
   saving.value = true;
   try {
     const payload = { ...form.value };
-    delete payload.image;
     if (!payload.category) delete payload.category;
     if (!payload.brand) delete payload.brand;
     let productId = editing.value?.id;
@@ -156,8 +207,8 @@ const save = async () => {
       const res = await seller.createProduct(payload);
       productId = res.data?.id;
     }
-    if (imageFile.value && productId) {
-      await seller.uploadProductImage(productId, imageFile.value);
+    for (const p of pendingImages.value) {
+      await seller.addProductImage(productId, p.file);
     }
     ui.success(editing.value ? t('prod.productUpdated') : t('prod.productCreated'));
     showModal.value = false;
@@ -333,19 +384,35 @@ onMounted(async () => {
     <!-- Create / edit modal -->
     <Modal v-model="showModal" :title="editing ? $t('prod.editProduct') : $t('prod.newProduct')" size="lg">
       <form id="product-form" class="grid gap-4" novalidate @submit.prevent="save">
-        <!-- Product image -->
+        <!-- Product gallery (multiple images) -->
         <div>
-          <label class="label">{{ $t('prod.image') }}</label>
-          <div class="flex items-center gap-4">
-            <div class="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-lightbg dark:border-slate-700">
-              <img v-if="imagePreview" :src="imagePreview" alt="" class="h-full w-full object-cover" />
-              <ImageIcon v-else class="h-6 w-6 text-slate-400" />
+          <div class="flex items-center justify-between">
+            <label class="label mb-0">{{ $t('prod.gallery') }}</label>
+            <span class="text-xs text-muted">{{ imageCount }} / {{ MAX_IMAGES }}</span>
+          </div>
+          <p class="mb-2 mt-1 text-xs text-muted">{{ $t('prod.galleryHint') }}</p>
+          <div class="flex flex-wrap gap-3">
+            <!-- existing (saved) images -->
+            <div v-for="(img, i) in galleryImages" :key="img.id" class="group relative h-24 w-24 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+              <img :src="img.image" alt="" class="h-full w-full object-cover" />
+              <span v-if="i === 0" class="absolute left-1 top-1 flex items-center gap-0.5 rounded bg-primary-600 px-1.5 py-0.5 text-[10px] font-semibold text-white"><Star class="h-3 w-3" /> {{ $t('prod.cover') }}</span>
+              <div class="absolute inset-x-0 bottom-0 flex justify-between bg-black/55 opacity-0 transition group-hover:opacity-100">
+                <button type="button" class="p-1 text-white disabled:opacity-30" :disabled="i === 0 || galleryBusy" :title="$t('prod.moveLeft')" @click="moveExisting(i, -1)"><ArrowUp class="h-3.5 w-3.5 rtl:rotate-180" /></button>
+                <button type="button" class="p-1 text-white disabled:opacity-30" :disabled="i === galleryImages.length - 1 || galleryBusy" :title="$t('prod.moveRight')" @click="moveExisting(i, 1)"><ArrowDown class="h-3.5 w-3.5 rtl:rotate-180" /></button>
+                <button type="button" class="p-1 text-white" :disabled="galleryBusy" :title="$t('common.delete')" @click="removeExisting(img)"><X class="h-3.5 w-3.5" /></button>
+              </div>
             </div>
-            <label class="btn btn-outline btn-sm cursor-pointer">
-              <Upload class="h-4 w-4" /> {{ $t('prod.chooseImage') }}
-              <input type="file" accept="image/*" class="hidden" @change="onPickImage" />
+            <!-- pending (staged, not yet uploaded) images -->
+            <div v-for="(p, i) in pendingImages" :key="'pending-' + i" class="relative h-24 w-24 overflow-hidden rounded-lg border-2 border-dashed border-primary-400">
+              <img :src="p.preview" alt="" class="h-full w-full object-cover opacity-90" />
+              <span class="absolute left-1 top-1 rounded bg-slate-900/70 px-1 py-0.5 text-[10px] text-white">{{ $t('prod.newBadge') }}</span>
+              <button type="button" class="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-white" :title="$t('common.delete')" @click="removePending(i)"><X class="h-3 w-3" /></button>
+            </div>
+            <!-- add tile -->
+            <label v-if="imageCount < MAX_IMAGES" class="grid h-24 w-24 cursor-pointer place-items-center rounded-lg border-2 border-dashed border-slate-300 text-slate-400 transition hover:border-primary-500 hover:text-primary-500 dark:border-slate-600">
+              <span class="flex flex-col items-center gap-1"><Upload class="h-5 w-5" /><span class="text-[11px]">{{ $t('prod.addImages') }}</span></span>
+              <input type="file" accept="image/*" multiple class="hidden" @change="onPickImages" />
             </label>
-            <p class="text-xs text-muted">{{ $t('prod.imageHint') }}</p>
           </div>
         </div>
         <FormField v-model="form.name" :label="$t('common.nameAr')" :error="pErrors.name" @update:model-value="clearProduct('name')" />

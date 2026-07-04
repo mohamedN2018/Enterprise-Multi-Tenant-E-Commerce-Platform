@@ -35,6 +35,15 @@ export const seller = {
     return http.post(`/catalog/products/${id}/image/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
   },
   removeProductImage: (id) => http.delete(`/catalog/products/${id}/image/`),
+  // --- Gallery (multiple images) ---
+  productImages: (id) => http.get(`/catalog/products/${id}/images/`),
+  addProductImage: (id, file) => {
+    const fd = new FormData();
+    fd.append('image', file);
+    return http.post(`/catalog/products/${id}/images/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  deleteProductImage: (id, imageId) => http.delete(`/catalog/products/${id}/images/${imageId}/`),
+  reorderProductImages: (id, order) => http.post(`/catalog/products/${id}/images/reorder/`, { order }),
   variants: (productId) => http.get(`/catalog/products/${productId}/variants/`),
   createVariant: (productId, payload) =>
     http.post(`/catalog/products/${productId}/variants/`, payload),
