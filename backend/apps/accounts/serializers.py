@@ -21,6 +21,7 @@ class UserSerializer(serializers.ModelSerializer):
             "is_superuser",
             "is_verified",
             "two_factor_enabled",
+            "max_stores",
             "last_login",
             "created_at",
         )

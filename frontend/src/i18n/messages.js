@@ -322,6 +322,11 @@ export default {
       requestNote: 'ملاحظة (اختياري)', requestNotePlaceholder: 'سبب الطلب…',
       requestSent: 'تم إرسال الطلب للإدارة.', requestPending: 'طلب قيد المراجعة (حتى {n})'
     },
+    storeSwitcher: {
+      newStore: 'إنشاء متجر جديد', requestMore: 'طلب متجر إضافي', yourStores: 'متاجرك',
+      storeName: 'اسم المتجر', storeCreated: 'تم إنشاء المتجر.', requestSent: 'تم إرسال الطلب للإدارة.',
+      maxStores: 'عدد المتاجر المطلوب', requestHint: 'وصلت للحد الحالي ({current}). اطلب من الإدارة رفعه.'
+    },
     admin: {
       overview: 'نظرة عامة', catalog: 'الكتالوج', sales: 'المبيعات', marketing: 'التسويق',
       operations: 'العمليات', finance: 'المالية', store: 'المتجر', dashboard: 'لوحة التحكم',
@@ -669,6 +674,11 @@ export default {
       requestIncreaseHint: 'Current cap is {current} employee(s). Ask the admin to raise it.',
       requestNote: 'Note (optional)', requestNotePlaceholder: 'Reason for the request…',
       requestSent: 'Request sent to the admin.', requestPending: 'Request pending (up to {n})'
+    },
+    storeSwitcher: {
+      newStore: 'Create new store', requestMore: 'Request another store', yourStores: 'Your stores',
+      storeName: 'Store name', storeCreated: 'Store created.', requestSent: 'Request sent to the admin.',
+      maxStores: 'Stores requested', requestHint: 'You have reached the current cap ({current}). Ask the admin to raise it.'
     },
     admin: {
       overview: 'Overview', catalog: 'Catalog', sales: 'Sales', marketing: 'Marketing', operations: 'Operations',

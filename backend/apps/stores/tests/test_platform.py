@@ -250,3 +250,20 @@ def test_admin_rejects_request_keeps_cap(client_for, make_store, superadmin):
 
 def test_requests_list_requires_superuser(client_for, make_user):
     assert client_for(make_user()).get(PLATFORM_REQUESTS).status_code == 403
+
+
+def test_seller_requests_more_stores_and_admin_approves(client_for, make_store, make_user, superadmin):
+    store, owner = make_store()  # owner.max_stores defaults to 1
+    url = reverse("v1:stores:user-limit-requests")
+    req = client_for(owner).post(url, {"requested_limit": 3, "note": "expanding"}, format="json")
+    assert req.status_code == 201
+    assert req.json()["data"]["kind"] == "stores"
+    req_id = req.json()["data"]["id"]
+
+    client_for(superadmin).post(_approve(req_id))
+    owner.refresh_from_db()
+    assert owner.max_stores == 3
+
+    # Owner can now self-create additional stores up to the new cap.
+    second = client_for(owner).post(STORE_LIST, {"name": "Second"}, format="json")
+    assert second.status_code == 201

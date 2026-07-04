@@ -14,6 +14,8 @@ export const seller = {
   addMember: (id, payload) => http.post(`/stores/${id}/members/`, payload),
   limitRequests: (id) => http.get(`/stores/${id}/limit-requests/`),
   requestLimit: (id, payload) => http.post(`/stores/${id}/limit-requests/`, payload),
+  storeRequests: () => http.get('/stores/limit-requests/'),
+  requestStores: (payload) => http.post('/stores/limit-requests/', payload),
   updateMember: (id, memberId, payload) =>
     http.patch(`/stores/${id}/members/${memberId}/`, payload),
   removeMember: (id, memberId) => http.delete(`/stores/${id}/members/${memberId}/`),

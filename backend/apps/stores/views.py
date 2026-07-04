@@ -184,3 +184,37 @@ class StoreLimitRequestView(StoreAccessMixin, BaseAPIView):
             message="Request submitted.",
             status_code=status.HTTP_201_CREATED,
         )
+
+
+class UserLimitRequestView(BaseAPIView):
+    """A seller views/raises requests to own more stores (account-level)."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses={200: LimitRequestSerializer(many=True)}, tags=["stores"])
+    def get(self, request: Request) -> Response:
+        requests = LimitRequest.objects.filter(
+            requested_by=request.user, kind=LimitRequestKind.STORES
+        ).order_by("-created_at")
+        return APIResponse.success(LimitRequestSerializer(requests, many=True).data)
+
+    @extend_schema(
+        request=LimitRequestCreateSerializer,
+        responses={201: LimitRequestSerializer},
+        tags=["stores"],
+    )
+    def post(self, request: Request) -> Response:
+        serializer = LimitRequestCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        req = LimitRequestService().create(
+            requested_by=request.user,
+            store=None,
+            kind=LimitRequestKind.STORES,
+            requested_limit=serializer.validated_data["requested_limit"],
+            note=serializer.validated_data.get("note", ""),
+        )
+        return APIResponse.success(
+            LimitRequestSerializer(req).data,
+            message="Request submitted.",
+            status_code=status.HTTP_201_CREATED,
+        )

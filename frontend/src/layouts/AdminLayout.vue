@@ -34,17 +34,92 @@ import {
   Star,
   Bell,
   Volume2,
-  VolumeX
+  VolumeX,
+  Plus,
+  Send
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useTenantStore } from '@/stores/tenant';
+import { useUiStore } from '@/stores/ui';
 import NotificationBell from '@/components/ui/NotificationBell.vue';
+import Modal from '@/components/ui/Modal.vue';
+import FormField from '@/components/ui/FormField.vue';
+import Spinner from '@/components/ui/Spinner.vue';
+import { seller } from '@/services/seller';
+import { errorMessage } from '@/services/http';
+import { useValidation, required, positive, iso2 } from '@/utils/validators';
 import { t } from '@/i18n';
 import { useTheme } from '@/theme';
 import { useOrderAlerts, orderSoundMuted, toggleOrderSound } from '@/composables/useOrderAlerts';
 
 // Ping the seller (sound + toast) the moment a new order lands.
 useOrderAlerts();
+
+const ui = useUiStore();
+
+// Seller store allotment: create up to max_stores, then request more.
+const maxStores = computed(() => Number(auth.user?.max_stores) || 1);
+const canCreateStore = computed(() => !tenant.isPlatform && tenant.stores.length < maxStores.value);
+const atStoreLimit = computed(() => !tenant.isPlatform && tenant.stores.length >= maxStores.value);
+
+const showCreateStore = ref(false);
+const creatingStore = ref(false);
+const storeForm = ref({ name: '', country: '' });
+const { errors: csErr, run: runCs, clear: clearCs } = useValidation(() => storeForm.value, {
+  name: [required()],
+  country: [iso2({ optional: true })]
+});
+const openCreateStore = () => {
+  storeForm.value = { name: '', country: '' };
+  storeMenu.value = false;
+  showCreateStore.value = true;
+};
+const createStore = async () => {
+  if (!runCs()) return;
+  creatingStore.value = true;
+  try {
+    const res = await seller.createStore({ name: storeForm.value.name, country: storeForm.value.country });
+    ui.success(t('storeSwitcher.storeCreated'));
+    showCreateStore.value = false;
+    await tenant.refresh();
+    if (res.data?.id) {
+      tenant.select(res.data.id);
+      router.go(0);
+    }
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    creatingStore.value = false;
+  }
+};
+
+const showStoreReq = ref(false);
+const storeReqBusy = ref(false);
+const storeReqForm = ref({ requested_limit: 2, note: '' });
+const { errors: srErr, run: runSr, clear: clearSr } = useValidation(() => storeReqForm.value, {
+  requested_limit: [positive()]
+});
+const openStoreReq = () => {
+  storeReqForm.value = { requested_limit: maxStores.value + 1, note: '' };
+  storeMenu.value = false;
+  showStoreReq.value = true;
+};
+const requestStores = async () => {
+  if (!runSr()) return;
+  storeReqBusy.value = true;
+  try {
+    await seller.requestStores({
+      requested_limit: Number(storeReqForm.value.requested_limit),
+      note: storeReqForm.value.note
+    });
+    ui.success(t('storeSwitcher.requestSent'));
+    showStoreReq.value = false;
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    storeReqBusy.value = false;
+  }
+};
 
 const { theme } = useTheme();
 
@@ -183,6 +258,18 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
               {{ s.name }}
             </button>
             <p v-if="!tenant.stores.length" class="px-4 py-2 text-sm text-slate-400">{{ $t('admin.noStores') }}</p>
+            <template v-if="!tenant.isPlatform && tenant.stores.length">
+              <div class="my-1 border-t border-slate-100"></div>
+              <button v-if="canCreateStore" class="dropdown-item w-full text-primary-600" @click="openCreateStore">
+                <Plus class="h-4 w-4" /> {{ $t('storeSwitcher.newStore') }}
+              </button>
+              <button v-else class="dropdown-item w-full text-slate-600" @click="openStoreReq">
+                <Send class="h-4 w-4" /> {{ $t('storeSwitcher.requestMore') }}
+              </button>
+              <p class="px-4 py-1 text-[11px] text-slate-400">
+                {{ $t('storeSwitcher.yourStores') }}: <span dir="ltr">{{ tenant.stores.length }} / {{ maxStores }}</span>
+              </p>
+            </template>
           </div>
         </div>
         <div v-if="tenant.role" class="mt-2 px-1">
@@ -260,5 +347,38 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
         </RouterView>
       </main>
     </div>
+
+    <!-- Seller: create another store (within the admin-set cap) -->
+    <Modal v-model="showCreateStore" :title="$t('storeSwitcher.newStore')">
+      <form id="new-store-form" class="grid gap-4" novalidate @submit.prevent="createStore">
+        <FormField v-model="storeForm.name" :label="$t('storeSwitcher.storeName')" :error="csErr.name" @update:model-value="clearCs('name')" />
+        <FormField v-model="storeForm.country" :label="$t('common.country')" placeholder="EG" :error="csErr.country" @update:model-value="clearCs('country')" />
+      </form>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button class="btn btn-ghost" @click="showCreateStore = false">{{ $t('common.cancel') }}</button>
+          <button form="new-store-form" type="submit" class="btn btn-primary" :disabled="creatingStore">
+            <Spinner v-if="creatingStore" :size="18" /><span v-else>{{ $t('common.create') }}</span>
+          </button>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Seller: request a higher store cap -->
+    <Modal v-model="showStoreReq" :title="$t('storeSwitcher.requestMore')" size="sm">
+      <form id="store-req-form" class="grid gap-3" novalidate @submit.prevent="requestStores">
+        <p class="text-sm text-muted">{{ $t('storeSwitcher.requestHint', { current: maxStores }) }}</p>
+        <FormField v-model.number="storeReqForm.requested_limit" :label="$t('storeSwitcher.maxStores')" type="number" min="1" :error="srErr.requested_limit" @update:model-value="clearSr('requested_limit')" />
+        <FormField v-model="storeReqForm.note" :label="$t('team.requestNote')" :placeholder="$t('team.requestNotePlaceholder')" />
+      </form>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button class="btn btn-ghost" @click="showStoreReq = false">{{ $t('common.cancel') }}</button>
+          <button form="store-req-form" type="submit" class="btn btn-primary" :disabled="storeReqBusy">
+            <Spinner v-if="storeReqBusy" :size="18" /><span v-else>{{ $t('team.sendRequest') }}</span>
+          </button>
+        </div>
+      </template>
+    </Modal>
   </div>
 </template>

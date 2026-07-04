@@ -8,6 +8,7 @@ app_name = "stores"
 
 urlpatterns = [
     path("", views.StoreListCreateView.as_view(), name="store-list"),
+    path("limit-requests/", views.UserLimitRequestView.as_view(), name="user-limit-requests"),
     path("<uuid:store_id>/", views.StoreDetailView.as_view(), name="store-detail"),
     path("<uuid:store_id>/settings/", views.StoreSettingsView.as_view(), name="store-settings"),
     path("<uuid:store_id>/members/", views.MemberListCreateView.as_view(), name="member-list"),
