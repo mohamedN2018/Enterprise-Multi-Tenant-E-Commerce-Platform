@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { Plus, Search, Pencil, Trash2, Package, Download, Sparkles, Key } from 'lucide-vue-next';
+import { Plus, Search, Pencil, Trash2, Package, Download, Sparkles, Key, Image as ImageIcon, Upload } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import Pagination from '@/components/ui/Pagination.vue';
@@ -108,6 +108,7 @@ const { errors: pErrors, run: runProduct, clear: clearProduct } = useValidation(
 const openCreate = () => {
   editing.value = null;
   form.value = blank();
+  resetImage();
   showModal.value = true;
 };
 const openEdit = (p) => {
@@ -122,7 +123,22 @@ const openEdit = (p) => {
     category: p.category || '',
     brand: p.brand || ''
   };
+  resetImage(p.image || '');
   showModal.value = true;
+};
+
+// Product image picker (uploaded via a separate multipart call after save).
+const imageFile = ref(null);
+const imagePreview = ref('');
+const resetImage = (existing = '') => {
+  imageFile.value = null;
+  imagePreview.value = existing || '';
+};
+const onPickImage = (e) => {
+  const f = e.target.files?.[0];
+  if (!f) return;
+  imageFile.value = f;
+  imagePreview.value = URL.createObjectURL(f);
 };
 
 const save = async () => {
@@ -130,15 +146,20 @@ const save = async () => {
   saving.value = true;
   try {
     const payload = { ...form.value };
+    delete payload.image;
     if (!payload.category) delete payload.category;
     if (!payload.brand) delete payload.brand;
+    let productId = editing.value?.id;
     if (editing.value) {
-      await seller.updateProduct(editing.value.id, payload);
-      ui.success(t('prod.productUpdated'));
+      await seller.updateProduct(productId, payload);
     } else {
-      await seller.createProduct(payload);
-      ui.success(t('prod.productCreated'));
+      const res = await seller.createProduct(payload);
+      productId = res.data?.id;
     }
+    if (imageFile.value && productId) {
+      await seller.uploadProductImage(productId, imageFile.value);
+    }
+    ui.success(editing.value ? t('prod.productUpdated') : t('prod.productCreated'));
     showModal.value = false;
     fetch();
   } catch (e) {
@@ -312,11 +333,30 @@ onMounted(async () => {
     <!-- Create / edit modal -->
     <Modal v-model="showModal" :title="editing ? $t('prod.editProduct') : $t('prod.newProduct')" size="lg">
       <form id="product-form" class="grid gap-4" novalidate @submit.prevent="save">
+        <!-- Product image -->
+        <div>
+          <label class="label">{{ $t('prod.image') }}</label>
+          <div class="flex items-center gap-4">
+            <div class="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-lightbg dark:border-slate-700">
+              <img v-if="imagePreview" :src="imagePreview" alt="" class="h-full w-full object-cover" />
+              <ImageIcon v-else class="h-6 w-6 text-slate-400" />
+            </div>
+            <label class="btn btn-outline btn-sm cursor-pointer">
+              <Upload class="h-4 w-4" /> {{ $t('prod.chooseImage') }}
+              <input type="file" accept="image/*" class="hidden" @change="onPickImage" />
+            </label>
+            <p class="text-xs text-muted">{{ $t('prod.imageHint') }}</p>
+          </div>
+        </div>
         <FormField v-model="form.name" :label="$t('common.nameAr')" :error="pErrors.name" @update:model-value="clearProduct('name')" />
         <FormField v-model="form.name_en" :label="$t('common.nameEn')" :hint="$t('common.nameEnHint')" />
         <div>
           <label class="label">{{ $t('common.description') }}</label>
           <textarea v-model="form.description" rows="3" class="input"></textarea>
+        </div>
+        <div>
+          <label class="label">{{ $t('prod.descEn') }}</label>
+          <textarea v-model="form.description_en" rows="3" class="input"></textarea>
         </div>
         <div class="grid gap-4 sm:grid-cols-2">
           <div>

@@ -130,6 +130,7 @@ class ProductSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
     components = BundleComponentSerializer(many=True, read_only=True)
     product_attributes = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -140,6 +141,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "slug",
             "description",
             "description_en",
+            "image",
             "category",
             "brand",
             "product_type",
@@ -172,6 +174,10 @@ class ProductSerializer(serializers.ModelSerializer):
             {"id": str(pa.id), "attribute": pa.attribute.name, "code": pa.attribute.code}
             for pa in obj.product_attributes.all()
         ]
+
+    def get_image(self, obj):
+        # Origin-relative URL — the SPA and /media share one nginx origin.
+        return obj.image.url if obj.image else None
 
 
 class DigitalAssetSerializer(serializers.ModelSerializer):

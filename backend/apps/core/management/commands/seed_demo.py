@@ -286,6 +286,18 @@ PRODUCT_AR = {
 }
 
 
+def ar_description(name_ar: str, cat_ar: str) -> str:
+    """A natural Arabic product description (demo data is Egypt-facing, Arabic-first).
+
+    The specific English copy is preserved separately in ``description_en``; this
+    gives Arabic shoppers Arabic details instead of leaking English text.
+    """
+    return (
+        f"{name_ar} من فئة {cat_ar}. منتج أصلي بجودة عالية وأداء موثوق، "
+        f"مع ضمان وشحن سريع لجميع محافظات مصر وإمكانية الدفع عند الاستلام."
+    )
+
+
 class Command(BaseCommand):
     help = "Seed a demo store with published, stocked products (development only)."
 
@@ -425,6 +437,7 @@ class Command(BaseCommand):
             for idx, (name, price, description) in enumerate(CATALOG[cat_name]):
                 on_sale = idx % 3 == 0  # ~1/3 of products are on offer
                 name_ar = PRODUCT_AR.get(name, name)
+                desc_ar = ar_description(name_ar, cat_ar)
                 product = Product.all_objects.filter(
                     store=store, is_deleted=False
                 ).filter(Q(name_en=name) | Q(name=name)).first()
@@ -435,7 +448,7 @@ class Command(BaseCommand):
                             "name": name_ar,
                             "name_en": name,
                             "status": ProductStatus.PUBLISHED,
-                            "description": description,
+                            "description": desc_ar,
                             "description_en": description,
                             "category": category,
                         },
@@ -456,9 +469,14 @@ class Command(BaseCommand):
                     if product.name != name_ar or product.name_en != name:
                         product.name, product.name_en = name_ar, name
                         fields += ["name", "name_en"]
-                    if not product.description_en:
-                        product.description_en = product.description
+                    # Backfill the specific English copy before Arabizing the
+                    # primary description, so en shoppers keep the real text.
+                    if not product.description_en or product.description_en == desc_ar:
+                        product.description_en = description
                         fields.append("description_en")
+                    if product.description != desc_ar:
+                        product.description = desc_ar
+                        fields.append("description")
                     if fields:
                         product.save(update_fields=[*fields, "updated_at"])
                     variant = product.variants.first()

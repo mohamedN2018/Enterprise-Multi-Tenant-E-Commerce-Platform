@@ -29,6 +29,12 @@ export const seller = {
   createProduct: (payload) => http.post('/catalog/products/', payload),
   updateProduct: (id, payload) => http.patch(`/catalog/products/${id}/`, payload),
   deleteProduct: (id) => http.delete(`/catalog/products/${id}/`),
+  uploadProductImage: (id, file) => {
+    const fd = new FormData();
+    fd.append('image', file);
+    return http.post(`/catalog/products/${id}/image/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  removeProductImage: (id) => http.delete(`/catalog/products/${id}/image/`),
   variants: (productId) => http.get(`/catalog/products/${productId}/variants/`),
   createVariant: (productId, payload) =>
     http.post(`/catalog/products/${productId}/variants/`, payload),

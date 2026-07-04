@@ -73,16 +73,19 @@ const qty = ref(1);
 const activeTab = ref('description');
 const activeImage = ref(0);
 
-const gallery = computed(() =>
-  product.value
-    ? [
-        productImage(product.value, 800, 600),
-        productImage({ id: `${product.value.id}-2` }, 800, 600),
-        productImage({ id: `${product.value.id}-3` }, 800, 600),
-        productImage({ id: `${product.value.id}-4` }, 800, 600)
-      ]
-    : []
-);
+const gallery = computed(() => {
+  if (!product.value) return [];
+  // A real seller-uploaded photo is authoritative — show only it, never fake
+  // "other angles" from an unrelated stock service.
+  if (product.value.image) return [product.value.image];
+  // Placeholder products get a small varied set so the page still feels full.
+  return [
+    productImage(product.value, 800, 600),
+    productImage({ id: `${product.value.id}-2` }, 800, 600),
+    productImage({ id: `${product.value.id}-3` }, 800, 600),
+    productImage({ id: `${product.value.id}-4` }, 800, 600)
+  ];
+});
 
 const currency = computed(() => product.value?.currency || '');
 const price = computed(() => selectedVariant.value?.price ?? product.value?.price);
@@ -141,7 +144,7 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
             <div class="overflow-hidden rounded-xl border border-slate-200 bg-lightbg">
               <img :src="gallery[activeImage]" :alt="product.name" class="aspect-square w-full object-cover" @error="onImgError" />
             </div>
-            <div class="mt-4 flex justify-center gap-3">
+            <div v-if="gallery.length > 1" class="mt-4 flex justify-center gap-3">
               <button
                 v-for="(g, i) in gallery"
                 :key="i"

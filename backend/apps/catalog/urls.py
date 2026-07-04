@@ -19,6 +19,7 @@ urlpatterns = [
     path("brands/<uuid:brand_id>/", views.BrandDetailView.as_view(), name="brand-detail"),
     path("products/", views.ProductListCreateView.as_view(), name="product-list"),
     path("products/<uuid:product_id>/", views.ProductDetailView.as_view(), name="product-detail"),
+    path("products/<uuid:product_id>/image/", views.ProductImageView.as_view(), name="product-image"),
     path(
         "products/<uuid:product_id>/variants/",
         views.VariantListCreateView.as_view(),

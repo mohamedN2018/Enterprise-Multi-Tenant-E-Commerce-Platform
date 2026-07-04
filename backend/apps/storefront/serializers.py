@@ -26,6 +26,16 @@ class LocalizedNameMixin:
         return localized(obj, "description", self.context)
 
 
+def image_url(obj):
+    """Origin-relative media URL (e.g. ``/media/products/x.png``).
+
+    We serve the SPA and its API from a single origin (nginx proxies ``/media``),
+    so a relative URL resolves correctly on any host/port/scheme — unlike an
+    absolute URL built from the request's ``Host`` header.
+    """
+    return obj.image.url if obj.image else None
+
+
 class StorefrontReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
@@ -95,6 +105,7 @@ class StorefrontProductSerializer(LocalizedNameMixin, serializers.ModelSerialize
 
     name = serializers.SerializerMethodField()
     description = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
     price = serializers.SerializerMethodField()
     compare_at_price = serializers.SerializerMethodField()
     currency = serializers.CharField(source="store.currency", read_only=True)
@@ -110,6 +121,7 @@ class StorefrontProductSerializer(LocalizedNameMixin, serializers.ModelSerialize
             "name",
             "slug",
             "description",
+            "image",
             "product_type",
             "price",
             "compare_at_price",
@@ -120,6 +132,9 @@ class StorefrontProductSerializer(LocalizedNameMixin, serializers.ModelSerialize
             "review_count",
         )
         read_only_fields = fields
+
+    def get_image(self, obj):
+        return image_url(obj)
 
     def get_compare_at_price(self, obj):
         variant = self._default_variant(obj)

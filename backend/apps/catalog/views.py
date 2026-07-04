@@ -9,6 +9,7 @@ Writes route through :class:`CatalogService` and require manager/owner.
 from __future__ import annotations
 
 from rest_framework import generics
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 
 from apps.catalog.access import StoreContextMixin
@@ -161,6 +162,42 @@ class ProductDetailView(
     def perform_destroy(self, instance):
         self.require_write()
         instance.delete()
+
+
+class ProductImageView(StoreContextMixin, BaseAPIView):
+    """Upload/replace or remove a product's primary image (multipart)."""
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def _get(self, product_id) -> Product:
+        product = Product.objects.filter(id=product_id).first()
+        if product is None:
+            raise NotFoundError("Product not found.")
+        return product
+
+    def post(self, request, product_id):
+        from apps.core.exceptions import ValidationError
+
+        self.require_write()
+        product = self._get(product_id)
+        file = request.FILES.get("image")
+        if file is None:
+            raise ValidationError(
+                "No image file provided.", code="no_image", errors={"image": ["An image is required."]}
+            )
+        product.image = file
+        product.save(update_fields=["image", "updated_at"])
+        return APIResponse.success(ProductSerializer(product, context={"request": request}).data,
+                                   message="Image uploaded.")
+
+    def delete(self, request, product_id):
+        self.require_write()
+        product = self._get(product_id)
+        product.image.delete(save=False)
+        product.image = None
+        product.save(update_fields=["image", "updated_at"])
+        return APIResponse.success(message="Image removed.")
 
 
 # --- Variant (nested under product) ---------------------------------------

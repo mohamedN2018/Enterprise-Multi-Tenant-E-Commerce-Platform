@@ -121,6 +121,7 @@ class Product(TenantOwnedModel, SEOFields):
     slug = models.SlugField(max_length=255)
     description = models.TextField(blank=True)
     description_en = models.TextField(blank=True)
+    image = models.ImageField(upload_to="products/", null=True, blank=True)
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,

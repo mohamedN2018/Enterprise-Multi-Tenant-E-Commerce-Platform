@@ -5,7 +5,6 @@ router/urlconf, included here as features land.
 """
 
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import (
@@ -66,5 +65,16 @@ urlpatterns = [
     path("api/v1/", include((api_v1_patterns, "v1"), namespace="v1")),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve user-uploaded media in every environment (nginx proxies /media/ to the
+# backend). For local S3-less deploys this is the simplest correct path.
+if settings.MEDIA_URL and not settings.USE_S3:
+    from django.urls import re_path
+    from django.views.static import serve as _serve_media
+
+    urlpatterns += [
+        re_path(
+            rf"^{settings.MEDIA_URL.lstrip('/')}(?P<path>.*)$",
+            _serve_media,
+            {"document_root": settings.MEDIA_ROOT},
+        )
+    ]

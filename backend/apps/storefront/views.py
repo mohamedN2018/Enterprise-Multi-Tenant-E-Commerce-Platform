@@ -71,7 +71,9 @@ class StorefrontStoreDetailView(BaseAPIView):
     @extend_schema(responses=StorefrontStoreSerializer)
     def get(self, request: Request, slug: str) -> Response:
         store = _active_store_or_404(slug)
-        return APIResponse.success(StorefrontStoreSerializer(store).data)
+        return APIResponse.success(
+            StorefrontStoreSerializer(store, context={"request": request}).data
+        )
 
 
 @extend_schema(tags=["Storefront"])
@@ -198,4 +200,6 @@ class StorefrontProductDetailView(BaseAPIView):
         )
         if product is None:
             raise NotFoundError("Product not found.")
-        return APIResponse.success(StorefrontProductDetailSerializer(product).data)
+        return APIResponse.success(
+            StorefrontProductDetailSerializer(product, context={"request": request}).data
+        )
