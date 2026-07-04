@@ -29,19 +29,16 @@ export const seller = {
   createProduct: (payload) => http.post('/catalog/products/', payload),
   updateProduct: (id, payload) => http.patch(`/catalog/products/${id}/`, payload),
   deleteProduct: (id) => http.delete(`/catalog/products/${id}/`),
-  uploadProductImage: (id, file) => {
-    const fd = new FormData();
-    fd.append('image', file);
-    return http.post(`/catalog/products/${id}/image/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-  },
-  removeProductImage: (id) => http.delete(`/catalog/products/${id}/image/`),
   // --- Gallery (multiple images) ---
   productImages: (id) => http.get(`/catalog/products/${id}/images/`),
-  addProductImage: (id, file) => {
+  addProductImage: (id, file, altText = '') => {
     const fd = new FormData();
     fd.append('image', file);
+    if (altText) fd.append('alt_text', altText);
     return http.post(`/catalog/products/${id}/images/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
   },
+  updateProductImageAlt: (id, imageId, altText) =>
+    http.patch(`/catalog/products/${id}/images/${imageId}/`, { alt_text: altText }),
   deleteProductImage: (id, imageId) => http.delete(`/catalog/products/${id}/images/${imageId}/`),
   reorderProductImages: (id, order) => http.post(`/catalog/products/${id}/images/reorder/`, { order }),
   variants: (productId) => http.get(`/catalog/products/${productId}/variants/`),

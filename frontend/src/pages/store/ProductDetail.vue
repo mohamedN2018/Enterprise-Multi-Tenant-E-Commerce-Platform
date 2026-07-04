@@ -75,10 +75,11 @@ const activeImage = ref(0);
 
 const gallery = computed(() => {
   if (!product.value) return [];
-  // Real seller-uploaded gallery is authoritative — show exactly those photos,
-  // never fake "other angles" from an unrelated stock service.
+  const name = product.value.name;
+  // Real seller-uploaded gallery is authoritative — show exactly those photos
+  // (with their alt text), never fake "other angles" from a stock service.
   const real = product.value.images || [];
-  if (real.length) return real;
+  if (real.length) return real.map((x) => ({ src: x.image, alt: x.alt || name }));
   // Products with no uploaded images get a small varied placeholder set so the
   // page still feels full.
   return [
@@ -86,7 +87,7 @@ const gallery = computed(() => {
     productImage({ id: `${product.value.id}-2` }, 800, 600),
     productImage({ id: `${product.value.id}-3` }, 800, 600),
     productImage({ id: `${product.value.id}-4` }, 800, 600)
-  ];
+  ].map((src) => ({ src, alt: name }));
 });
 
 const currency = computed(() => product.value?.currency || '');
@@ -144,7 +145,7 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
           <!-- Gallery -->
           <div>
             <div class="overflow-hidden rounded-xl border border-slate-200 bg-lightbg">
-              <img :src="gallery[activeImage]" :alt="product.name" class="aspect-square w-full object-cover" @error="onImgError" />
+              <img :src="gallery[activeImage]?.src" :alt="gallery[activeImage]?.alt || product.name" class="aspect-square w-full object-cover" @error="onImgError" />
             </div>
             <div v-if="gallery.length > 1" class="mt-4 flex justify-center gap-3">
               <button
@@ -154,7 +155,7 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
                 :class="i === activeImage ? 'h-20 w-20 border-secondary-500' : 'h-16 w-16 border-primary-600'"
                 @click="activeImage = i"
               >
-                <img :src="g" alt="" class="h-full w-full object-cover" @error="onImgError" />
+                <img :src="g.src" :alt="g.alt" class="h-full w-full object-cover" @error="onImgError" />
               </button>
             </div>
           </div>

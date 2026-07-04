@@ -15,7 +15,7 @@ const { add: saveWishlist, saving: wishSaving } = useWishlist();
 const p = computed(() => props.product);
 const to = computed(() => ({ name: 'product', params: { id: p.value.id } }));
 const img = computed(
-  () => p.value.primary_image?.image || p.value.image || p.value.images?.[0]?.image || productImage(p.value)
+  () => p.value.image || p.value.images?.[0]?.image || productImage(p.value)
 );
 const currency = computed(() => p.value.currency || p.value.store?.currency || '');
 const price = computed(() => p.value.price ?? p.value.min_price ?? p.value.display_price);

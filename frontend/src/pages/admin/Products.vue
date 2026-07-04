@@ -157,11 +157,21 @@ const onPickImages = (e) => {
       ui.error(t('prod.maxImages', { n: MAX_IMAGES }));
       break;
     }
-    pendingImages.value.push({ file: f, preview: URL.createObjectURL(f) });
+    pendingImages.value.push({ file: f, preview: URL.createObjectURL(f), alt: '' });
   }
 };
 
 const removePending = (idx) => pendingImages.value.splice(idx, 1);
+
+// Persist an existing image's alt text (accessibility / SEO).
+const updateAlt = async (img) => {
+  if (!editing.value) return;
+  try {
+    await seller.updateProductImageAlt(editing.value.id, img.id, img.alt_text || '');
+  } catch (e) {
+    ui.error(errorMessage(e));
+  }
+};
 
 const removeExisting = async (img) => {
   if (!editing.value) return;
@@ -208,7 +218,7 @@ const save = async () => {
       productId = res.data?.id;
     }
     for (const p of pendingImages.value) {
-      await seller.addProductImage(productId, p.file);
+      await seller.addProductImage(productId, p.file, p.alt);
     }
     ui.success(editing.value ? t('prod.productUpdated') : t('prod.productCreated'));
     showModal.value = false;
@@ -393,20 +403,26 @@ onMounted(async () => {
           <p class="mb-2 mt-1 text-xs text-muted">{{ $t('prod.galleryHint') }}</p>
           <div class="flex flex-wrap gap-3">
             <!-- existing (saved) images -->
-            <div v-for="(img, i) in galleryImages" :key="img.id" class="group relative h-24 w-24 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
-              <img :src="img.image" alt="" class="h-full w-full object-cover" />
-              <span v-if="i === 0" class="absolute left-1 top-1 flex items-center gap-0.5 rounded bg-primary-600 px-1.5 py-0.5 text-[10px] font-semibold text-white"><Star class="h-3 w-3" /> {{ $t('prod.cover') }}</span>
-              <div class="absolute inset-x-0 bottom-0 flex justify-between bg-black/55 opacity-0 transition group-hover:opacity-100">
-                <button type="button" class="p-1 text-white disabled:opacity-30" :disabled="i === 0 || galleryBusy" :title="$t('prod.moveLeft')" @click="moveExisting(i, -1)"><ArrowUp class="h-3.5 w-3.5 rtl:rotate-180" /></button>
-                <button type="button" class="p-1 text-white disabled:opacity-30" :disabled="i === galleryImages.length - 1 || galleryBusy" :title="$t('prod.moveRight')" @click="moveExisting(i, 1)"><ArrowDown class="h-3.5 w-3.5 rtl:rotate-180" /></button>
-                <button type="button" class="p-1 text-white" :disabled="galleryBusy" :title="$t('common.delete')" @click="removeExisting(img)"><X class="h-3.5 w-3.5" /></button>
+            <div v-for="(img, i) in galleryImages" :key="img.id" class="flex w-24 flex-col gap-1">
+              <div class="group relative h-24 w-24 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+                <img :src="img.image" :alt="img.alt_text || ''" class="h-full w-full object-cover" />
+                <span v-if="i === 0" class="absolute left-1 top-1 flex items-center gap-0.5 rounded bg-primary-600 px-1.5 py-0.5 text-[10px] font-semibold text-white"><Star class="h-3 w-3" /> {{ $t('prod.cover') }}</span>
+                <div class="absolute inset-x-0 bottom-0 flex justify-between bg-black/55 opacity-0 transition group-hover:opacity-100">
+                  <button type="button" class="p-1 text-white disabled:opacity-30" :disabled="i === 0 || galleryBusy" :title="$t('prod.moveLeft')" @click="moveExisting(i, -1)"><ArrowUp class="h-3.5 w-3.5 rtl:rotate-180" /></button>
+                  <button type="button" class="p-1 text-white disabled:opacity-30" :disabled="i === galleryImages.length - 1 || galleryBusy" :title="$t('prod.moveRight')" @click="moveExisting(i, 1)"><ArrowDown class="h-3.5 w-3.5 rtl:rotate-180" /></button>
+                  <button type="button" class="p-1 text-white" :disabled="galleryBusy" :title="$t('common.delete')" @click="removeExisting(img)"><X class="h-3.5 w-3.5" /></button>
+                </div>
               </div>
+              <input v-model="img.alt_text" class="w-24 rounded border border-slate-200 px-1.5 py-1 text-[11px] focus:border-primary-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800" :placeholder="$t('prod.altText')" :title="$t('prod.altHint')" @change="updateAlt(img)" />
             </div>
             <!-- pending (staged, not yet uploaded) images -->
-            <div v-for="(p, i) in pendingImages" :key="'pending-' + i" class="relative h-24 w-24 overflow-hidden rounded-lg border-2 border-dashed border-primary-400">
-              <img :src="p.preview" alt="" class="h-full w-full object-cover opacity-90" />
-              <span class="absolute left-1 top-1 rounded bg-slate-900/70 px-1 py-0.5 text-[10px] text-white">{{ $t('prod.newBadge') }}</span>
-              <button type="button" class="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-white" :title="$t('common.delete')" @click="removePending(i)"><X class="h-3 w-3" /></button>
+            <div v-for="(p, i) in pendingImages" :key="'pending-' + i" class="flex w-24 flex-col gap-1">
+              <div class="relative h-24 w-24 overflow-hidden rounded-lg border-2 border-dashed border-primary-400">
+                <img :src="p.preview" :alt="p.alt || ''" class="h-full w-full object-cover opacity-90" />
+                <span class="absolute left-1 top-1 rounded bg-slate-900/70 px-1 py-0.5 text-[10px] text-white">{{ $t('prod.newBadge') }}</span>
+                <button type="button" class="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-white" :title="$t('common.delete')" @click="removePending(i)"><X class="h-3 w-3" /></button>
+              </div>
+              <input v-model="p.alt" class="w-24 rounded border border-slate-200 px-1.5 py-1 text-[11px] focus:border-primary-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800" :placeholder="$t('prod.altText')" :title="$t('prod.altHint')" />
             </div>
             <!-- add tile -->
             <label v-if="imageCount < MAX_IMAGES" class="grid h-24 w-24 cursor-pointer place-items-center rounded-lg border-2 border-dashed border-slate-300 text-slate-400 transition hover:border-primary-500 hover:text-primary-500 dark:border-slate-600">

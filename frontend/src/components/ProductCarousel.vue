@@ -13,7 +13,7 @@ const emit = defineEmits(['add']);
 const scroller = ref(null);
 const scrollBy = (amount) => scroller.value?.scrollBy({ left: amount, behavior: 'smooth' });
 
-const img = (p) => p.primary_image?.image || p.image || p.images?.[0]?.image || productImage(p);
+const img = (p) => p.image || p.images?.[0]?.image || productImage(p);
 const price = (p) => p.price ?? p.min_price ?? p.display_price;
 const currency = (p) => p.currency || p.store?.currency || '';
 const rating = (p) => Math.round(Number(p.rating ?? p.average_rating ?? 0));

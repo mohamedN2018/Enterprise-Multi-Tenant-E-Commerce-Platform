@@ -20,7 +20,7 @@ let timer = null;
 
 const price = (p) => p.price ?? p.min_price ?? p.display_price;
 const currency = (p) => p.currency || p.store?.currency || '';
-const img = (p) => p.primary_image?.image || p.image || p.images?.[0]?.image || productImage(p);
+const img = (p) => p.image || p.images?.[0]?.image || productImage(p);
 
 const runSearch = async () => {
   const term = q.value.trim();

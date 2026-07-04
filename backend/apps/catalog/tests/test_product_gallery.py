@@ -79,6 +79,34 @@ def test_reorder_gallery(store_client, make_store):
     assert [img["id"] for img in resp.json()["data"]] == [b, a]
 
 
+def test_add_image_with_alt_text(store_client, make_store):
+    store, owner = make_store()
+    client = store_client(owner, store)
+    product_id = _product(store_client, store, owner)
+    resp = client.post(
+        _gallery_url(product_id), {"image": _png(), "alt_text": "Front view"}, format="multipart"
+    )
+    assert resp.status_code == 201
+    assert resp.json()["data"]["alt_text"] == "Front view"
+
+
+def test_patch_alt_text(store_client, make_store):
+    store, owner = make_store()
+    client = store_client(owner, store)
+    product_id = _product(store_client, store, owner)
+    img_id = client.post(
+        _gallery_url(product_id), {"image": _png()}, format="multipart"
+    ).json()["data"]["id"]
+    url = reverse(
+        "v1:catalog:product-gallery-item", kwargs={"product_id": product_id, "image_id": img_id}
+    )
+
+    resp = client.patch(url, {"alt_text": "Side angle"}, format="json")
+
+    assert resp.status_code == 200
+    assert resp.json()["data"]["alt_text"] == "Side angle"
+
+
 def test_delete_gallery_image(store_client, make_store):
     store, owner = make_store()
     client = store_client(owner, store)

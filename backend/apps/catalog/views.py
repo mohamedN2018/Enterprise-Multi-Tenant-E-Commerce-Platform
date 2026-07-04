@@ -260,7 +260,11 @@ class ProductGalleryView(StoreContextMixin, BaseAPIView):
         validate_image_upload(file)
         next_pos = (product.images.aggregate(m=Max("position"))["m"] or 0) + 1
         image = ProductImage.objects.create(
-            store=product.store, product=product, image=file, position=next_pos
+            store=product.store,
+            product=product,
+            image=file,
+            position=next_pos,
+            alt_text=(request.data.get("alt_text") or "")[:255],
         )
         return APIResponse.success(
             ProductImageSerializer(image).data, message="Image added.", status_code=201
@@ -268,16 +272,26 @@ class ProductGalleryView(StoreContextMixin, BaseAPIView):
 
 
 class ProductGalleryItemView(StoreContextMixin, BaseAPIView):
-    """Remove a single gallery image."""
+    """Edit the alt text of, or remove, a single gallery image."""
 
     permission_classes = [IsAuthenticated]
 
-    def delete(self, request, product_id, image_id):
-        self.require_write()
+    def _get(self, product_id, image_id) -> ProductImage:
         image = ProductImage.objects.filter(product_id=product_id, id=image_id).first()
         if image is None:
             raise NotFoundError("Image not found.")
-        image.delete()
+        return image
+
+    def patch(self, request, product_id, image_id):
+        self.require_write()
+        image = self._get(product_id, image_id)
+        image.alt_text = (request.data.get("alt_text") or "")[:255]
+        image.save(update_fields=["alt_text", "updated_at"])
+        return APIResponse.success(ProductImageSerializer(image).data, message="Image updated.")
+
+    def delete(self, request, product_id, image_id):
+        self.require_write()
+        self._get(product_id, image_id).delete()
         return APIResponse.success(message="Image removed.")
 
 
