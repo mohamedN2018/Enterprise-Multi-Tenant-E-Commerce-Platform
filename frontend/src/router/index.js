@@ -7,6 +7,39 @@ import StoreLayout from '@/layouts/StoreLayout.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 
+// The admin console pages are shared by two URL prefixes:
+//   /admin/*  → super-admin console   ·   /seller/* → seller console
+// A router guard (below) keeps each role inside its own prefix.
+const CONSOLE_PAGES = [
+  ['', 'dashboard', () => import('@/pages/admin/Dashboard.vue')],
+  ['platform', 'platform', () => import('@/pages/admin/Platform.vue')],
+  ['analytics', 'analytics', () => import('@/pages/admin/Analytics.vue')],
+  ['products', 'products', () => import('@/pages/admin/Products.vue')],
+  ['categories', 'categories', () => import('@/pages/admin/Categories.vue')],
+  ['brands', 'brands', () => import('@/pages/admin/Brands.vue')],
+  ['attributes', 'attributes', () => import('@/pages/admin/Attributes.vue')],
+  ['orders', 'orders', () => import('@/pages/admin/Orders.vue')],
+  ['orders/:id', 'order-detail', () => import('@/pages/admin/OrderDetail.vue')],
+  ['inventory', 'inventory', () => import('@/pages/admin/Inventory.vue')],
+  ['promotions', 'promotions', () => import('@/pages/admin/Promotions.vue')],
+  ['campaigns', 'campaigns', () => import('@/pages/admin/Campaigns.vue')],
+  ['gift-cards', 'giftcards', () => import('@/pages/admin/GiftCards.vue')],
+  ['shipping', 'shipping', () => import('@/pages/admin/Shipping.vue')],
+  ['returns', 'returns', () => import('@/pages/admin/Returns.vue')],
+  ['payments', 'payments', () => import('@/pages/admin/Payments.vue')],
+  ['payouts', 'payouts', () => import('@/pages/admin/Payouts.vue')],
+  ['finance', 'finance', () => import('@/pages/admin/Finance.vue')],
+  ['pricing', 'pricing', () => import('@/pages/admin/Pricing.vue')],
+  ['procurement', 'procurement', () => import('@/pages/admin/Procurement.vue')],
+  ['fraud', 'fraud', () => import('@/pages/admin/Fraud.vue')],
+  ['reviews', 'reviews', () => import('@/pages/admin/Reviews.vue')],
+  ['notifications', 'notifications', () => import('@/pages/admin/Notifications.vue')],
+  ['team', 'team', () => import('@/pages/admin/Team.vue')],
+  ['settings', 'settings', () => import('@/pages/admin/Settings.vue')]
+];
+const consoleChildren = (prefix) =>
+  CONSOLE_PAGES.map(([path, key, component]) => ({ path, name: `${prefix}-${key}`, component }));
+
 const routes = [
   {
     path: '/',
@@ -65,70 +98,10 @@ const routes = [
       { path: 'verify', name: 'verify-email', component: () => import('@/pages/auth/VerifyEmail.vue') }
     ]
   },
-  {
-    path: '/admin',
-    component: AdminLayout,
-    meta: { requiresAuth: true },
-    children: [
-      { path: '', name: 'admin-dashboard', component: () => import('@/pages/admin/Dashboard.vue') },
-      {
-        path: 'platform',
-        name: 'admin-platform',
-        component: () => import('@/pages/admin/Platform.vue')
-      },
-      { path: 'analytics', name: 'admin-analytics', component: () => import('@/pages/admin/Analytics.vue') },
-      {
-        path: 'products',
-        name: 'admin-products',
-        component: () => import('@/pages/admin/Products.vue')
-      },
-      {
-        path: 'categories',
-        name: 'admin-categories',
-        component: () => import('@/pages/admin/Categories.vue')
-      },
-      { path: 'brands', name: 'admin-brands', component: () => import('@/pages/admin/Brands.vue') },
-      { path: 'attributes', name: 'admin-attributes', component: () => import('@/pages/admin/Attributes.vue') },
-      { path: 'orders', name: 'admin-orders', component: () => import('@/pages/admin/Orders.vue') },
-      {
-        path: 'orders/:id',
-        name: 'admin-order-detail',
-        component: () => import('@/pages/admin/OrderDetail.vue')
-      },
-      {
-        path: 'inventory',
-        name: 'admin-inventory',
-        component: () => import('@/pages/admin/Inventory.vue')
-      },
-      {
-        path: 'promotions',
-        name: 'admin-promotions',
-        component: () => import('@/pages/admin/Promotions.vue')
-      },
-      { path: 'campaigns', name: 'admin-campaigns', component: () => import('@/pages/admin/Campaigns.vue') },
-      { path: 'gift-cards', name: 'admin-giftcards', component: () => import('@/pages/admin/GiftCards.vue') },
-      { path: 'shipping', name: 'admin-shipping', component: () => import('@/pages/admin/Shipping.vue') },
-      { path: 'returns', name: 'admin-returns', component: () => import('@/pages/admin/Returns.vue') },
-      { path: 'payments', name: 'admin-payments', component: () => import('@/pages/admin/Payments.vue') },
-      { path: 'payouts', name: 'admin-payouts', component: () => import('@/pages/admin/Payouts.vue') },
-      { path: 'finance', name: 'admin-finance', component: () => import('@/pages/admin/Finance.vue') },
-      { path: 'pricing', name: 'admin-pricing', component: () => import('@/pages/admin/Pricing.vue') },
-      { path: 'procurement', name: 'admin-procurement', component: () => import('@/pages/admin/Procurement.vue') },
-      { path: 'fraud', name: 'admin-fraud', component: () => import('@/pages/admin/Fraud.vue') },
-      { path: 'reviews', name: 'admin-reviews', component: () => import('@/pages/admin/Reviews.vue') },
-      {
-        path: 'notifications',
-        name: 'admin-notifications',
-        component: () => import('@/pages/admin/Notifications.vue')
-      },
-      { path: 'team', name: 'admin-team', component: () => import('@/pages/admin/Team.vue') },
-      {
-        path: 'settings',
-        name: 'admin-settings',
-        component: () => import('@/pages/admin/Settings.vue')
-      }
-    ]
-  },
+  // Super-admin console.
+  { path: '/admin', component: AdminLayout, meta: { requiresAuth: true }, children: consoleChildren('admin') },
+  // Seller console (same pages, different URL prefix).
+  { path: '/seller', component: AdminLayout, meta: { requiresAuth: true }, children: consoleChildren('seller') },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/pages/NotFound.vue') }
 ];
 
@@ -160,35 +133,40 @@ const TITLE_KEYS = {
   'forgot-password': 'auth.forgotPassword',
   'reset-password': 'auth.resetTitle',
   'verify-email': 'auth.verifyTitle',
-  'admin-dashboard': 'admin.dashboard',
-  'admin-platform': 'admin.platform',
-  'admin-analytics': 'admin.analytics',
-  'admin-products': 'admin.products',
-  'admin-categories': 'admin.categories',
-  'admin-brands': 'admin.brands',
-  'admin-attributes': 'admin.attributes',
-  'admin-orders': 'admin.orders',
-  'admin-order-detail': 'orderDetailPage.title',
-  'admin-inventory': 'admin.inventory',
-  'admin-shipping': 'admin.shipping',
-  'admin-returns': 'admin.returns',
-  'admin-promotions': 'admin.promotions',
-  'admin-campaigns': 'admin.campaigns',
-  'admin-giftcards': 'admin.giftCards',
-  'admin-reviews': 'admin.reviews',
-  'admin-payments': 'admin.payments',
-  'admin-payouts': 'admin.payouts',
-  'admin-finance': 'admin.finance',
-  'admin-pricing': 'admin.pricing',
-  'admin-procurement': 'admin.procurement',
-  'admin-fraud': 'admin.fraud',
-  'admin-notifications': 'admin.notifications',
-  'admin-team': 'admin.team',
-  'admin-settings': 'admin.settings',
   'not-found': 'common.pageNotFound'
 };
+// Console pages are keyed by their suffix (dashboard/products/…) for either prefix.
+const CONSOLE_TITLE_KEYS = {
+  dashboard: 'admin.dashboard',
+  platform: 'admin.platform',
+  analytics: 'admin.analytics',
+  products: 'admin.products',
+  categories: 'admin.categories',
+  brands: 'admin.brands',
+  attributes: 'admin.attributes',
+  orders: 'admin.orders',
+  'order-detail': 'orderDetailPage.title',
+  inventory: 'admin.inventory',
+  shipping: 'admin.shipping',
+  returns: 'admin.returns',
+  promotions: 'admin.promotions',
+  campaigns: 'admin.campaigns',
+  giftcards: 'admin.giftCards',
+  reviews: 'admin.reviews',
+  payments: 'admin.payments',
+  payouts: 'admin.payouts',
+  finance: 'admin.finance',
+  pricing: 'admin.pricing',
+  procurement: 'admin.procurement',
+  fraud: 'admin.fraud',
+  notifications: 'admin.notifications',
+  team: 'admin.team',
+  settings: 'admin.settings'
+};
 router.afterEach((to) => {
-  const key = TITLE_KEYS[to.name];
+  const name = to.name || '';
+  const consoleMatch = /^(?:admin|seller)-(.+)$/.exec(name);
+  const key = consoleMatch ? CONSOLE_TITLE_KEYS[consoleMatch[1]] : TITLE_KEYS[name];
   const label = key ? t(key) : '';
   document.title = label ? `${label} · q-shop` : 'q-shop';
 });
@@ -202,6 +180,16 @@ router.beforeEach(async (to) => {
   }
   if (to.meta.guestOnly && auth.isAuthenticated) {
     return { name: 'home' };
+  }
+  // Keep each role inside its own console prefix (also catches any stray links).
+  if (auth.isAuthenticated) {
+    const isSuper = !!auth.user?.is_superuser;
+    if (to.path.startsWith('/admin') && !isSuper) {
+      return { path: to.path.replace(/^\/admin/, '/seller'), query: to.query, hash: to.hash };
+    }
+    if (to.path.startsWith('/seller') && isSuper) {
+      return { path: to.path.replace(/^\/seller/, '/admin'), query: to.query, hash: to.hash };
+    }
   }
   return true;
 });

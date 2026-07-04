@@ -50,6 +50,7 @@ import { errorMessage } from '@/services/http';
 import { useValidation, required, positive, iso2 } from '@/utils/validators';
 import { t } from '@/i18n';
 import { useTheme } from '@/theme';
+import { useConsole } from '@/composables/useConsole';
 import { useOrderAlerts, orderSoundMuted, toggleOrderSound } from '@/composables/useOrderAlerts';
 
 // Ping the seller (sound + toast) the moment a new order lands.
@@ -126,69 +127,70 @@ const { theme } = useTheme();
 const router = useRouter();
 const auth = useAuthStore();
 const tenant = useTenantStore();
+const { cr } = useConsole();
 
 const sidebarOpen = ref(false);
 const storeMenu = ref(false);
 
-// Grouped, role-aware navigation.
+// Grouped, role-aware navigation (routes follow the active console prefix).
 const navGroups = computed(() => [
   {
     title: t('admin.overview'),
     links: [
-      { label: t('admin.dashboard'), to: { name: 'admin-dashboard' }, icon: LayoutDashboard },
-      { label: t('admin.analytics'), to: { name: 'admin-analytics' }, icon: Activity },
-      ...(tenant.isPlatform ? [{ label: t('admin.platform'), to: { name: 'admin-platform' }, icon: Globe }] : [])
+      { label: t('admin.dashboard'), to: cr('dashboard'), icon: LayoutDashboard },
+      { label: t('admin.analytics'), to: cr('analytics'), icon: Activity },
+      ...(tenant.isPlatform ? [{ label: t('admin.platform'), to: cr('platform'), icon: Globe }] : [])
     ]
   },
   {
     title: t('admin.catalog'),
     links: [
-      { label: t('admin.products'), to: { name: 'admin-products' }, icon: Package },
-      { label: t('admin.categories'), to: { name: 'admin-categories' }, icon: Tags },
-      { label: t('admin.brands'), to: { name: 'admin-brands' }, icon: Bookmark },
-      { label: t('admin.attributes'), to: { name: 'admin-attributes' }, icon: SlidersHorizontal }
+      { label: t('admin.products'), to: cr('products'), icon: Package },
+      { label: t('admin.categories'), to: cr('categories'), icon: Tags },
+      { label: t('admin.brands'), to: cr('brands'), icon: Bookmark },
+      { label: t('admin.attributes'), to: cr('attributes'), icon: SlidersHorizontal }
     ]
   },
   {
     title: t('admin.sales'),
     links: [
-      { label: t('admin.orders'), to: { name: 'admin-orders' }, icon: ShoppingBag },
-      { label: t('admin.returns'), to: { name: 'admin-returns' }, icon: Undo2 },
-      { label: t('admin.payments'), to: { name: 'admin-payments' }, icon: CreditCard },
-      { label: t('admin.reviews'), to: { name: 'admin-reviews' }, icon: Star }
+      { label: t('admin.orders'), to: cr('orders'), icon: ShoppingBag },
+      { label: t('admin.returns'), to: cr('returns'), icon: Undo2 },
+      { label: t('admin.payments'), to: cr('payments'), icon: CreditCard },
+      { label: t('admin.reviews'), to: cr('reviews'), icon: Star }
     ]
   },
   {
     title: t('admin.marketing'),
     links: [
-      { label: t('admin.promotions'), to: { name: 'admin-promotions' }, icon: BadgePercent },
-      { label: t('admin.campaigns'), to: { name: 'admin-campaigns' }, icon: Megaphone },
-      { label: t('admin.giftCards'), to: { name: 'admin-giftcards' }, icon: Gift }
+      { label: t('admin.promotions'), to: cr('promotions'), icon: BadgePercent },
+      { label: t('admin.campaigns'), to: cr('campaigns'), icon: Megaphone },
+      { label: t('admin.giftCards'), to: cr('giftcards'), icon: Gift }
     ]
   },
   {
     title: t('admin.operations'),
     links: [
-      { label: t('admin.inventory'), to: { name: 'admin-inventory' }, icon: Boxes },
-      { label: t('admin.shipping'), to: { name: 'admin-shipping' }, icon: Truck },
-      { label: t('admin.procurement'), to: { name: 'admin-procurement' }, icon: Building2 },
-      { label: t('admin.pricing'), to: { name: 'admin-pricing' }, icon: Layers },
-      { label: t('admin.fraud'), to: { name: 'admin-fraud' }, icon: ShieldAlert }
+      { label: t('admin.inventory'), to: cr('inventory'), icon: Boxes },
+      { label: t('admin.shipping'), to: cr('shipping'), icon: Truck },
+      { label: t('admin.procurement'), to: cr('procurement'), icon: Building2 },
+      { label: t('admin.pricing'), to: cr('pricing'), icon: Layers },
+      { label: t('admin.fraud'), to: cr('fraud'), icon: ShieldAlert }
     ]
   },
   {
     title: t('admin.finance'),
     links: [
-      { label: t('admin.payouts'), to: { name: 'admin-payouts' }, icon: Wallet },
-      { label: t('admin.finance'), to: { name: 'admin-finance' }, icon: Landmark }
+      { label: t('admin.payouts'), to: cr('payouts'), icon: Wallet },
+      { label: t('admin.finance'), to: cr('finance'), icon: Landmark }
     ]
   },
   {
     title: t('admin.store'),
     links: [
-      { label: t('admin.notifications'), to: { name: 'admin-notifications' }, icon: Bell },
-      ...(tenant.canManageMembers ? [{ label: t('admin.team'), to: { name: 'admin-team' }, icon: Users }] : []),
-      { label: t('admin.settings'), to: { name: 'admin-settings' }, icon: Settings }
+      { label: t('admin.notifications'), to: cr('notifications'), icon: Bell },
+      ...(tenant.canManageMembers ? [{ label: t('admin.team'), to: cr('team'), icon: Users }] : []),
+      { label: t('admin.settings'), to: cr('settings'), icon: Settings }
     ]
   }
 ]);
@@ -205,7 +207,11 @@ const activeStore = computed(() => tenant.active);
 const pickStore = (id) => {
   tenant.select(id);
   storeMenu.value = false;
-  router.go(0);
+  // Land on the selected store's dashboard (a full reload gives fresh,
+  // store-scoped state). The admin thereby "enters" any store as its owner.
+  const dash = cr('dashboard');
+  if (router.currentRoute.value.name === dash.name) router.go(0);
+  else router.push(dash).then(() => router.go(0)).catch(() => router.go(0));
 };
 
 const logout = async () => {

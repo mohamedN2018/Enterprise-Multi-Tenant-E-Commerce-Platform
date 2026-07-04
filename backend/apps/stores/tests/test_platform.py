@@ -252,6 +252,35 @@ def test_requests_list_requires_superuser(client_for, make_user):
     assert client_for(make_user()).get(PLATFORM_REQUESTS).status_code == 403
 
 
+# --- Super-admin acts as owner of any store (god-mode) ----------------------
+def test_superuser_manages_any_store_as_owner(client_for, make_store, superadmin):
+    store, _owner = make_store()  # superadmin is NOT a member
+    admin = client_for(superadmin)
+
+    settings_url = reverse("v1:stores:store-settings", kwargs={"store_id": store.id})
+    assert admin.get(settings_url).status_code == 200
+    assert admin.patch(settings_url, {"low_stock_threshold": 3}, format="json").status_code == 200
+
+    members_url = reverse("v1:stores:member-list", kwargs={"store_id": store.id})
+    assert admin.get(members_url).status_code == 200
+
+    detail = reverse("v1:stores:store-detail", kwargs={"store_id": store.id})
+    assert admin.patch(detail, {"status": "active"}, format="json").status_code == 200
+
+
+def test_superuser_reads_store_scoped_catalog(client_for, make_store, superadmin):
+    store, _owner = make_store()
+    resp = client_for(superadmin).get("/api/v1/catalog/products/", HTTP_X_STORE_ID=str(store.id))
+    assert resp.status_code == 200
+
+
+def test_non_member_non_superuser_still_blocked(client_for, make_store, make_user):
+    store, _owner = make_store()
+    outsider = make_user()
+    settings_url = reverse("v1:stores:store-settings", kwargs={"store_id": store.id})
+    assert client_for(outsider).get(settings_url).status_code == 403
+
+
 def test_seller_requests_more_stores_and_admin_approves(client_for, make_store, make_user, superadmin):
     store, owner = make_store()  # owner.max_stores defaults to 1
     url = reverse("v1:stores:user-limit-requests")

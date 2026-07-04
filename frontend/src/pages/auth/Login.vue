@@ -37,7 +37,8 @@ const submit = async () => {
     ui.success(t('auth.welcomeBack'));
     const redirect = route.query.redirect;
     if (typeof redirect === 'string') router.push(redirect);
-    else router.push({ name: sellerMode.value ? 'admin-dashboard' : 'home' });
+    else if (auth.user?.is_superuser) router.push({ name: 'admin-platform' });
+    else router.push({ name: sellerMode.value ? 'seller-dashboard' : 'home' });
   } catch (e) {
     error.value = errorMessage(e);
   } finally {

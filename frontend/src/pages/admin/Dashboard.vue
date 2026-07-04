@@ -23,9 +23,11 @@ const router = useRouter();
 
 const ready = ref(false);
 
-// Each role gets a distinct dashboard experience.
+// Each role gets a distinct dashboard experience. The super admin sees the
+// platform oversight until they pick a store — then they see that store's
+// dashboard, exactly as its owner would.
 const dashboardComponent = computed(() => {
-  if (tenant.isPlatform) return PlatformDashboard;
+  if (tenant.isPlatform && !tenant.activeId) return PlatformDashboard;
   if (tenant.role === 'employee') return StaffDashboard;
   return SellerDashboard;
 });

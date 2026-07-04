@@ -32,12 +32,18 @@ export const useTenantStore = defineStore('tenant', {
   },
   actions: {
     async refresh() {
+      const auth = useAuthStore();
+      const isSuper = !!auth.user?.is_superuser;
       this.loading = true;
       try {
-        const data = await apiGet('/stores/');
+        // The super admin sees EVERY store (to manage any as its owner); a
+        // seller sees only the stores they belong to.
+        const data = await apiGet(isSuper ? '/platform/stores/' : '/stores/');
         this.stores = Array.isArray(data) ? data : data?.results || [];
         const stillValid = this.stores.some((s) => s.id === this.activeId);
-        if (this.stores.length && !stillValid) {
+        // Sellers default into their first store; the admin picks one explicitly
+        // (so he lands on the platform oversight until he chooses a store).
+        if (!isSuper && this.stores.length && !stillValid) {
           this.select(this.stores[0].id);
         }
       } finally {

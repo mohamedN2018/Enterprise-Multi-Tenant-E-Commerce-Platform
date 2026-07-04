@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from apps.core import tenancy
 from apps.core.exceptions import PermissionDeniedError, ValidationError
-from apps.stores.access import MANAGER_OR_OWNER
+from apps.stores.access import MANAGER_OR_OWNER, _superuser_membership
 from apps.stores.repositories import StoreMembershipRepository
 
 
@@ -33,8 +33,13 @@ class StoreContextMixin(RequireStoreMixin):
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)  # sets self.store
+        user = request.user
+        if getattr(user, "is_superuser", False):
+            # Platform admins act as owner of every store.
+            self.membership = _superuser_membership(self.store, user)
+            return
         membership = StoreMembershipRepository().active_membership(
-            store=self.store, user=request.user
+            store=self.store, user=user
         )
         if membership is None:
             raise PermissionDeniedError("You are not a member of this store.")
