@@ -204,7 +204,11 @@
   opacity: 0;
 }
 
-/* Dark mode: broad overrides for raw utility classes used across templates */
+/* Dark mode: a coordinated surface ladder used across templates.
+   page #0b1220  <  section #0f172a  <  card #1e293b  <  hover #334155  */
+.dark body {
+  background-color: #0b1220;
+}
 .dark .bg-white {
   background-color: #1e293b;
 }

@@ -41,6 +41,8 @@ export default {
       recentlyViewed: 'شوهدت مؤخرًا', ourProducts: 'منتجاتنا', newArrivals: 'وصل حديثًا', onSale: 'عروض', bestSellers: 'الأكثر مبيعًا',
       noProductsYet: 'لا توجد منتجات بعد', noProductsYetMsg: 'المتاجر تجهّز منتجاتها — تابعنا قريبًا.',
       viewAllProducts: 'عرض كل المنتجات', testimonials: 'ماذا يقول عملاؤنا', items: 'منتج',
+      categoriesSubtitle: 'تصفّح حسب اهتمامك من مجموعة أقسامنا المتنوّعة.',
+      promo: { dealsKicker: 'اليوم فقط', dealsTitle: 'عروض اليوم', storesKicker: 'اكتشف بائعين مستقلين', storesTitle: 'أفضل المتاجر' },
       sellerCtaTitle: 'ابدأ البيع على q-shop اليوم', sellerCtaText: 'افتح متجرك، وصل لآلاف المتسوّقين، ونمِّ عملك.',
       independentStore: 'متجر مستقل', verifiedBuyer: 'مشترٍ موثّق',
       testimonialsSubtitle: 'آراء حقيقية من عملاء اشتروا من متاجرنا المستقلة.',
@@ -50,6 +52,18 @@ export default {
         support: 'دعم 24/7', supportMsg: 'دعم أونلاين على مدار الساعة',
         gift: 'بطاقات هدايا', giftMsg: 'استلم هدية على الطلبات فوق 50$',
         secure: 'دفع آمن', secureMsg: 'نحرص على أمانك', online: 'خدمة أونلاين', onlineMsg: 'إرجاع مجاني خلال 30 يومًا'
+      }
+    },
+    about: {
+      badge: 'من نحن',
+      title: 'سوقٌ يجمع أفضل المتاجر المستقلة',
+      intro: 'q-shop منصّة تجمع بائعين مستقلين موثوقين في مكان واحد — منتجات مختارة بعناية، دفع آمن، وتجربة تسوّق سلسة من متجرك المفضّل لباب بيتك.',
+      productsWord: 'منتج',
+      values: {
+        curated: { title: 'بائعون موثوقون', text: 'كل متجر متعاقد ومُراجَع لضمان الجودة والأصالة.' },
+        secure: { title: 'دفع آمن', text: 'بوابات دفع مشفّرة وحماية كاملة لبياناتك في كل عملية.' },
+        fast: { title: 'توصيل سريع', text: 'شحن متتبَّع وسريع من البائع مباشرةً إليك.' },
+        protection: { title: 'حماية المشتري', text: 'إرجاع سهل خلال 30 يومًا واسترداد مضمون.' }
       }
     },
     product: {
@@ -394,6 +408,8 @@ export default {
       recentlyViewed: 'Recently Viewed', ourProducts: 'Our Products', newArrivals: 'New Arrivals', onSale: 'On Sale', bestSellers: 'Best Sellers',
       noProductsYet: 'No products yet', noProductsYetMsg: 'Stores are stocking up — check back soon.',
       viewAllProducts: 'View all products', testimonials: 'What our customers say', items: 'items',
+      categoriesSubtitle: 'Browse by what you love across our diverse departments.',
+      promo: { dealsKicker: 'Today only', dealsTitle: 'Deals of the day', storesKicker: 'Discover independent sellers', storesTitle: 'Top stores' },
       sellerCtaTitle: 'Start selling on q-shop today', sellerCtaText: 'Open your store, reach thousands of shoppers, and grow your business.',
       independentStore: 'Independent store', verifiedBuyer: 'Verified buyer',
       testimonialsSubtitle: 'Real reviews from customers who shopped our independent stores.',
@@ -403,6 +419,18 @@ export default {
         support: 'Support 24/7', supportMsg: 'We support online 24 hrs a day',
         gift: 'Gift Cards', giftMsg: 'Receive a gift on orders over $50',
         secure: 'Secure Payment', secureMsg: 'We value your security', online: 'Online Service', onlineMsg: 'Free returns within 30 days'
+      }
+    },
+    about: {
+      badge: 'Who we are',
+      title: 'A marketplace of the best independent stores',
+      intro: 'q-shop brings trusted independent sellers together in one place — carefully curated products, secure checkout, and a seamless shopping experience from your favourite store to your door.',
+      productsWord: 'Products',
+      values: {
+        curated: { title: 'Trusted sellers', text: 'Every store is vetted and contracted for quality and authenticity.' },
+        secure: { title: 'Secure payments', text: 'Encrypted gateways and full protection for your data on every order.' },
+        fast: { title: 'Fast delivery', text: 'Tracked, quick shipping straight from the seller to you.' },
+        protection: { title: 'Buyer protection', text: 'Easy 30-day returns and a guaranteed refund.' }
       }
     },
     product: {
