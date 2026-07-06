@@ -202,6 +202,16 @@ class SellerSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class PlatformSellerCreateSerializer(serializers.Serializer):
+    """Admin creates a seller account. Each seller gets one store by default
+    (``max_stores`` defaults to 1); optionally provision that first store now."""
+
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, min_length=8, max_length=128)
+    store_name = serializers.CharField(required=False, allow_blank=True, default="", max_length=255)
+    country = serializers.CharField(required=False, allow_blank=True, default="", max_length=2)
+
+
 class SellerUpdateSerializer(serializers.Serializer):
     max_stores = serializers.IntegerField(min_value=1)
 

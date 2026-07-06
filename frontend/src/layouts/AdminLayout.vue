@@ -36,7 +36,9 @@ import {
   Volume2,
   VolumeX,
   Plus,
-  Send
+  Send,
+  ArrowLeft,
+  LogIn
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useTenantStore } from '@/stores/tenant';
@@ -132,14 +134,26 @@ const { cr } = useConsole();
 const sidebarOpen = ref(false);
 const storeMenu = ref(false);
 
-// Grouped, role-aware navigation (routes follow the active console prefix).
-const navGroups = computed(() => [
+// The admin has two modes: the platform panel (managing stores/sellers) and,
+// once they enter a store, full store management. Sellers are always in-store.
+const isAdmin = computed(() => tenant.isAdmin);
+const inStore = computed(() => tenant.viewingStore);
+
+// Platform-panel navigation (admin, not inside a store).
+const platformGroups = computed(() => [
+  {
+    title: t('admin.platformTitle'),
+    links: [{ label: t('admin.adminPanel'), to: cr('platform'), icon: Globe }]
+  }
+]);
+
+// Store-management navigation — sellers always, admin once inside a store.
+const storeGroups = computed(() => [
   {
     title: t('admin.overview'),
     links: [
       { label: t('admin.dashboard'), to: cr('dashboard'), icon: LayoutDashboard },
-      { label: t('admin.analytics'), to: cr('analytics'), icon: Activity },
-      ...(tenant.isPlatform ? [{ label: t('admin.platform'), to: cr('platform'), icon: Globe }] : [])
+      { label: t('admin.analytics'), to: cr('analytics'), icon: Activity }
     ]
   },
   {
@@ -195,6 +209,9 @@ const navGroups = computed(() => [
   }
 ]);
 
+// Which nav to show: the admin sees the platform panel until they enter a store.
+const navGroups = computed(() => (inStore.value ? storeGroups.value : platformGroups.value));
+
 const roleTone = {
   platform: 'bg-secondary-100 text-secondary-700',
   owner: 'bg-primary-100 text-primary-700',
@@ -212,6 +229,13 @@ const pickStore = (id) => {
   const dash = cr('dashboard');
   if (router.currentRoute.value.name === dash.name) router.go(0);
   else router.push(dash).then(() => router.go(0)).catch(() => router.go(0));
+};
+
+// Admin leaves the current store and returns to the platform panel.
+const backToPanel = () => {
+  tenant.exitStore();
+  storeMenu.value = false;
+  router.push({ name: 'admin-platform' });
 };
 
 const logout = async () => {
@@ -232,27 +256,37 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
     >
       <div class="flex h-16 items-center gap-2 border-b border-slate-100 px-4 dark:border-slate-800">
         <img :src="theme === 'dark' ? '/brand/dark-logo.png' : '/brand/qtech-logo.png'" alt="q-shop" class="h-9 w-auto" />
-        <span class="font-heading text-sm font-bold text-slate-500">{{ tenant.isPlatform ? $t('admin.admin') : $t('admin.seller') }}</span>
+        <span class="font-heading text-sm font-bold text-slate-500">
+          {{ isAdmin ? (inStore ? $t('admin.managingStore') : $t('admin.adminPanel')) : $t('admin.seller') }}
+        </span>
       </div>
 
-      <div class="border-b border-slate-100 p-3">
+      <div class="space-y-2 border-b border-slate-100 p-3">
+        <!-- Admin: leave the store and go back to the platform panel -->
+        <button v-if="isAdmin && inStore" class="btn btn-outline btn-sm w-full justify-center" @click="backToPanel">
+          <ArrowLeft class="h-4 w-4 rtl:rotate-180" /> {{ $t('admin.backToPanel') }}
+        </button>
+
+        <!-- Store switcher — sellers switch their own stores; the admin enters/switches any store -->
         <div class="relative">
           <button
-            class="flex w-full items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-start hover:bg-slate-50"
+            class="flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-start hover:bg-slate-50"
+            :class="isAdmin && !inStore ? 'border-dashed border-primary-300 bg-primary-50/40' : 'border-slate-200'"
             @click="storeMenu = !storeMenu"
           >
-            <span class="grid h-8 w-8 place-items-center rounded-md bg-primary-100 text-xs font-bold text-primary-700">
-              {{ (activeStore?.name || '?').charAt(0).toUpperCase() }}
+            <span class="grid h-8 w-8 place-items-center rounded-md text-xs font-bold" :class="activeStore ? 'bg-primary-100 text-primary-700' : 'bg-primary-50 text-primary-500'">
+              <LogIn v-if="isAdmin && !inStore" class="h-4 w-4" />
+              <template v-else>{{ (activeStore?.name || '?').charAt(0).toUpperCase() }}</template>
             </span>
             <span class="min-w-0 flex-1">
-              <span class="block truncate text-sm font-semibold">{{ activeStore?.name || $t('admin.selectStore') }}</span>
-              <span class="block truncate text-xs text-slate-400">{{ activeStore?.slug || '—' }}</span>
+              <span class="block truncate text-sm font-semibold">{{ activeStore?.name || (isAdmin ? $t('admin.enterStore') : $t('admin.selectStore')) }}</span>
+              <span class="block truncate text-xs text-slate-400">{{ activeStore?.slug || (isAdmin && !inStore ? $t('admin.enterStoreHint') : '—') }}</span>
             </span>
             <ChevronDown class="h-4 w-4 text-slate-400" />
           </button>
           <div
             v-if="storeMenu"
-            class="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-pop"
+            class="absolute z-10 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-pop"
           >
             <button
               v-for="s in tenant.stores"
@@ -264,7 +298,8 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
               {{ s.name }}
             </button>
             <p v-if="!tenant.stores.length" class="px-4 py-2 text-sm text-slate-400">{{ $t('admin.noStores') }}</p>
-            <template v-if="!tenant.isPlatform && tenant.stores.length">
+            <!-- Seller: create another store / request a higher cap -->
+            <template v-if="!isAdmin && tenant.stores.length">
               <div class="my-1 border-t border-slate-100"></div>
               <button v-if="canCreateStore" class="dropdown-item w-full text-primary-600" @click="openCreateStore">
                 <Plus class="h-4 w-4" /> {{ $t('storeSwitcher.newStore') }}
@@ -275,6 +310,13 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
               <p class="px-4 py-1 text-[11px] text-slate-400">
                 {{ $t('storeSwitcher.yourStores') }}: <span dir="ltr">{{ tenant.stores.length }} / {{ maxStores }}</span>
               </p>
+            </template>
+            <!-- Admin: exit back to the platform panel -->
+            <template v-if="isAdmin && inStore">
+              <div class="my-1 border-t border-slate-100"></div>
+              <button class="dropdown-item w-full text-slate-600" @click="backToPanel">
+                <ArrowLeft class="h-4 w-4 rtl:rotate-180" /> {{ $t('admin.backToPanel') }}
+              </button>
             </template>
           </div>
         </div>

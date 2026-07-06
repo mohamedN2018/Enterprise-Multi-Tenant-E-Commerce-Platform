@@ -21,6 +21,7 @@ from apps.core.responses import APIResponse
 from apps.stores.models import LimitRequest, Store, StoreRole, StoreStatus
 from apps.stores.serializers import (
     LimitRequestSerializer,
+    PlatformSellerCreateSerializer,
     PlatformStoreCreateSerializer,
     PlatformStoreSerializer,
     PlatformStoreUpdateSerializer,
@@ -28,6 +29,13 @@ from apps.stores.serializers import (
     SellerUpdateSerializer,
 )
 from apps.stores.services import LimitRequestService, StoreService
+
+
+def _seller_with_counts(user_id):
+    """Reload a user annotated with their live owned-store count."""
+    return User.objects.annotate(
+        store_count=Count("owned_stores", filter=Q(owned_stores__is_deleted=False), distinct=True)
+    ).get(id=user_id)
 
 
 def _stores_qs():
@@ -164,6 +172,47 @@ class PlatformSellerListView(BaseAPIView):
             qs = qs.filter(store_count__gt=0, is_superuser=False)
 
         return APIResponse.success(SellerSerializer(qs, many=True).data)
+
+    @extend_schema(
+        request=PlatformSellerCreateSerializer,
+        responses={201: SellerSerializer},
+        tags=["platform"],
+    )
+    def post(self, request: Request) -> Response:
+        """Create a seller account (admin-vouched, verified) with the default
+        one-store allotment, optionally provisioning that first store now."""
+        serializer = PlatformSellerCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        if UserRepository().get_by_email(data["email"]) is not None:
+            raise ValidationError(
+                "An account with this email already exists.",
+                code="email_taken",
+                errors={"email": ["An account with this email already exists."]},
+            )
+
+        # Admin creates a contracted seller: active + verified so they can sign
+        # in immediately. max_stores keeps its model default of 1 (the rule:
+        # one store per seller unless the admin raises it).
+        seller = User.objects.create_user(
+            email=data["email"], password=data["password"], is_active=True, is_verified=True
+        )
+
+        store_name = (data.get("store_name") or "").strip()
+        if store_name:
+            store = StoreService().create_store(
+                owner=seller, data={"name": store_name, "country": data.get("country", "")}
+            )
+            if store.status != StoreStatus.ACTIVE:
+                store.status = StoreStatus.ACTIVE
+                store.save(update_fields=["status", "updated_at"])
+
+        return APIResponse.success(
+            SellerSerializer(_seller_with_counts(seller.id)).data,
+            message="Seller account created.",
+            status_code=status.HTTP_201_CREATED,
+        )
 
 
 class PlatformSellerDetailView(BaseAPIView):

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { activeStore } from '@/services/http';
 import { t } from '@/i18n';
 
 // Layouts are eager (small, always needed); pages are lazy for route-splitting.
@@ -189,6 +190,12 @@ router.beforeEach(async (to) => {
     }
     if (to.path.startsWith('/seller') && isSuper) {
       return { path: to.path.replace(/^\/seller/, '/admin'), query: to.query, hash: to.hash };
+    }
+    // The admin panel is separate from the stores: a super-admin must enter a
+    // store before opening any store-scoped console page. The platform panel is
+    // the only admin page reachable without an active store.
+    if (isSuper && to.path.startsWith('/admin') && to.name !== 'admin-platform' && !activeStore.id) {
+      return { name: 'admin-platform' };
     }
   }
   return true;

@@ -24,6 +24,12 @@ export const useTenantStore = defineStore('tenant', {
     hasStores: (s) => s.stores.length > 0,
     currency: (s) => s.stores.find((x) => x.id === s.activeId)?.currency || 'EGP',
     isPlatform: (s) => s.role === 'platform',
+    // The super-admin is the platform controller; sellers are not.
+    isAdmin: () => !!useAuthStore().user?.is_superuser,
+    // Whether the console is currently *inside a store* (full store management)
+    // vs the admin panel. Sellers are always in their store; the admin only when
+    // they've explicitly entered one.
+    viewingStore: (s) => (useAuthStore().user?.is_superuser ? !!s.activeId : true),
     canWrite: (s) => WRITE_ROLES.includes(s.role),
     canManageMembers: (s) => WRITE_ROLES.includes(s.role), // view + add
     canAdminTeam: (s) => OWNER_ROLES.includes(s.role), // change role / remove
@@ -98,6 +104,13 @@ export const useTenantStore = defineStore('tenant', {
       this.activeId = id;
       this.role = null;
       this.roleForStore = null;
+    },
+    // Admin leaves the current store and returns to the platform panel.
+    exitStore() {
+      activeStore.set(null);
+      this.activeId = '';
+      this.roleForStore = null;
+      // The admin's role stays 'platform'; sellers never call this.
     }
   }
 });

@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 from django.urls import reverse
 
+from apps.accounts.models import User
 from apps.stores.models import Store, StoreStatus
 
 pytestmark = pytest.mark.django_db
@@ -105,6 +106,61 @@ def test_admin_create_for_unknown_email_fails(client_for, superadmin):
     )
     assert resp.status_code == 400
     assert resp.json()["error_code"] == "user_not_found"
+
+
+# --- Create seller account --------------------------------------------------
+def test_admin_creates_seller_account(client_for, superadmin):
+    resp = client_for(superadmin).post(
+        PLATFORM_SELLERS,
+        {"email": "newseller@example.com", "password": "StrongPass!2026"},
+        format="json",
+    )
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["email"] == "newseller@example.com"
+    assert data["max_stores"] == 1  # one store per seller by default
+    assert data["store_count"] == 0
+
+    user = User.objects.get(email="newseller@example.com")
+    assert user.is_active and user.is_verified and not user.is_superuser
+
+
+def test_created_seller_gets_default_store_and_can_log_in(client_for, superadmin):
+    resp = client_for(superadmin).post(
+        PLATFORM_SELLERS,
+        {"email": "shopkeeper@example.com", "password": "StrongPass!2026", "store_name": "متجري"},
+        format="json",
+    )
+    assert resp.status_code == 201
+    assert resp.json()["data"]["store_count"] == 1
+    store = Store.objects.get(owner__email="shopkeeper@example.com")
+    assert store.status == StoreStatus.ACTIVE
+
+    # The seller may sign in immediately (admin-verified) and is at their cap.
+    seller = User.objects.get(email="shopkeeper@example.com")
+    second = client_for(seller).post(STORE_LIST, {"name": "Another"}, format="json")
+    assert second.status_code == 400
+    assert second.json()["error_code"] == "store_limit_reached"
+
+
+def test_create_seller_duplicate_email_rejected(client_for, superadmin, make_user):
+    make_user(email="taken@example.com")
+    resp = client_for(superadmin).post(
+        PLATFORM_SELLERS,
+        {"email": "taken@example.com", "password": "StrongPass!2026"},
+        format="json",
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error_code"] == "email_taken"
+
+
+def test_create_seller_requires_superuser(client_for, make_user):
+    resp = client_for(make_user()).post(
+        PLATFORM_SELLERS,
+        {"email": "x@example.com", "password": "StrongPass!2026"},
+        format="json",
+    )
+    assert resp.status_code == 403
 
 
 # --- Access control ---------------------------------------------------------

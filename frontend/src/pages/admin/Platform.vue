@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import {
   Store as StoreIcon,
   ShieldAlert,
@@ -13,7 +14,9 @@ import {
   Search,
   Inbox,
   Check,
-  X
+  X,
+  LogIn,
+  UserPlus
 } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
@@ -27,10 +30,18 @@ import { useUiStore } from '@/stores/ui';
 import { platform } from '@/services/platform';
 import { errorMessage } from '@/services/http';
 import { t } from '@/i18n';
-import { useValidation, required, email, iso2, numberMin, positive } from '@/utils/validators';
+import { useValidation, required, email, iso2, numberMin, positive, min } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
+const router = useRouter();
+
+// Enter a store to manage it (as its owner). The admin thereby leaves the
+// platform panel and drops into full store management for that store.
+const enterStore = (s) => {
+  tenant.select(s.id);
+  router.push({ name: 'admin-dashboard' }).then(() => router.go(0)).catch(() => router.go(0));
+};
 
 const loading = ref(true);
 const stores = ref([]);
@@ -127,6 +138,32 @@ const submitCreate = async () => {
     ui.error(errorMessage(e));
   } finally {
     creating.value = false;
+  }
+};
+
+// --- Create a seller account (with the default one store) ------------------
+const showSeller = ref(false);
+const creatingSeller = ref(false);
+const blankSeller = () => ({ email: '', password: '', store_name: '', country: '' });
+const sellerForm = ref(blankSeller());
+const { errors: seErr, run: runSeller, clear: clearSeller } = useValidation(() => sellerForm.value, {
+  email: [email()],
+  password: [min(8)],
+  country: [iso2({ optional: true })]
+});
+const submitSeller = async () => {
+  if (!runSeller()) return;
+  creatingSeller.value = true;
+  try {
+    await platform.createSeller(sellerForm.value);
+    ui.success(t('platformPage.sellerCreated'));
+    showSeller.value = false;
+    sellerForm.value = blankSeller();
+    load();
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    creatingSeller.value = false;
   }
 };
 
@@ -232,11 +269,14 @@ onMounted(load);
     <template v-else>
       <PageHeader :title="$t('platformPage.title')" :subtitle="$t('platformPage.subtitle')">
         <template #actions>
-          <a href="/django-admin/" target="_blank" rel="noopener" class="btn btn-outline btn-sm">
+          <a href="/django-admin/" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">
             <ExternalLink class="h-4 w-4" /> {{ $t('platformPage.djangoAdmin') }}
           </a>
-          <button class="btn btn-primary btn-sm" @click="showCreate = true">
+          <button class="btn btn-outline btn-sm" @click="showCreate = true">
             <Plus class="h-4 w-4" /> {{ $t('platformPage.createStoreForSeller') }}
+          </button>
+          <button class="btn btn-primary btn-sm" @click="showSeller = true">
+            <UserPlus class="h-4 w-4" /> {{ $t('platformPage.createSeller') }}
           </button>
         </template>
       </PageHeader>
@@ -305,7 +345,10 @@ onMounted(load);
             </select>
           </template>
           <template #cell-actions="{ row }">
-            <button class="btn btn-ghost btn-sm" @click="viewStorefront(row)"><Eye class="h-4 w-4" /> {{ $t('platformPage.view') }}</button>
+            <div class="flex justify-end gap-1">
+              <button class="btn btn-primary btn-sm" :title="$t('platformPage.manageHint')" @click="enterStore(row)"><LogIn class="h-4 w-4" /> {{ $t('platformPage.manage') }}</button>
+              <button class="btn btn-ghost btn-sm" @click="viewStorefront(row)"><Eye class="h-4 w-4" /> {{ $t('platformPage.view') }}</button>
+            </div>
           </template>
         </DataTable>
       </div>
@@ -363,6 +406,29 @@ onMounted(load);
             <button class="btn btn-ghost" @click="showCreate = false">{{ $t('common.cancel') }}</button>
             <button form="pf-create" type="submit" class="btn btn-primary" :disabled="creating">
               <Spinner v-if="creating" :size="18" /><span v-else>{{ $t('common.create') }}</span>
+            </button>
+          </div>
+        </template>
+      </Modal>
+
+      <!-- Create seller account (+ default store) -->
+      <Modal v-model="showSeller" :title="$t('platformPage.createSeller')">
+        <form id="pf-seller" class="grid gap-4" novalidate @submit.prevent="submitSeller">
+          <p class="rounded-lg bg-primary-50 px-3 py-2 text-xs text-primary-700 dark:bg-primary-500/10">
+            {{ $t('platformPage.createSellerNote') }}
+          </p>
+          <FormField v-model="sellerForm.email" :label="$t('platformPage.sellerEmail')" type="email" placeholder="seller@example.com" :error="seErr.email" @update:model-value="clearSeller('email')" />
+          <FormField v-model="sellerForm.password" :label="$t('platformPage.tempPassword')" type="password" autocomplete="new-password" :hint="$t('platformPage.tempPasswordHint')" :error="seErr.password" @update:model-value="clearSeller('password')" />
+          <div class="grid grid-cols-2 gap-4">
+            <FormField v-model="sellerForm.store_name" :label="$t('platformPage.storeNameOptional')" :hint="$t('platformPage.storeNameOptionalHint')" />
+            <FormField v-model="sellerForm.country" :label="$t('common.country')" placeholder="EG" :error="seErr.country" @update:model-value="clearSeller('country')" />
+          </div>
+        </form>
+        <template #footer>
+          <div class="flex justify-end gap-2">
+            <button class="btn btn-ghost" @click="showSeller = false">{{ $t('common.cancel') }}</button>
+            <button form="pf-seller" type="submit" class="btn btn-primary" :disabled="creatingSeller">
+              <Spinner v-if="creatingSeller" :size="18" /><span v-else>{{ $t('platformPage.createSeller') }}</span>
             </button>
           </div>
         </template>
