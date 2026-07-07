@@ -16,7 +16,7 @@ import { errorMessage } from '@/services/http';
 import { downloadCsv } from '@/utils/csv';
 import { onImgError } from '@/utils/media';
 import { t } from '@/i18n';
-import { useValidation, required, positive } from '@/utils/validators';
+import { useValidation, required, positive, numberMin } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -104,7 +104,12 @@ const editing = ref(null);
 const saving = ref(false);
 const blank = () => ({ name: '', name_en: '', description: '', description_en: '', product_type: 'physical', status: 'draft', category: '', brand: '', price: '', stock: 0 });
 const form = ref(blank());
-const { errors: pErrors, run: runProduct, clear: clearProduct } = useValidation(() => form.value, { name: [required()] });
+// On create, a price is required so the product always gets a sellable variant
+// (no more price-less products). On edit, variants are managed separately.
+const { errors: pErrors, run: runProduct, clear: clearProduct } = useValidation(
+  () => form.value,
+  () => ({ name: [required()], ...(editing.value ? {} : { price: [required(), numberMin(0)] }) })
+);
 
 const openCreate = () => {
   editing.value = null;
@@ -472,7 +477,7 @@ onMounted(async () => {
         <FormField v-model="form.name_en" :label="$t('common.nameEn')" :hint="$t('common.nameEnHint')" />
         <!-- Starting price + stock (create only) → creates the default variant so the product has a price straight away -->
         <div v-if="!editing" class="grid gap-4 rounded-xl border border-primary-100 bg-primary-50/50 p-3 sm:grid-cols-2 dark:border-primary-500/20 dark:bg-primary-500/5">
-          <FormField v-model="form.price" :label="`${$t('prod.startingPrice')} (${tenant.currency})`" type="number" step="0.01" min="0" :hint="$t('prod.startingPriceHint')" />
+          <FormField v-model="form.price" :label="`${$t('prod.startingPrice')} (${tenant.currency})`" type="number" step="0.01" min="0" :hint="$t('prod.startingPriceHint')" :error="pErrors.price" @update:model-value="clearProduct('price')" />
           <FormField v-model="form.stock" :label="$t('prod.initialStock')" type="number" min="0" />
         </div>
         <div>
