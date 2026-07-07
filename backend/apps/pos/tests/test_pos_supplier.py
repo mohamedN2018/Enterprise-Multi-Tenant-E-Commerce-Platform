@@ -8,7 +8,9 @@ from django.urls import reverse
 from apps.catalog.models import Product
 from apps.catalog.services import CatalogService
 from apps.inventory.models import StockItem
-from apps.pos.client import PosAuthError, PosSupplierClient
+from apps.pos import client as client_mod
+from apps.pos.client import PosAuthError, PosSupplierClient, PosUnavailableError
+from apps.pos.services import PosSupplierService
 from apps.stores.models import StoreRole
 
 pytestmark = pytest.mark.django_db
@@ -147,3 +149,48 @@ def test_import_matches_existing_by_barcode(store_client, make_store, mock_pos):
         .count()
         == 1
     )
+
+
+# --- Robustness: never bubble a 500 -----------------------------------------
+class _FakeResp:
+    def __init__(self, body: bytes):
+        self._body = body
+
+    def read(self, *args):
+        return self._body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def test_non_json_response_becomes_unavailable_not_500(monkeypatch):
+    """A 200 with a non-JSON body is surfaced as a clean error, never a 500."""
+    monkeypatch.setattr(
+        client_mod.urllib.request, "urlopen", lambda req, timeout=None: _FakeResp(b"<html>oops</html>")
+    )
+    client = PosSupplierClient(api_url="https://q-shop.example/api", api_key="k")
+    with pytest.raises(PosUnavailableError):
+        client.verify()
+
+
+def test_import_skips_a_failing_row(store_client, make_store, mock_pos, monkeypatch):
+    """One product that blows up during upsert is skipped; the rest still import."""
+    store, owner = make_store()
+    _connect(store_client, store, owner)
+
+    original = PosSupplierService._upsert
+
+    def flaky(self, *, store, connection, item):
+        if item["id"] == "u-chips":
+            raise ValueError("boom")
+        return original(self, store=store, connection=connection, item=item)
+
+    monkeypatch.setattr(PosSupplierService, "_upsert", flaky)
+
+    resp = store_client(owner, store).post(IMPORT_URL, {}, format="json")
+    assert resp.status_code == 200, resp.content
+    assert resp.json()["data"]["summary"] == {"created": 1, "updated": 0, "skipped": 1}
+    assert Product.all_objects.filter(store=store, is_deleted=False).count() == 1

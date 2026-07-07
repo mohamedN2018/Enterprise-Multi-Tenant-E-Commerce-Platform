@@ -39,6 +39,13 @@ const { errors: posErrors, run: runPos, clear: clearPos } = useValidation(
 );
 // Linking a cashier is a store-settings action.
 const canPos = computed(() => tenant.canArea('settings'));
+// Localised message for the known cashier errors; falls back to the server text.
+const posError = (e) => {
+  const code = e?.response?.data?.error_code;
+  if (code === 'pos_invalid_key') return t('posPage.errInvalidKey');
+  if (code === 'pos_unavailable') return t('posPage.errUnavailable');
+  return errorMessage(e);
+};
 
 const load = async () => {
   loading.value = true;
@@ -91,7 +98,7 @@ const connectPos = async () => {
     posForm.value.api_key = ''; // don't keep the key in the form after connecting
     ui.success(t('posPage.connectedToast'));
   } catch (e) {
-    ui.error(errorMessage(e));
+    ui.error(posError(e));
   } finally {
     posBusy.value = false;
   }
@@ -108,7 +115,7 @@ const importPos = async () => {
     const s = res.data.summary;
     ui.success(t('posPage.importedToast', { created: s.created, updated: s.updated }));
   } catch (e) {
-    ui.error(errorMessage(e));
+    ui.error(posError(e));
   } finally {
     importing.value = false;
   }

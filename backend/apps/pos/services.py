@@ -14,6 +14,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -183,8 +184,8 @@ class PosSupplierService(BaseService):
         connection.api_url = api_url
         connection.api_key = api_key
         connection.is_connected = True
-        connection.remote_store_name = str(summary.get("store") or "")
-        connection.remote_product_count = int(summary.get("productCount") or 0)
+        connection.remote_store_name = str(summary.get("store") or "")[:255]
+        connection.remote_product_count = self._safe_int(summary.get("productCount"))
         connection.last_verified_at = timezone.now()
         connection.save()
         return connection
@@ -194,7 +195,6 @@ class PosSupplierService(BaseService):
         connection.delete()
 
     # --- Import ---
-    @atomic
     def import_products(self, *, connection: PosSupplierConnection) -> dict:
         store = connection.store
         products = self._client(
@@ -203,10 +203,18 @@ class PosSupplierService(BaseService):
 
         created = updated = skipped = 0
         for item in products:
-            if not item or not item.get("id") or not item.get("name"):
+            if not isinstance(item, dict) or not item.get("id") or not item.get("name"):
                 skipped += 1
                 continue
-            was_new = self._upsert(store=store, connection=connection, item=item)
+            # Each product upserts in its own savepoint so one bad row (a slug/SKU
+            # clash, odd data) is skipped instead of failing the whole import.
+            try:
+                with transaction.atomic():
+                    was_new = self._upsert(store=store, connection=connection, item=item)
+            except Exception as exc:  # noqa: BLE001 — resilient bulk import
+                logger.warning("POS import skipped product %s: %s", item.get("id"), exc)
+                skipped += 1
+                continue
             created += int(was_new)
             updated += int(not was_new)
 
@@ -231,7 +239,7 @@ class PosSupplierService(BaseService):
         barcode = str(item.get("barcode") or "").strip()
         price = self._decimal(item.get("price"))
         cost = self._decimal(item.get("cost"), allow_none=True)
-        stock = max(int(item.get("stock") or 0), 0)
+        stock = self._safe_int(item.get("stock"))
         published = item.get("is_active", True)
         category = self._category(store=store, name=item.get("category"))
 
@@ -322,6 +330,13 @@ class PosSupplierService(BaseService):
             if not repo.sku_exists(store=store, sku=candidate):
                 return candidate
         return f"{base}-{timezone.now().timestamp():.0f}"
+
+    @staticmethod
+    def _safe_int(value) -> int:
+        try:
+            return max(int(float(value)), 0)
+        except (TypeError, ValueError):
+            return 0
 
     @staticmethod
     def _decimal(value, *, allow_none: bool = False):
