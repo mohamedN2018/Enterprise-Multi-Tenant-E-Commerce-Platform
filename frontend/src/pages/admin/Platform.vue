@@ -16,7 +16,8 @@ import {
   Check,
   X,
   LogIn,
-  UserPlus
+  UserPlus,
+  Package
 } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
@@ -95,23 +96,33 @@ const resolveReq = async (req, approve) => {
 const kpis = computed(() => [
   { label: t('platformPage.totalStores'), value: stores.value.length, icon: StoreIcon, tone: 'text-primary-600 bg-primary-50' },
   { label: t('platformPage.activeStores'), value: stores.value.filter((s) => s.status === 'active').length, icon: Building2, tone: 'text-emerald-600 bg-emerald-50' },
-  { label: t('platformPage.sellers'), value: sellers.value.length, icon: UserCog, tone: 'text-violet-600 bg-violet-50' },
+  { label: t('platformPage.sellers'), value: ownerGroups.value.length, icon: UserCog, tone: 'text-violet-600 bg-violet-50' },
+  { label: t('platformPage.totalProducts'), value: stores.value.reduce((a, s) => a + (s.product_count || 0), 0), icon: Package, tone: 'text-amber-600 bg-amber-50' },
   { label: t('platformPage.employees'), value: stores.value.reduce((a, s) => a + (s.employee_count || 0), 0), icon: Users, tone: 'text-sky-600 bg-sky-50' }
 ]);
 
-const storeColumns = computed(() => [
-  { key: 'name', label: t('platformPage.store') },
-  { key: 'owner_email', label: t('platformPage.owner') },
-  { key: 'employees', label: t('platformPage.employees'), align: 'center' },
-  { key: 'status', label: t('common.status') },
-  { key: 'actions', label: '', align: 'right' }
-]);
-
-const sellerColumns = computed(() => [
-  { key: 'email', label: t('platformPage.seller') },
-  { key: 'stores', label: t('platformPage.ownedStores'), align: 'center' },
-  { key: 'actions', label: '', align: 'right' }
-]);
+// Group every store under its owner (seller), so the admin sees each seller and
+// the stores they own beneath them. Seeded from the sellers list so a freshly
+// created seller with no store yet still appears.
+const ownerGroups = computed(() => {
+  const byEmail = new Map();
+  for (const s of sellers.value) {
+    byEmail.set(s.email, { email: s.email, sellerId: s.id, maxStores: s.max_stores, stores: [] });
+  }
+  for (const st of stores.value) {
+    let g = byEmail.get(st.owner_email);
+    if (!g) {
+      g = { email: st.owner_email, sellerId: st.owner_id, maxStores: st.owner_max_stores, stores: [] };
+      byEmail.set(st.owner_email, g);
+    }
+    if (!g.sellerId) g.sellerId = st.owner_id;
+    if (g.maxStores == null) g.maxStores = st.owner_max_stores;
+    g.stores.push(st);
+  }
+  return [...byEmail.values()].sort(
+    (a, b) => b.stores.length - a.stores.length || (a.email || '').localeCompare(b.email || '')
+  );
+});
 
 const viewStorefront = (s) => window.open(`/products?store=${s.slug}`, '_blank', 'noopener');
 
@@ -139,6 +150,12 @@ const submitCreate = async () => {
   } finally {
     creating.value = false;
   }
+};
+
+// Open the create-store modal pre-filled for a specific seller.
+const openCreateForSeller = (ownerEmail) => {
+  createForm.value = { ...blankCreate(), owner_email: ownerEmail };
+  showCreate.value = true;
 };
 
 // --- Create a seller account (with the default one store) ------------------
@@ -221,11 +238,10 @@ const saveStoreLimit = async () => {
   if (!runSL()) return;
   savingSL.value = true;
   try {
-    const res = await platform.updateSeller(slSeller.value.id, { max_stores: Number(slForm.value) });
-    const i = sellers.value.findIndex((s) => s.id === res.data.id);
-    if (i > -1) sellers.value[i] = res.data;
+    await platform.updateSeller(slSeller.value.id, { max_stores: Number(slForm.value) });
     ui.success(t('platformPage.limitSaved'));
     showStoreLimit.value = false;
+    load(); // refresh so the grouped seller→stores view shows the new cap
   } catch (e) {
     ui.error(errorMessage(e));
   } finally {
@@ -282,7 +298,7 @@ onMounted(load);
       </PageHeader>
 
       <!-- KPIs -->
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div v-for="k in kpis" :key="k.label" class="card p-5">
           <span class="grid h-10 w-10 place-items-center rounded-lg" :class="k.tone"><component :is="k.icon" class="h-5 w-5" /></span>
           <p class="mt-3 font-heading text-2xl font-bold">{{ k.value }}</p>
@@ -319,44 +335,10 @@ onMounted(load);
         </DataTable>
       </div>
 
-      <!-- All stores -->
+      <!-- Sellers & their stores (owner → stores hierarchy) -->
       <div class="mt-8">
-        <h2 class="section-title mb-4 text-xl">{{ $t('platformPage.allStoresTitle') }}</h2>
-        <DataTable :columns="storeColumns" :rows="stores" :empty-title="$t('platformPage.emptyStoresTitle')" :empty-message="$t('platformPage.emptyStoresMessage')">
-          <template #cell-name="{ row }">
-            <div class="flex items-center gap-3">
-              <span class="grid h-9 w-9 place-items-center rounded-lg bg-primary-50 text-primary-600"><StoreIcon class="h-4 w-4" /></span>
-              <div>
-                <p class="font-medium text-ink">{{ row.name }}</p>
-                <p class="text-xs text-muted">{{ row.slug }}</p>
-              </div>
-            </div>
-          </template>
-          <template #cell-owner_email="{ value }"><span class="text-sm">{{ value }}</span></template>
-          <template #cell-employees="{ row }">
-            <button class="chip border-slate-200 bg-slate-50 text-slate-600 hover:border-primary-300" @click="openEmp(row)">
-              <Users class="h-3.5 w-3.5" /> <span dir="ltr">{{ row.employee_count }} / {{ row.max_employees }}</span>
-              <Pencil class="h-3 w-3 opacity-60" />
-            </button>
-          </template>
-          <template #cell-status="{ row }">
-            <select :value="row.status" class="input h-9 max-w-[150px] py-1 text-sm" @change="setStatus(row, $event.target.value)">
-              <option v-for="s in STATUSES" :key="s" :value="s">{{ $t('platformPage.st.' + s) }}</option>
-            </select>
-          </template>
-          <template #cell-actions="{ row }">
-            <div class="flex justify-end gap-1">
-              <button class="btn btn-primary btn-sm" :title="$t('platformPage.manageHint')" @click="enterStore(row)"><LogIn class="h-4 w-4" /> {{ $t('platformPage.manage') }}</button>
-              <button class="btn btn-ghost btn-sm" @click="viewStorefront(row)"><Eye class="h-4 w-4" /> {{ $t('platformPage.view') }}</button>
-            </div>
-          </template>
-        </DataTable>
-      </div>
-
-      <!-- Sellers -->
-      <div class="mt-10">
         <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 class="section-title text-xl">{{ $t('platformPage.sellersTitle') }}</h2>
+          <h2 class="section-title text-xl">{{ $t('platformPage.sellersStoresTitle') }}</h2>
           <div class="flex gap-2">
             <input
               v-model="search"
@@ -367,23 +349,46 @@ onMounted(load);
             <button class="btn btn-outline btn-sm" :disabled="searching" @click="doSearch"><Search class="h-4 w-4" /> {{ $t('platformPage.search') }}</button>
           </div>
         </div>
-        <p class="mb-3 text-xs text-muted">{{ $t('platformPage.sellersNote') }}</p>
-        <DataTable :columns="sellerColumns" :rows="sellers" :empty-title="$t('platformPage.noSellers')" :empty-message="$t('platformPage.noSellersMsg')">
-          <template #cell-email="{ row }">
-            <div class="flex items-center gap-3">
-              <span class="grid h-9 w-9 place-items-center rounded-full bg-violet-100 text-sm font-semibold text-violet-700">
-                {{ (row.email || '?').charAt(0).toUpperCase() }}
-              </span>
-              <span class="font-medium text-ink">{{ row.email }}</span>
+        <p class="mb-4 text-xs text-muted">{{ $t('platformPage.sellersStoresNote') }}</p>
+
+        <div class="space-y-4">
+          <div v-for="g in ownerGroups" :key="g.email" class="card overflow-hidden p-0">
+            <!-- Owner (seller) header -->
+            <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/40">
+              <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-violet-100 text-sm font-semibold text-violet-700">{{ (g.email || '?').charAt(0).toUpperCase() }}</span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate font-semibold text-ink">{{ g.email }}</p>
+                <p class="text-xs text-muted">{{ $t('platformPage.owner') }}</p>
+              </div>
+              <span dir="ltr" class="chip border-slate-200 bg-white text-slate-600 dark:bg-slate-900"><StoreIcon class="h-3.5 w-3.5" /> {{ g.stores.length }} / {{ g.maxStores }}</span>
+              <button class="btn btn-outline btn-sm" @click="openStoreLimit({ id: g.sellerId, email: g.email, max_stores: g.maxStores })"><Pencil class="h-4 w-4" /> {{ $t('platformPage.setStoreLimit') }}</button>
             </div>
-          </template>
-          <template #cell-stores="{ row }">
-            <span dir="ltr" class="chip border-slate-200 bg-slate-50 text-slate-600">{{ row.store_count }} / {{ row.max_stores }}</span>
-          </template>
-          <template #cell-actions="{ row }">
-            <button class="btn btn-outline btn-sm" @click="openStoreLimit(row)"><Pencil class="h-4 w-4" /> {{ $t('platformPage.setStoreLimit') }}</button>
-          </template>
-        </DataTable>
+
+            <!-- Their stores -->
+            <div v-if="g.stores.length" class="divide-y divide-slate-100 dark:divide-slate-800">
+              <div v-for="st in g.stores" :key="st.id" class="flex flex-wrap items-center gap-3 px-4 py-3">
+                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary-50 text-primary-600"><StoreIcon class="h-4 w-4" /></span>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate font-medium text-ink">{{ st.name }}</p>
+                  <p class="text-xs text-muted">{{ st.slug }}</p>
+                </div>
+                <span dir="ltr" class="chip border-amber-200 bg-amber-50 text-amber-700" :title="$t('platformPage.totalProducts')"><Package class="h-3.5 w-3.5" /> {{ st.product_count ?? 0 }}</span>
+                <button class="chip border-slate-200 bg-slate-50 text-slate-600 hover:border-primary-300" :title="$t('platformPage.setEmployeeLimit')" @click="openEmp(st)"><Users class="h-3.5 w-3.5" /> <span dir="ltr">{{ st.employee_count }} / {{ st.max_employees }}</span> <Pencil class="h-3 w-3 opacity-60" /></button>
+                <select :value="st.status" class="input h-9 max-w-[140px] py-1 text-sm" @change="setStatus(st, $event.target.value)">
+                  <option v-for="s in STATUSES" :key="s" :value="s">{{ $t('platformPage.st.' + s) }}</option>
+                </select>
+                <button class="btn btn-primary btn-sm" :title="$t('platformPage.manageHint')" @click="enterStore(st)"><LogIn class="h-4 w-4" /> {{ $t('platformPage.manage') }}</button>
+                <button class="btn btn-ghost btn-sm" @click="viewStorefront(st)"><Eye class="h-4 w-4" /> {{ $t('platformPage.view') }}</button>
+              </div>
+            </div>
+            <div v-else class="flex flex-wrap items-center gap-2 px-4 py-3 text-sm text-muted">
+              {{ $t('platformPage.noStoresForSeller') }}
+              <button class="btn btn-outline btn-sm" @click="openCreateForSeller(g.email)"><Plus class="h-4 w-4" /> {{ $t('platformPage.createStoreForSeller') }}</button>
+            </div>
+          </div>
+
+          <EmptyState v-if="!ownerGroups.length" :icon="StoreIcon" :title="$t('platformPage.emptyStoresTitle')" :message="$t('platformPage.emptyStoresMessage')" />
+        </div>
       </div>
 
       <!-- Create store for seller -->

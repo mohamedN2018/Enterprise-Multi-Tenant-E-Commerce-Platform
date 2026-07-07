@@ -152,6 +152,7 @@ class PlatformStoreSerializer(serializers.ModelSerializer):
     # Annotated in the view.
     member_count = serializers.IntegerField(read_only=True, default=0)
     employee_count = serializers.IntegerField(read_only=True, default=0)
+    product_count = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = Store
@@ -166,6 +167,7 @@ class PlatformStoreSerializer(serializers.ModelSerializer):
             "max_employees",
             "member_count",
             "employee_count",
+            "product_count",
             "currency",
             "country",
             "is_verified",

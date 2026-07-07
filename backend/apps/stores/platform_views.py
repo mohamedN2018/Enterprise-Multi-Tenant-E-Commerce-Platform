@@ -57,6 +57,11 @@ def _stores_qs():
                 ),
                 distinct=True,
             ),
+            product_count=Count(
+                "catalog_product_set",
+                filter=Q(catalog_product_set__is_deleted=False),
+                distinct=True,
+            ),
         )
         .order_by("-created_at")
     )
