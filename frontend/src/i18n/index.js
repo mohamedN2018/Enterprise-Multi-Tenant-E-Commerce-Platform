@@ -26,9 +26,16 @@ export function applyDir() {
 }
 
 export function setLocale(l) {
-  locale.value = l === 'en' ? 'en' : 'ar';
-  localStorage.setItem('locale', locale.value);
+  const next = l === 'en' ? 'en' : 'ar';
+  if (next === locale.value) return;
+  locale.value = next;
+  localStorage.setItem('locale', next);
   applyDir();
+  // Product/store names & descriptions are localized server-side per request
+  // (via the Accept-Language header), so already-fetched content stays in the
+  // old language until it is re-fetched. Reload so the WHOLE app comes back in
+  // the chosen language — not just the static UI, which switches reactively.
+  if (typeof window !== 'undefined' && window.location) window.location.reload();
 }
 
 export function useI18n() {

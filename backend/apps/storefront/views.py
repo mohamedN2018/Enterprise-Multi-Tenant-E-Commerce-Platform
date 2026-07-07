@@ -6,7 +6,7 @@ with explicit ``is_deleted=False`` filters instead of the tenant-scoped default.
 
 from __future__ import annotations
 
-from django.db.models import Avg, Count, F, Q
+from django.db.models import Avg, Count, F, Max, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
@@ -91,19 +91,27 @@ class StorefrontCategoryListView(BaseAPIView):
                 store__status=StoreStatus.ACTIVE,
                 store__is_deleted=False,
             )
-            # Dedup by (name, name_en) so both language labels travel together;
-            # `name` stays the canonical filter key, `name_en` is the display label.
-            .values("name", "name_en")
+            # Dedup by the canonical `name` ONLY (the filter key), so the same
+            # category never splits into two rows across stores. Take a single
+            # representative English label via Max — a non-empty `name_en` wins
+            # over an empty one — so English mode never falls back to Arabic when
+            # *any* store provided the translation.
+            .values("name")
             .annotate(
+                en_label=Max("name_en"),
                 product_count=Count(
                     "products",
                     filter=Q(products__status=ProductStatus.PUBLISHED, products__is_deleted=False),
-                )
+                ),
             )
             .filter(product_count__gt=0)
             .order_by("name")
         )
-        return APIResponse.success(list(rows))
+        data = [
+            {"name": r["name"], "name_en": r["en_label"] or "", "product_count": r["product_count"]}
+            for r in rows
+        ]
+        return APIResponse.success(data)
 
 
 @extend_schema(tags=["Storefront"])
