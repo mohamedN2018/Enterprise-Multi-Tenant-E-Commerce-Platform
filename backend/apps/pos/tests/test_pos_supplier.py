@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import pytest
+from django.db import connection as db_connection
+from django.test import override_settings
 from django.urls import reverse
 
 from apps.catalog.models import Product
 from apps.catalog.services import CatalogService
+from apps.core.exceptions import ValidationError
 from apps.inventory.models import StockItem
 from apps.pos import client as client_mod
+from apps.pos import security
 from apps.pos.client import PosAuthError, PosSupplierClient, PosUnavailableError
+from apps.pos.models import PosSupplierConnection
 from apps.pos.services import PosSupplierService
 from apps.stores.models import StoreRole
 
@@ -226,3 +231,53 @@ def test_import_skips_a_failing_row(store_client, make_store, mock_pos, monkeypa
     assert resp.status_code == 200, resp.content
     assert resp.json()["data"]["summary"] == {"created": 1, "updated": 0, "skipped": 1}
     assert Product.all_objects.filter(store=store, is_deleted=False).count() == 1
+
+
+# --- Security: encryption at rest -------------------------------------------
+def test_api_key_is_encrypted_at_rest(store_client, make_store, mock_pos):
+    store, owner = make_store()
+    _connect(store_client, store, owner)  # stores api_key "secret-key-123"
+
+    # Decrypted transparently on read...
+    conn = PosSupplierConnection.all_objects.get(store=store)
+    assert conn.api_key == "secret-key-123"
+    # ...but the raw column is ciphertext, not the plaintext key.
+    with db_connection.cursor() as cur:
+        cur.execute("SELECT api_key FROM pos_possupplierconnection")
+        raw = cur.fetchone()[0]
+    assert raw != "secret-key-123"
+    assert "secret-key-123" not in raw
+
+
+# --- Security: SSRF guard ---------------------------------------------------
+@override_settings(POS_ALLOW_UNSAFE_URLS=False)
+def test_ssrf_guard_blocks_internal_targets(monkeypatch):
+    # Non-http(s) and localhost are rejected without any DNS lookup.
+    assert security.is_public_url("file:///etc/passwd") is False
+    assert security.is_public_url("http://localhost/api") is False
+
+    # A host that resolves to a private/internal address is blocked...
+    monkeypatch.setattr(
+        security.socket, "getaddrinfo", lambda *a, **k: [(2, 1, 6, "", ("169.254.169.254", 80))]
+    )
+    assert security.is_public_url("http://metadata.internal/api") is False
+    with pytest.raises(ValidationError):
+        security.assert_public_url("http://metadata.internal/api")
+
+    # ...while a public address is allowed.
+    monkeypatch.setattr(
+        security.socket, "getaddrinfo", lambda *a, **k: [(2, 1, 6, "", ("93.184.216.34", 443))]
+    )
+    assert security.is_public_url("https://example.com/api") is True
+
+
+# --- Security: rate limiting ------------------------------------------------
+def test_connect_is_rate_limited(store_client, make_store, mock_pos):
+    """Repeated connects hit the pos_connect throttle (default 20/min)."""
+    store, owner = make_store()
+    client = store_client(owner, store)
+    statuses = [
+        client.post(SUPPLIER_URL, CONNECT_BODY, format="json").status_code for _ in range(25)
+    ]
+    assert statuses[0] == 200
+    assert 429 in statuses

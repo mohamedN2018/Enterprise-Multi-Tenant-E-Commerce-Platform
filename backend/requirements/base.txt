@@ -42,6 +42,9 @@ boto3==1.35.71
 # --- Password hashing ---
 argon2-cffi==23.1.0
 
+# --- Encryption at rest (POS API keys via Fernet) ---
+cryptography==43.0.3
+
 # --- Application servers ---
 gunicorn==23.0.0
 uvicorn[standard]==0.32.1

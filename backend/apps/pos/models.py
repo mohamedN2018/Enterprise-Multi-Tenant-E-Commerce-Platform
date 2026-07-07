@@ -16,6 +16,7 @@ from django.db import models
 from django.db.models import Q
 
 from apps.core.models import TenantOwnedModel
+from apps.pos.fields import EncryptedTextField
 
 
 class PosConnection(TenantOwnedModel):
@@ -49,8 +50,9 @@ class PosSupplierConnection(TenantOwnedModel):
 
     provider = models.CharField(max_length=80, default="q-shop POS")
     api_url = models.URLField()
-    # The supplier's key that WE present. Never returned by the API (write-only).
-    api_key = models.CharField(max_length=255)
+    # The supplier's key that WE present. Encrypted at rest; never returned by the
+    # API (write-only).
+    api_key = EncryptedTextField()
     is_connected = models.BooleanField(default=False, db_index=True)
     # Snapshot from the last successful verify.
     remote_store_name = models.CharField(max_length=255, blank=True)

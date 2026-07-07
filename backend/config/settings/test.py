@@ -25,5 +25,9 @@ DATABASES = {"default": env.db("TEST_DATABASE_URL", default="sqlite://:memory:")
 
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
+# Don't perform real DNS/SSRF resolution during tests (the SSRF guard is unit
+# tested directly with mocked resolution).
+POS_ALLOW_UNSAFE_URLS = True
+
 # Expose the Stripe stub alongside manual so its unconfigured path is testable.
 PAYMENT_ENABLED_GATEWAYS = ["manual", "stripe", "store_credit"]

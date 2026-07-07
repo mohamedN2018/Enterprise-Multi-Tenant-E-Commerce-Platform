@@ -28,6 +28,7 @@ from apps.inventory.services import InventoryService
 from apps.pos import keys
 from apps.pos.client import PosSupplierClient
 from apps.pos.models import PosConnection, PosImportedProduct, PosSupplierConnection
+from apps.pos.security import assert_public_url, is_public_url
 
 logger = logging.getLogger(__name__)
 
@@ -174,6 +175,8 @@ class PosSupplierService(BaseService):
     # --- Connection lifecycle ---
     @atomic
     def connect(self, *, store, provider: str, api_url: str, api_key: str) -> PosSupplierConnection:
+        # Block SSRF: never let a seller point us at a private/internal address.
+        assert_public_url(api_url)
         # Prove the key works before persisting anything (raises on 401 / unreachable).
         summary = self._client(store=store, api_url=api_url, api_key=api_key).verify()
 
@@ -349,6 +352,9 @@ class PosSupplierService(BaseService):
 
     @staticmethod
     def _maybe_set_image(product: Product, image_url: str) -> None:
+        # The image URL is also a server-side fetch — same SSRF guard as the API URL.
+        if not is_public_url(image_url):
+            return
         try:
             from apps.pos.client import USER_AGENT
 

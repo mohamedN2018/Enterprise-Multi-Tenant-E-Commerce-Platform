@@ -274,6 +274,9 @@ REST_FRAMEWORK = {
         "auth_register": env("THROTTLE_AUTH_REGISTER", default="5/min"),
         "auth_password_reset": env("THROTTLE_AUTH_PASSWORD_RESET", default="5/min"),
         "auth_email_verification": env("THROTTLE_AUTH_EMAIL_VERIFICATION", default="5/min"),
+        # POS integration: server-side fetches to an external system — cap abuse.
+        "pos_connect": env("THROTTLE_POS_CONNECT", default="20/min"),
+        "pos_import": env("THROTTLE_POS_IMPORT", default="12/min"),
     },
     "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
     "DEFAULT_VERSION": "v1",

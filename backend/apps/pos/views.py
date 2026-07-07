@@ -137,6 +137,12 @@ class PosStockView(_PosMachineView):
 class PosSupplierView(StoreContextMixin, BaseAPIView):
     """View / connect / disconnect the store's link to an external POS supplier."""
 
+    def get_throttles(self):
+        # Rate-limit only the expensive server-fetch (connect); reads stay cheap.
+        if self.request.method == "POST":
+            self.throttle_scope = "pos_connect"
+        return super().get_throttles()
+
     def _connection(self) -> PosSupplierConnection | None:
         return PosSupplierConnection.all_objects.filter(store=self.store, is_deleted=False).first()
 
@@ -166,6 +172,8 @@ class PosSupplierView(StoreContextMixin, BaseAPIView):
 @extend_schema(tags=["POS"])
 class PosSupplierImportView(StoreContextMixin, BaseAPIView):
     """Pull the supplier's catalog and upsert it into this store."""
+
+    throttle_scope = "pos_import"
 
     def post(self, request: Request) -> Response:
         self.require_write(area=_POS_AREA)
