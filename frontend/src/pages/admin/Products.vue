@@ -271,7 +271,7 @@ const save = async () => {
 
 // --- Variant quick-add (within edit) --------------------------------------
 const variantForm = ref({ name: '', sku: '', price: '', compare_at_price: '', stock_quantity: 0, is_default: false });
-const { errors: vErrors, run: runVariant, clear: clearVariant } = useValidation(() => variantForm.value, { sku: [required()], price: [positive()] });
+const { errors: vErrors, run: runVariant, clear: clearVariant } = useValidation(() => variantForm.value, { price: [required(), numberMin(0)] });
 const addingVariant = ref(false);
 const addVariant = async () => {
   if (!editing.value || !runVariant()) return;
@@ -279,6 +279,8 @@ const addVariant = async () => {
   try {
     const payload = { ...variantForm.value };
     if (!payload.compare_at_price) delete payload.compare_at_price;
+    // SKU is auto-generated when left blank, so adding a price is one field.
+    if (!payload.sku) payload.sku = genSku(editing.value.name_en || editing.value.name);
     const res = await seller.createVariant(editing.value.id, payload);
     editing.value.variants = [...(editing.value.variants || []), res.data];
     variantForm.value = { name: '', sku: '', price: '', compare_at_price: '', stock_quantity: 0, is_default: false };
@@ -536,11 +538,14 @@ onMounted(async () => {
             </div>
           </li>
         </ul>
+        <p v-if="!editing.variants?.length" class="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10">
+          {{ $t('prod.noVariantHint') }}
+        </p>
         <form class="grid grid-cols-2 gap-3 sm:grid-cols-4" novalidate @submit.prevent="addVariant">
-          <FormField v-model="variantForm.name" :label="$t('common.name')" :placeholder="$t('prod.defaultVariant')" class="col-span-2 sm:col-span-1" />
-          <FormField v-model="variantForm.sku" :label="$t('common.sku')" :error="vErrors.sku" @update:model-value="clearVariant('sku')" />
-          <FormField v-model="variantForm.price" :label="$t('common.price')" type="number" step="0.01" :error="vErrors.price" @update:model-value="clearVariant('price')" />
-          <FormField v-model.number="variantForm.stock_quantity" :label="$t('common.stock')" type="number" />
+          <FormField v-model="variantForm.price" :label="`${$t('common.price')} (${tenant.currency})`" type="number" step="0.01" min="0" :error="vErrors.price" @update:model-value="clearVariant('price')" />
+          <FormField v-model.number="variantForm.stock_quantity" :label="$t('common.stock')" type="number" min="0" />
+          <FormField v-model="variantForm.name" :label="$t('common.name')" :placeholder="$t('prod.defaultVariant')" />
+          <FormField v-model="variantForm.sku" :label="$t('common.sku')" :placeholder="$t('prod.skuAuto')" :hint="$t('prod.skuAutoHint')" />
           <div class="col-span-2 sm:col-span-4">
             <button type="submit" class="btn btn-outline btn-sm" :disabled="addingVariant">
               <Plus class="h-4 w-4" /> {{ $t('prod.addVariant') }}
