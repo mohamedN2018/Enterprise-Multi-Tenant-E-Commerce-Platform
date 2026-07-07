@@ -15,6 +15,14 @@ import urllib.request
 
 from apps.core.exceptions import DomainError
 
+# POS providers are often fronted by Cloudflare, which blocks the default
+# "Python-urllib/x" agent as a bot. Present a normal browser UA so our
+# server-to-server calls aren't challenged before they reach the POS app.
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+)
+
 
 class PosAuthError(DomainError):
     status_code = 400
@@ -37,7 +45,11 @@ class PosSupplierClient:
         self.timeout = timeout
 
     def _headers(self) -> dict:
-        headers = {"x-api-key": self.api_key, "Accept": "application/json"}
+        headers = {
+            "x-api-key": self.api_key,
+            "Accept": "application/json",
+            "User-Agent": USER_AGENT,
+        }
         if self.store_name:
             headers["x-store-name"] = self.store_name
         if self.store_url:

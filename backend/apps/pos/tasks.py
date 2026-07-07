@@ -16,6 +16,7 @@ import urllib.request
 from celery import shared_task
 
 from apps.pos import keys
+from apps.pos.client import USER_AGENT
 from apps.pos.models import PosConnection
 from apps.pos.services import PosService
 
@@ -45,6 +46,7 @@ def push_stock_update(self, connection_id: str, sku: str) -> str:
         headers={
             "Content-Type": "application/json",
             "X-POS-Signature": keys.sign_payload(connection.webhook_secret, body),
+            "User-Agent": USER_AGENT,
         },
     )
     try:

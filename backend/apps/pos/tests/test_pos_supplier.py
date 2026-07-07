@@ -166,6 +166,22 @@ class _FakeResp:
         return False
 
 
+def test_client_sends_browser_user_agent(monkeypatch):
+    """POS providers behind Cloudflare block the default urllib agent; we must
+    present a browser UA so server-to-server calls aren't challenged."""
+    captured = {}
+
+    def _fake_urlopen(req, timeout=None):
+        captured["ua"] = req.get_header("User-agent")
+        captured["key"] = req.get_header("X-api-key")
+        return _FakeResp(b'{"store":"S","productCount":1}')
+
+    monkeypatch.setattr(client_mod.urllib.request, "urlopen", _fake_urlopen)
+    PosSupplierClient(api_url="https://x/api", api_key="k").verify()
+    assert "Mozilla/5.0" in (captured["ua"] or "")
+    assert captured["key"] == "k"
+
+
 def test_non_json_response_becomes_unavailable_not_500(monkeypatch):
     """A 200 with a non-JSON body is surfaced as a clean error, never a 500."""
     monkeypatch.setattr(

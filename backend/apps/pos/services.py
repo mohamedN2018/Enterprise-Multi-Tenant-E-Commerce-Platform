@@ -350,7 +350,9 @@ class PosSupplierService(BaseService):
     @staticmethod
     def _maybe_set_image(product: Product, image_url: str) -> None:
         try:
-            request = urllib.request.Request(image_url, headers={"User-Agent": "qshop-import"})
+            from apps.pos.client import USER_AGENT
+
+            request = urllib.request.Request(image_url, headers={"User-Agent": USER_AGENT})
             with urllib.request.urlopen(request, timeout=8) as resp:
                 if getattr(resp, "status", 200) != 200:
                     return
