@@ -7,15 +7,28 @@ cashier reports an in-store sale so the shared inventory stays correct.
 
 from __future__ import annotations
 
+import logging
+import urllib.error
+import urllib.request
+from decimal import Decimal, InvalidOperation
+
+from django.conf import settings
+from django.core.files.base import ContentFile
+from django.db.models import Q
 from django.utils import timezone
 
-from apps.catalog.models import ProductVariant
+from apps.catalog.models import Category, Product, ProductStatus, ProductVariant
+from apps.catalog.repositories import ProductVariantRepository
+from apps.catalog.services import CatalogService
 from apps.core.exceptions import ConflictError, NotFoundError, ValidationError
 from apps.core.services import BaseService, atomic
 from apps.inventory.models import StockItem
 from apps.inventory.services import InventoryService
 from apps.pos import keys
-from apps.pos.models import PosConnection
+from apps.pos.client import PosSupplierClient
+from apps.pos.models import PosConnection, PosImportedProduct, PosSupplierConnection
+
+logger = logging.getLogger(__name__)
 
 
 class PosService(BaseService):
@@ -131,3 +144,205 @@ class PosService(BaseService):
             "available": available,
             "in_stock": True if not tracked else available > 0,
         }
+
+
+class PosSupplierService(BaseService):
+    """Outbound link: verify the external POS and import its catalog.
+
+    Import is idempotent — each external product is matched (by prior import, then
+    barcode) and upserted, so re-running only updates. Prices/stock land on the
+    product's default variant; stock flows into the warehouse via the catalog
+    service's stock sync, so imported items are immediately sellable.
+    """
+
+    def __init__(self):
+        self.catalog = CatalogService()
+
+    @staticmethod
+    def store_public_url(store) -> str:
+        return f"{settings.FRONTEND_URL.rstrip('/')}/store/{store.slug}"
+
+    def _client(self, *, store, api_url: str, api_key: str) -> PosSupplierClient:
+        return PosSupplierClient(
+            api_url=api_url,
+            api_key=api_key,
+            store_name=store.name,
+            store_url=self.store_public_url(store),
+        )
+
+    # --- Connection lifecycle ---
+    @atomic
+    def connect(self, *, store, provider: str, api_url: str, api_key: str) -> PosSupplierConnection:
+        # Prove the key works before persisting anything (raises on 401 / unreachable).
+        summary = self._client(store=store, api_url=api_url, api_key=api_key).verify()
+
+        connection = PosSupplierConnection.all_objects.filter(store=store, is_deleted=False).first()
+        if connection is None:
+            connection = PosSupplierConnection(store=store)
+        connection.provider = provider or "q-shop POS"
+        connection.api_url = api_url
+        connection.api_key = api_key
+        connection.is_connected = True
+        connection.remote_store_name = str(summary.get("store") or "")
+        connection.remote_product_count = int(summary.get("productCount") or 0)
+        connection.last_verified_at = timezone.now()
+        connection.save()
+        return connection
+
+    @atomic
+    def disconnect(self, *, connection: PosSupplierConnection) -> None:
+        connection.delete()
+
+    # --- Import ---
+    @atomic
+    def import_products(self, *, connection: PosSupplierConnection) -> dict:
+        store = connection.store
+        products = self._client(
+            store=store, api_url=connection.api_url, api_key=connection.api_key
+        ).fetch_products()
+
+        created = updated = skipped = 0
+        for item in products:
+            if not item or not item.get("id") or not item.get("name"):
+                skipped += 1
+                continue
+            was_new = self._upsert(store=store, connection=connection, item=item)
+            created += int(was_new)
+            updated += int(not was_new)
+
+        connection.last_synced_at = timezone.now()
+        connection.last_import_created = created
+        connection.last_import_updated = updated
+        connection.remote_product_count = created + updated
+        connection.save(
+            update_fields=[
+                "last_synced_at",
+                "last_import_created",
+                "last_import_updated",
+                "remote_product_count",
+                "updated_at",
+            ]
+        )
+        return {"created": created, "updated": updated, "skipped": skipped}
+
+    # --- Upsert one external product ---
+    def _upsert(self, *, store, connection: PosSupplierConnection, item: dict) -> bool:
+        external_id = str(item["id"])
+        barcode = str(item.get("barcode") or "").strip()
+        price = self._decimal(item.get("price"))
+        cost = self._decimal(item.get("cost"), allow_none=True)
+        stock = max(int(item.get("stock") or 0), 0)
+        published = item.get("is_active", True)
+        category = self._category(store=store, name=item.get("category"))
+
+        product, ref = self._match(store=store, connection=connection, external_id=external_id, barcode=barcode)
+        product_data = {
+            "name": item["name"],
+            "name_en": item.get("name_en") or "",
+            "description": item.get("description") or "",
+            "category": category,
+            "status": ProductStatus.PUBLISHED if published else ProductStatus.DRAFT,
+        }
+        is_new = product is None
+        if is_new:
+            product = self.catalog.create_product(store=store, data=product_data)
+        else:
+            self.catalog.update_product(instance=product, data=product_data)
+
+        variant_data = {
+            "barcode": barcode,
+            "price": price,
+            "cost_price": cost,
+            "stock_quantity": stock,
+        }
+        variant = ProductVariant.all_objects.filter(
+            store=store, product=product, is_default=True, is_deleted=False
+        ).first()
+        if variant is None:
+            variant_data["sku"] = self._free_sku(store=store, candidates=[item.get("sku"), barcode, external_id])
+            variant_data["is_default"] = True
+            self.catalog.create_variant(store=store, product=product, data=variant_data)
+        else:
+            self.catalog.update_variant(instance=variant, data=variant_data)
+
+        if is_new and item.get("image_url"):
+            self._maybe_set_image(product, item["image_url"])
+
+        if ref is None:
+            PosImportedProduct.objects.create(
+                store=store,
+                connection=connection,
+                external_id=external_id,
+                barcode=barcode,
+                product=product,
+            )
+        elif ref.barcode != barcode:
+            ref.barcode = barcode
+            ref.save(update_fields=["barcode", "updated_at"])
+        return is_new
+
+    def _match(self, *, store, connection, external_id, barcode):
+        """Return (product, ref) for an external item, or (None, None) if new."""
+        ref = PosImportedProduct.all_objects.filter(
+            store=store, connection=connection, external_id=external_id, is_deleted=False
+        ).first()
+        if ref is not None:
+            return ref.product, ref
+        if barcode:
+            variant = ProductVariant.all_objects.filter(
+                store=store, barcode=barcode, is_deleted=False
+            ).first()
+            if variant is not None:
+                return variant.product, None
+        return None, None
+
+    def _category(self, *, store, name):
+        name = (name or "").strip()
+        if not name:
+            return None
+        existing = (
+            Category.all_objects.filter(store=store, is_deleted=False)
+            .filter(Q(name=name) | Q(name_en=name))
+            .first()
+        )
+        if existing is not None:
+            return existing
+        return self.catalog.create_category(store=store, data={"name": name})
+
+    @staticmethod
+    def _free_sku(*, store, candidates: list) -> str:
+        repo = ProductVariantRepository()
+        seen = [str(c).strip() for c in candidates if c and str(c).strip()]
+        for candidate in seen:
+            if not repo.sku_exists(store=store, sku=candidate):
+                return candidate
+        base = seen[0] if seen else "SKU"
+        for i in range(2, 100):
+            candidate = f"{base}-{i}"
+            if not repo.sku_exists(store=store, sku=candidate):
+                return candidate
+        return f"{base}-{timezone.now().timestamp():.0f}"
+
+    @staticmethod
+    def _decimal(value, *, allow_none: bool = False):
+        if value is None or value == "":
+            return None if allow_none else Decimal("0")
+        try:
+            return Decimal(str(value))
+        except (InvalidOperation, TypeError):
+            return None if allow_none else Decimal("0")
+
+    @staticmethod
+    def _maybe_set_image(product: Product, image_url: str) -> None:
+        try:
+            request = urllib.request.Request(image_url, headers={"User-Agent": "qshop-import"})
+            with urllib.request.urlopen(request, timeout=8) as resp:
+                if getattr(resp, "status", 200) != 200:
+                    return
+                data = resp.read(5 * 1024 * 1024)  # cap at 5 MB
+            if not data:
+                return
+            ext = (image_url.rsplit(".", 1)[-1].split("?")[0] or "jpg")[:5]
+            product.image.save(f"pos-{product.id}.{ext}", ContentFile(data), save=True)
+        except (urllib.error.URLError, OSError, ValueError) as exc:
+            logger.warning("POS image import failed for %s: %s", image_url, exc)

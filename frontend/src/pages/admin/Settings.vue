@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { Store as StoreIcon, SlidersHorizontal, Cpu, CheckCircle2, Plug, Copy, RefreshCw, Unlink, KeyRound } from 'lucide-vue-next';
+import { Store as StoreIcon, SlidersHorizontal, Cpu, CheckCircle2, Plug, Download, Unlink } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import FormField from '@/components/ui/FormField.vue';
 import Spinner from '@/components/ui/Spinner.vue';
@@ -12,7 +12,7 @@ import { seller } from '@/services/seller';
 import { pos } from '@/services/pos';
 import { errorMessage } from '@/services/http';
 import { t } from '@/i18n';
-import { useValidation, url } from '@/utils/validators';
+import { useValidation, url, required } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -26,18 +26,17 @@ const savingProfile = ref(false);
 const settings = ref(null);
 const savingSettings = ref(false);
 
-// Cashier (POS) integration — a real per-store API key + optional sync webhook.
-// The cashier deducts the shared warehouse stock on each in-store sale.
-const posConn = ref(null); // the linked connection (or null when unlinked)
-const posKey = ref(''); // plaintext key, shown ONCE right after link/rotate
+// Cashier (POS) integration — link an external q-shop POS and import its catalog.
+// The store's backend pulls products over the provider API (server-to-server).
+const posConn = ref(null); // the connected supplier (or null when not connected)
+const posForm = ref({ provider: 'q-shop POS', api_url: '', api_key: '' });
 const posBusy = ref(false);
-const posWebhook = ref('');
+const importing = ref(false);
+const importSummary = ref(null); // { created, updated, skipped } after an import
 const { errors: posErrors, run: runPos, clear: clearPos } = useValidation(
-  () => ({ webhook_url: posWebhook.value }),
-  { webhook_url: [url({ optional: true })] }
+  () => posForm.value,
+  { api_url: [required(), url()], api_key: [required()] }
 );
-// Base URL the cashier calls (same origin as the SPA/API).
-const apiBase = `${window.location.origin}/api/v1`;
 // Linking a cashier is a store-settings action.
 const canPos = computed(() => tenant.canArea('settings'));
 
@@ -70,48 +69,27 @@ const load = async () => {
 };
 
 const loadPos = async () => {
-  const res = await pos.connection();
+  const res = await pos.supplier();
   posConn.value = res.data || null;
-  posWebhook.value = posConn.value?.webhook_url || '';
-};
-
-// Link the cashier: mints an API key, shown once for the seller to copy.
-const linkPos = async () => {
-  posBusy.value = true;
-  try {
-    const res = await pos.link({ name: 'Cashier' });
-    posConn.value = res.data.connection;
-    posKey.value = res.data.api_key;
-    posWebhook.value = '';
-    ui.success(t('posPage.linkedToast'));
-  } catch (e) {
-    ui.error(errorMessage(e));
-  } finally {
-    posBusy.value = false;
+  if (posConn.value) {
+    posForm.value.provider = posConn.value.provider || 'q-shop POS';
+    posForm.value.api_url = posConn.value.api_url || '';
   }
 };
 
-const rotatePos = async () => {
-  posBusy.value = true;
-  try {
-    const res = await pos.rotate();
-    posConn.value = res.data.connection;
-    posKey.value = res.data.api_key;
-    ui.success(t('posPage.rotatedToast'));
-  } catch (e) {
-    ui.error(errorMessage(e));
-  } finally {
-    posBusy.value = false;
-  }
-};
-
-const saveWebhook = async () => {
+// Connect: verify the key against the provider, then store it on this store.
+const connectPos = async () => {
   if (!runPos()) return;
   posBusy.value = true;
   try {
-    const res = await pos.update({ webhook_url: posWebhook.value.trim() });
+    const res = await pos.connect({
+      provider: posForm.value.provider || 'q-shop POS',
+      api_url: posForm.value.api_url.trim(),
+      api_key: posForm.value.api_key.trim()
+    });
     posConn.value = res.data;
-    ui.success(t('posPage.webhookSaved'));
+    posForm.value.api_key = ''; // don't keep the key in the form after connecting
+    ui.success(t('posPage.connectedToast'));
   } catch (e) {
     ui.error(errorMessage(e));
   } finally {
@@ -119,28 +97,36 @@ const saveWebhook = async () => {
   }
 };
 
-const unlinkPos = async () => {
-  if (!window.confirm(t('posPage.unlinkConfirm'))) return;
+// Pull the supplier's catalog and upsert it into this store.
+const importPos = async () => {
+  importing.value = true;
+  importSummary.value = null;
+  try {
+    const res = await pos.importProducts();
+    posConn.value = res.data.connection;
+    importSummary.value = res.data.summary;
+    const s = res.data.summary;
+    ui.success(t('posPage.importedToast', { created: s.created, updated: s.updated }));
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    importing.value = false;
+  }
+};
+
+const disconnectPos = async () => {
+  if (!window.confirm(t('posPage.disconnectConfirm'))) return;
   posBusy.value = true;
   try {
-    await pos.unlink();
+    await pos.disconnect();
     posConn.value = null;
-    posKey.value = '';
-    posWebhook.value = '';
-    ui.success(t('posPage.unlinkedToast'));
+    posForm.value = { provider: 'q-shop POS', api_url: '', api_key: '' };
+    importSummary.value = null;
+    ui.success(t('posPage.disconnectedToast'));
   } catch (e) {
     ui.error(errorMessage(e));
   } finally {
     posBusy.value = false;
-  }
-};
-
-const copy = async (text) => {
-  try {
-    await navigator.clipboard.writeText(text);
-    ui.success(t('posPage.copied'));
-  } catch {
-    ui.error(t('posPage.copyFailed'));
   }
 };
 
@@ -280,65 +266,44 @@ onMounted(load);
       <section v-if="settings" class="card p-6 lg:col-span-2">
         <div class="mb-1 flex flex-wrap items-center justify-between gap-3">
           <h2 class="flex items-center gap-2 font-semibold"><Cpu class="h-5 w-5 text-primary-600" /> {{ $t('admin.pos') }}</h2>
-          <span class="chip border-0" :class="posConn ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'">
-            <CheckCircle2 v-if="posConn" class="h-3.5 w-3.5" />
-            {{ posConn ? $t('posPage.linked') : $t('posPage.notLinked') }}
+          <span class="chip border-0" :class="posConn?.is_connected ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'">
+            <CheckCircle2 v-if="posConn?.is_connected" class="h-3.5 w-3.5" />
+            {{ posConn?.is_connected ? $t('posPage.connected') : $t('posPage.notConnected') }}
           </span>
         </div>
         <p class="mb-4 text-sm text-muted">{{ $t('posPage.subtitle') }}</p>
 
-        <!-- Not linked yet -->
-        <div v-if="!posConn">
-          <button v-if="canPos" class="btn btn-primary btn-sm" :disabled="posBusy" @click="linkPos">
-            <Spinner v-if="posBusy" :size="16" /><template v-else><Plug class="h-4 w-4" /> {{ $t('posPage.link') }}</template>
+        <!-- Connection form -->
+        <div class="grid gap-4 sm:grid-cols-2">
+          <FormField v-model="posForm.provider" :label="$t('posPage.provider')" placeholder="q-shop POS" :disabled="!canPos" />
+          <FormField v-model="posForm.api_url" :label="$t('posPage.apiUrl')" :hint="$t('posPage.apiUrlHint')" placeholder="https://q-shop-cashier.deplois.net/api" :disabled="!canPos" :error="posErrors.api_url" @update:model-value="clearPos('api_url')" />
+          <FormField v-model="posForm.api_key" :label="$t('posPage.apiKey')" type="password" :placeholder="posConn?.has_key ? '••••••••' : ''" :hint="posConn?.has_key ? $t('posPage.apiKeyStored') : ''" :disabled="!canPos" class="sm:col-span-2" :error="posErrors.api_key" @update:model-value="clearPos('api_key')" />
+        </div>
+
+        <!-- Connected summary -->
+        <div v-if="posConn?.is_connected" class="mt-4 rounded-xl border border-slate-200 bg-lightbg/50 p-4 text-sm">
+          <div class="flex flex-wrap gap-x-6 gap-y-1">
+            <span v-if="posConn.remote_store_name"><span class="text-muted">{{ $t('posPage.remoteStore') }}:</span> <span class="font-medium">{{ posConn.remote_store_name }}</span></span>
+            <span><span class="text-muted">{{ $t('posPage.productCount') }}:</span> <span class="font-medium">{{ posConn.remote_product_count }}</span></span>
+            <span v-if="posConn.last_synced_at"><span class="text-muted">{{ $t('posPage.lastSync') }}:</span> {{ (posConn.last_synced_at || '').replace('T', ' ').slice(0, 16) }}</span>
+          </div>
+          <p v-if="importSummary" class="mt-2 text-emerald-700">{{ $t('posPage.importResult', { created: importSummary.created, updated: importSummary.updated, skipped: importSummary.skipped }) }}</p>
+        </div>
+
+        <!-- Actions -->
+        <div v-if="canPos" class="mt-5 flex flex-wrap gap-2">
+          <button v-if="!posConn?.is_connected" class="btn btn-primary btn-sm" :disabled="posBusy" @click="connectPos">
+            <Spinner v-if="posBusy" :size="16" /><template v-else><Plug class="h-4 w-4" /> {{ $t('posPage.connect') }}</template>
           </button>
-          <p v-else class="text-sm text-muted">{{ $t('posPage.noPermission') }}</p>
+          <template v-else>
+            <button class="btn btn-primary btn-sm" :disabled="importing || posBusy" @click="importPos">
+              <Spinner v-if="importing" :size="16" /><template v-else><Download class="h-4 w-4" /> {{ importing ? $t('posPage.importing') : $t('posPage.import') }}</template>
+            </button>
+            <button class="btn btn-outline btn-sm" :disabled="posBusy" @click="connectPos">{{ $t('posPage.reconnect') }}</button>
+            <button class="btn btn-ghost btn-sm text-secondary-600" :disabled="posBusy" @click="disconnectPos"><Unlink class="h-3.5 w-3.5" /> {{ $t('posPage.disconnect') }}</button>
+          </template>
         </div>
-
-        <!-- Linked -->
-        <div v-else class="space-y-5">
-          <!-- Freshly minted key — shown once -->
-          <div v-if="posKey" class="rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <p class="mb-2 flex items-center gap-2 text-sm font-medium text-amber-800"><KeyRound class="h-4 w-4" /> {{ $t('posPage.keyOnce') }}</p>
-            <div class="flex items-center gap-2">
-              <code class="flex-1 overflow-x-auto rounded-lg bg-white px-3 py-2 text-sm text-ink">{{ posKey }}</code>
-              <button class="btn btn-outline btn-sm shrink-0" @click="copy(posKey)"><Copy class="h-3.5 w-3.5" /> {{ $t('posPage.copy') }}</button>
-            </div>
-          </div>
-          <div v-else class="text-sm text-muted">
-            {{ $t('posPage.currentKey') }}: <code class="rounded bg-lightbg px-2 py-0.5">{{ posConn.masked_key }}</code>
-          </div>
-
-          <!-- How the cashier connects -->
-          <div class="rounded-xl border border-slate-200 bg-lightbg/50 p-4 text-sm">
-            <p class="mb-2 font-medium">{{ $t('posPage.endpointsTitle') }}</p>
-            <p class="mb-3 text-xs text-muted">{{ $t('posPage.headerHint') }} <code class="rounded bg-white px-1.5 py-0.5">X-POS-Key</code></p>
-            <div class="space-y-2">
-              <div class="flex items-center gap-2">
-                <span class="w-14 shrink-0 text-xs font-semibold text-emerald-600">POST</span>
-                <code class="flex-1 overflow-x-auto text-xs text-ink">{{ apiBase }}/pos/sales/</code>
-                <button class="btn btn-ghost btn-sm shrink-0" @click="copy(`${apiBase}/pos/sales/`)"><Copy class="h-3.5 w-3.5" /></button>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="w-14 shrink-0 text-xs font-semibold text-primary-600">GET</span>
-                <code class="flex-1 overflow-x-auto text-xs text-ink">{{ apiBase }}/pos/stock/</code>
-                <button class="btn btn-ghost btn-sm shrink-0" @click="copy(`${apiBase}/pos/stock/`)"><Copy class="h-3.5 w-3.5" /></button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Two-way sync webhook -->
-          <div>
-            <FormField v-model="posWebhook" :label="$t('posPage.webhook')" :hint="$t('posPage.webhookHint')" placeholder="https://cashier.example/stock-webhook" :disabled="!canPos" :error="posErrors.webhook_url" @update:model-value="clearPos('webhook_url')" />
-            <button v-if="canPos" class="btn btn-outline btn-sm mt-2" :disabled="posBusy" @click="saveWebhook">{{ $t('posPage.saveWebhook') }}</button>
-          </div>
-
-          <!-- Actions -->
-          <div v-if="canPos" class="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-            <button class="btn btn-outline btn-sm" :disabled="posBusy" @click="rotatePos"><RefreshCw class="h-3.5 w-3.5" /> {{ $t('posPage.rotate') }}</button>
-            <button class="btn btn-ghost btn-sm text-secondary-600" :disabled="posBusy" @click="unlinkPos"><Unlink class="h-3.5 w-3.5" /> {{ $t('posPage.unlink') }}</button>
-          </div>
-        </div>
+        <p v-else class="mt-4 text-sm text-muted">{{ $t('posPage.noPermission') }}</p>
       </section>
     </div>
   </div>

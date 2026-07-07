@@ -1,10 +1,13 @@
 """Cashier (POS) integration models.
 
-A store links one external cashier system via a :class:`PosConnection`:
-  * ``api_key_*``      — the inbound credential the cashier presents to report
-    in-store sales and read stock levels (stored hashed; see ``keys``).
-  * ``webhook_url``    — the outbound target the platform POSTs to when online
-    stock changes, so the cashier stays in sync (two-way).
+Two complementary links, each optional and one-per-store:
+
+* :class:`PosConnection` — *inbound*. A cashier presents an API key (stored
+  hashed) to report in-store sales and read stock; an optional webhook pushes
+  online stock changes back to it.
+* :class:`PosSupplierConnection` — *outbound*. The store pulls its catalog **from**
+  an external POS (e.g. "q-shop POS") using that POS's API URL + key. Products are
+  upserted and tracked by :class:`PosImportedProduct` for idempotent re-imports.
 """
 
 from __future__ import annotations
@@ -39,3 +42,57 @@ class PosConnection(TenantOwnedModel):
 
     def __str__(self) -> str:
         return f"{self.name} ({self.api_key_prefix}…)"
+
+
+class PosSupplierConnection(TenantOwnedModel):
+    """The store's outbound link to an external POS it imports products from."""
+
+    provider = models.CharField(max_length=80, default="q-shop POS")
+    api_url = models.URLField()
+    # The supplier's key that WE present. Never returned by the API (write-only).
+    api_key = models.CharField(max_length=255)
+    is_connected = models.BooleanField(default=False, db_index=True)
+    # Snapshot from the last successful verify.
+    remote_store_name = models.CharField(max_length=255, blank=True)
+    remote_product_count = models.PositiveIntegerField(default=0)
+    last_verified_at = models.DateTimeField(null=True, blank=True)
+    # Last import summary.
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+    last_import_created = models.PositiveIntegerField(default=0)
+    last_import_updated = models.PositiveIntegerField(default=0)
+
+    class Meta(TenantOwnedModel.Meta):
+        verbose_name = "POS supplier connection"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["store"],
+                condition=Q(is_deleted=False),
+                name="uniq_pos_supplier_per_store",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.provider} → {self.store_id}"
+
+
+class PosImportedProduct(TenantOwnedModel):
+    """Maps an external POS product id to the local product, for idempotent sync."""
+
+    connection = models.ForeignKey(
+        PosSupplierConnection, on_delete=models.CASCADE, related_name="imported"
+    )
+    external_id = models.CharField(max_length=128, db_index=True)
+    barcode = models.CharField(max_length=64, blank=True, db_index=True)
+    product = models.ForeignKey(
+        "catalog.Product", on_delete=models.CASCADE, related_name="pos_imports"
+    )
+
+    class Meta(TenantOwnedModel.Meta):
+        verbose_name = "POS imported product"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["connection", "external_id"],
+                condition=Q(is_deleted=False),
+                name="uniq_pos_import_external_id",
+            )
+        ]

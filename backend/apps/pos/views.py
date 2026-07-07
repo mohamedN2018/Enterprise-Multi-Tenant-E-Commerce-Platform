@@ -17,14 +17,16 @@ from apps.core.exceptions import NotFoundError
 from apps.core.mixins import BaseAPIView
 from apps.core.responses import APIResponse
 from apps.pos.authentication import HasPosConnection, PosApiKeyAuthentication
-from apps.pos.models import PosConnection
+from apps.pos.models import PosConnection, PosSupplierConnection
 from apps.pos.serializers import (
     PosConnectionCreateSerializer,
     PosConnectionSerializer,
     PosConnectionUpdateSerializer,
     PosSaleSerializer,
+    PosSupplierConnectSerializer,
+    PosSupplierSerializer,
 )
-from apps.pos.services import PosService
+from apps.pos.services import PosService, PosSupplierService
 from apps.stores.context import StoreContextMixin
 
 # Linking a cashier is a store-settings action.
@@ -128,3 +130,52 @@ class PosStockView(_PosMachineView):
             store=request.pos_connection.store, skus=skus
         )
         return APIResponse.success({"items": snapshot})
+
+
+# --- Outbound: import products FROM an external POS supplier ----------------
+@extend_schema(tags=["POS"])
+class PosSupplierView(StoreContextMixin, BaseAPIView):
+    """View / connect / disconnect the store's link to an external POS supplier."""
+
+    def _connection(self) -> PosSupplierConnection | None:
+        return PosSupplierConnection.all_objects.filter(store=self.store, is_deleted=False).first()
+
+    def get(self, request: Request) -> Response:
+        connection = self._connection()
+        data = PosSupplierSerializer(connection).data if connection else None
+        return APIResponse.success(data)
+
+    def post(self, request: Request) -> Response:
+        self.require_write(area=_POS_AREA)
+        payload = PosSupplierConnectSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        connection = PosSupplierService().connect(store=self.store, **payload.validated_data)
+        return APIResponse.success(
+            PosSupplierSerializer(connection).data, message="Connected to the cashier system."
+        )
+
+    def delete(self, request: Request) -> Response:
+        self.require_write(area=_POS_AREA)
+        connection = self._connection()
+        if connection is None:
+            raise NotFoundError("No cashier system is connected to this store.")
+        PosSupplierService().disconnect(connection=connection)
+        return APIResponse.success(None, message="Disconnected from the cashier system.")
+
+
+@extend_schema(tags=["POS"])
+class PosSupplierImportView(StoreContextMixin, BaseAPIView):
+    """Pull the supplier's catalog and upsert it into this store."""
+
+    def post(self, request: Request) -> Response:
+        self.require_write(area=_POS_AREA)
+        connection = PosSupplierConnection.all_objects.filter(
+            store=self.store, is_deleted=False
+        ).first()
+        if connection is None:
+            raise NotFoundError("Connect a cashier system before importing.")
+        summary = PosSupplierService().import_products(connection=connection)
+        return APIResponse.success(
+            {"connection": PosSupplierSerializer(connection).data, "summary": summary},
+            message="Products imported.",
+        )

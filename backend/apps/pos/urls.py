@@ -11,10 +11,12 @@ from apps.pos import views
 app_name = "pos"
 
 urlpatterns = [
-    # Management (seller console)
+    # Inbound: our key that a cashier uses to push sales / read stock.
     path("connection/", views.PosConnectionView.as_view(), name="connection"),
     path("connection/rotate/", views.PosConnectionRotateView.as_view(), name="connection-rotate"),
-    # Cashier (API-key auth)
     path("sales/", views.PosSaleView.as_view(), name="sales"),
     path("stock/", views.PosStockView.as_view(), name="stock"),
+    # Outbound: link an external POS supplier and import its catalog.
+    path("supplier/", views.PosSupplierView.as_view(), name="supplier"),
+    path("supplier/import/", views.PosSupplierImportView.as_view(), name="supplier-import"),
 ]
