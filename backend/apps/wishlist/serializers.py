@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
+from apps.orders.serializers import product_cover_url
 from apps.wishlist.models import WishlistItem
 
 
 class WishlistItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="variant.product.name", read_only=True)
+    product_image = serializers.SerializerMethodField()
     sku = serializers.CharField(source="variant.sku", read_only=True)
     unit_price = serializers.DecimalField(
         source="variant.price", max_digits=12, decimal_places=2, read_only=True
@@ -16,8 +18,11 @@ class WishlistItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WishlistItem
-        fields = ("id", "variant", "product_name", "sku", "unit_price", "created_at")
+        fields = ("id", "variant", "product_name", "product_image", "sku", "unit_price", "created_at")
         read_only_fields = fields
+
+    def get_product_image(self, obj):
+        return product_cover_url(getattr(obj.variant, "product", None))
 
 
 class AddWishlistItemSerializer(serializers.Serializer):

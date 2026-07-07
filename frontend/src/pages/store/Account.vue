@@ -472,8 +472,9 @@ onMounted(() => {
                 </div>
               </div>
               <ul class="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600">
-                <li v-for="it in o.items" :key="it.id" class="flex justify-between py-1">
-                  <span>{{ it.product_name }} <span class="text-slate-400">× {{ it.quantity }}</span></span>
+                <li v-for="it in o.items" :key="it.id" class="flex items-center gap-2 py-1">
+                  <img :src="it.product_image || productImage(it)" :alt="it.product_name" class="h-9 w-9 shrink-0 rounded border border-slate-100 object-cover" @error="onImgError" />
+                  <span class="flex-1">{{ it.product_name }} <span class="text-slate-400">× {{ it.quantity }}</span></span>
                   <span>{{ it.line_total }} {{ o.currency }}</span>
                 </li>
               </ul>
@@ -519,7 +520,7 @@ onMounted(() => {
           <div v-if="wishlistLoading" class="flex min-h-[20vh] items-center justify-center"><Spinner :size="26" :label="$t('account.loadingWishlist')" /></div>
           <div v-else-if="wishlist.length" class="grid gap-4 sm:grid-cols-2">
             <div v-for="w in wishlist" :key="w.id" class="card flex gap-4 p-4">
-              <img :src="productImage({ id: w.variant })" :alt="w.product_name" class="h-20 w-20 rounded-lg object-cover" @error="onImgError" />
+              <img :src="w.product_image || productImage(w)" :alt="w.product_name" class="h-20 w-20 rounded-lg object-cover" @error="onImgError" />
               <div class="flex flex-1 flex-col">
                 <p class="font-semibold">{{ w.product_name }}</p>
                 <p class="text-sm text-slate-500">{{ w.unit_price }} {{ currency }}</p>

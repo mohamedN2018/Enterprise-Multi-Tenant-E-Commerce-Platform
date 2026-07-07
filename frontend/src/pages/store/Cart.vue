@@ -124,7 +124,7 @@ onMounted(async () => {
           {{ $t('cart.shoppingAt') }} <span class="font-semibold text-ink">{{ cart.shopStore.name }}</span>
         </div>
         <div v-for="item in items" :key="item.id" class="card flex gap-4 p-4">
-          <img :src="productImage({ id: item.variant })" :alt="item.product_name" class="h-24 w-24 shrink-0 rounded-lg object-cover" @error="onImgError" />
+          <img :src="item.product_image || productImage(item)" :alt="item.product_name" class="h-24 w-24 shrink-0 rounded-lg object-cover" @error="onImgError" />
           <div class="flex flex-1 flex-col">
             <div class="flex items-start justify-between gap-3">
               <div>

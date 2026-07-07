@@ -8,6 +8,7 @@ import PageHero from '@/components/ui/PageHero.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import { useCartStore } from '@/stores/cart';
 import { shop } from '@/services/shop';
+import { productImage, onImgError } from '@/utils/media';
 
 const route = useRoute();
 const cart = useCartStore();
@@ -55,8 +56,9 @@ onMounted(async () => {
       <div class="card mt-6 p-6">
         <h2 class="flex items-center gap-2 font-semibold"><Package class="h-5 w-5 text-primary-600" /> {{ $t('order.details') }}</h2>
         <ul class="mt-4 divide-y divide-slate-100">
-          <li v-for="item in order.items" :key="item.id" class="flex items-center justify-between py-3 text-sm">
-            <span class="text-slate-700">{{ item.product_name }} <span class="text-slate-400">× {{ item.quantity }}</span></span>
+          <li v-for="item in order.items" :key="item.id" class="flex items-center gap-3 py-3 text-sm">
+            <img :src="item.product_image || productImage(item)" :alt="item.product_name" class="h-12 w-12 shrink-0 rounded-lg border border-slate-100 object-cover" @error="onImgError" />
+            <span class="flex-1 text-slate-700">{{ item.product_name }} <span class="text-slate-400">× {{ item.quantity }}</span></span>
             <span class="font-medium">{{ item.line_total }} {{ currency }}</span>
           </li>
         </ul>

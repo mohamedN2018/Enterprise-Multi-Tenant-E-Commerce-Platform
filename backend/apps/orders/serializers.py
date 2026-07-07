@@ -9,15 +9,39 @@ from rest_framework import serializers
 from apps.orders.models import Cart, CartItem, Order, OrderItem
 
 
+def product_cover_url(product) -> str | None:
+    """Origin-relative cover URL for a product: first gallery image, else the
+    legacy single image, else None. So line items (cart/order) can show the image."""
+    if product is None:
+        return None
+    img = product.images.order_by("position").first()
+    if img and img.image:
+        return img.image.url
+    return product.image.url if product.image else None
+
+
 class CartItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="variant.product.name", read_only=True)
+    product_image = serializers.SerializerMethodField()
     sku = serializers.CharField(source="variant.sku", read_only=True)
     line_total = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
         model = CartItem
-        fields = ("id", "variant", "product_name", "sku", "quantity", "unit_price", "line_total")
+        fields = (
+            "id",
+            "variant",
+            "product_name",
+            "product_image",
+            "sku",
+            "quantity",
+            "unit_price",
+            "line_total",
+        )
         read_only_fields = fields
+
+    def get_product_image(self, obj):
+        return product_cover_url(getattr(obj.variant, "product", None))
 
 
 class CartSerializer(serializers.ModelSerializer):
@@ -84,10 +108,24 @@ class UpdateCartItemSerializer(serializers.Serializer):
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    product_image = serializers.SerializerMethodField()
+
     class Meta:
         model = OrderItem
-        fields = ("id", "variant", "product_name", "sku", "unit_price", "quantity", "line_total")
+        fields = (
+            "id",
+            "variant",
+            "product_name",
+            "product_image",
+            "sku",
+            "unit_price",
+            "quantity",
+            "line_total",
+        )
         read_only_fields = fields
+
+    def get_product_image(self, obj):
+        return product_cover_url(getattr(obj.variant, "product", None))
 
 
 class OrderSerializer(serializers.ModelSerializer):

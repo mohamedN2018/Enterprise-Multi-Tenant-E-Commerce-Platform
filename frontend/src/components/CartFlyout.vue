@@ -111,7 +111,7 @@ onBeforeUnmount(() => {
         <div class="ewc-scroll flex-1 overflow-y-auto px-4 py-3">
           <div v-for="item in items" :key="item.id" class="flex gap-3 border-b border-slate-50 py-3 last:border-0 dark:border-slate-800/60">
             <component :is="pid(item) ? 'RouterLink' : 'div'" :to="pid(item) ? { name: 'product', params: { id: pid(item) } } : undefined" class="shrink-0" @click="pid(item) && close()">
-              <img :src="productImage({ id: item.variant })" :alt="item.product_name" class="h-20 w-20 rounded-lg border border-slate-100 object-cover dark:border-slate-800" @error="onImgError" />
+              <img :src="item.product_image || productImage(item)" :alt="item.product_name" class="h-20 w-20 rounded-lg border border-slate-100 object-cover dark:border-slate-800" @error="onImgError" />
             </component>
             <div class="flex min-w-0 flex-1 flex-col">
               <div class="flex items-start justify-between gap-2">

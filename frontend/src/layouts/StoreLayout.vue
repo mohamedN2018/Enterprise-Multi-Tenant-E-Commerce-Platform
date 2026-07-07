@@ -104,8 +104,9 @@ onMounted(async () => {
 
 <template>
   <div class="flex min-h-screen flex-col bg-white text-ink">
-    <!-- Top thin bar: support shortcuts + account (each item has a function) -->
-    <div class="border-b border-slate-200 dark:border-slate-800">
+    <!-- Top thin bar: support shortcuts + account (desktop only; on mobile these
+         live in the slide-down menu, so the mobile top stays clean). -->
+    <div class="hidden border-b border-slate-200 lg:block dark:border-slate-800">
       <div class="container flex h-11 items-center gap-4 text-sm">
         <div class="hidden items-center gap-4 text-muted lg:flex">
           <RouterLink :to="{ name: 'support' }" class="flex items-center gap-1.5 hover:text-primary-600"><LifeBuoy class="h-4 w-4" /> {{ t('nav.help') }}</RouterLink>
@@ -146,9 +147,18 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Main header: logo + search + actions -->
-    <div class="border-b border-slate-100 bg-white dark:bg-slate-900">
+    <!-- Main header: logo + search + actions. Sticky on mobile so the logo,
+         search, cart and menu stay reachable while scrolling. -->
+    <div class="sticky top-0 z-40 border-b border-slate-100 bg-white lg:static dark:border-slate-800 dark:bg-slate-900">
       <div class="container flex items-center gap-3 py-3 lg:gap-4 lg:py-4">
+        <!-- Mobile menu toggle -->
+        <button
+          class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-slate-200 text-ink transition hover:border-primary-500 hover:text-primary-600 lg:hidden dark:border-slate-700"
+          :title="t('nav.menu')"
+          @click="mobileNav = !mobileNav"
+        >
+          <component :is="mobileNav ? X : Menu" class="h-5 w-5" />
+        </button>
         <RouterLink :to="{ name: 'home' }" class="flex shrink-0 items-center">
           <img :src="theme === 'dark' ? '/brand/dark-logo.png' : '/brand/qtech-logo.png'" alt="q-shop" class="h-9 w-auto lg:h-12" />
         </RouterLink>
@@ -189,10 +199,42 @@ onMounted(async () => {
       <div v-if="searchOpen" class="container pb-3 lg:hidden">
         <SearchBox autofocus @navigate="searchOpen = false" />
       </div>
+
+      <!-- Mobile slide-down menu (clean white panel under the sticky header) -->
+      <div v-if="mobileNav" class="max-h-[75vh] overflow-y-auto border-t border-slate-100 lg:hidden dark:border-slate-800">
+        <div class="container space-y-1 py-3">
+          <RouterLink v-for="item in nav" :key="item.key" :to="item.to" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-heading font-medium text-ink hover:bg-primary-50 hover:text-primary-700 dark:text-white dark:hover:bg-slate-800" @click="mobileNav = false">
+            <Flame v-if="item.key === 'deals'" class="h-4 w-4 text-secondary-500" />{{ t('nav.' + item.key) }}
+          </RouterLink>
+
+          <!-- Account -->
+          <div class="mt-1 space-y-1 border-t border-slate-100 pt-2 dark:border-slate-800">
+            <template v-if="auth.isAuthenticated">
+              <RouterLink :to="{ name: 'account' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-ink hover:bg-primary-50 dark:text-white dark:hover:bg-slate-800" @click="mobileNav = false"><User class="h-4 w-4" /> {{ t('nav.myAccount') }}</RouterLink>
+              <RouterLink :to="{ name: 'admin-dashboard' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-ink hover:bg-primary-50 dark:text-white dark:hover:bg-slate-800" @click="mobileNav = false"><LayoutDashboard class="h-4 w-4" /> {{ t('nav.dashboard') }}</RouterLink>
+              <button class="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-secondary-500 hover:bg-secondary-50 dark:hover:bg-slate-800" @click="logout"><LogOut class="h-4 w-4" /> {{ t('nav.logout') }}</button>
+            </template>
+            <template v-else>
+              <RouterLink :to="{ name: 'login' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-ink hover:bg-primary-50 dark:text-white dark:hover:bg-slate-800" @click="mobileNav = false"><User class="h-4 w-4" /> {{ t('nav.login') }}</RouterLink>
+              <RouterLink :to="{ name: 'register' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-primary-700 hover:bg-primary-50 dark:text-primary-300 dark:hover:bg-slate-800" @click="mobileNav = false">{{ t('nav.register') }}</RouterLink>
+            </template>
+            <RouterLink :to="{ name: 'support' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-ink hover:bg-primary-50 dark:text-white dark:hover:bg-slate-800" @click="mobileNav = false"><Phone class="h-4 w-4" /> {{ t('nav.support') }}</RouterLink>
+          </div>
+
+          <!-- Categories -->
+          <div v-if="categories.length" class="mt-1 border-t border-slate-100 pt-2 dark:border-slate-800">
+            <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted">{{ t('nav.categories') }}</p>
+            <button v-for="c in categories" :key="c.name" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-ink hover:bg-primary-50 hover:text-primary-700 dark:text-slate-200 dark:hover:bg-slate-800" @click="goCategory(c.name)">
+              <span class="truncate">{{ catName(c) }}</span>
+              <span class="text-xs text-muted">({{ c.product_count }})</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Orange category nav bar (sticky: follows on scroll) -->
-    <div class="sticky top-0 z-40 bg-primary-600 shadow-md">
+    <!-- Orange category nav bar (desktop only; sticky, follows on scroll) -->
+    <div class="sticky top-0 z-30 hidden bg-primary-600 shadow-md lg:block">
       <div class="container flex items-stretch">
         <!-- All categories — mega menu with real data -->
         <div class="relative hidden w-60 shrink-0 lg:block" @mouseleave="catOpen = false">
@@ -244,42 +286,6 @@ onMounted(async () => {
           </button>
           <a :href="`tel:${SUPPORT_PHONE}`" class="btn btn-secondary ms-auto my-2 shrink-0 rounded-full" dir="ltr"><Phone class="h-4 w-4" /> (+012) 1234 567890</a>
         </nav>
-
-        <!-- Mobile nav toggle -->
-        <button class="ms-auto flex items-center gap-2 py-3 text-white lg:hidden" @click="mobileNav = !mobileNav">
-          <component :is="mobileNav ? X : Menu" class="h-6 w-6" /> {{ t('nav.menu') }}
-        </button>
-      </div>
-
-      <!-- Mobile nav -->
-      <div v-if="mobileNav" class="max-h-[80vh] overflow-y-auto border-t border-white/10 bg-primary-600 lg:hidden">
-        <div class="container space-y-1 py-3">
-          <!-- Primary links -->
-          <RouterLink v-for="item in nav" :key="item.label" :to="item.to" class="block rounded-lg px-3 py-2.5 font-heading font-medium text-white hover:bg-white/10" @click="mobileNav = false">{{ t('nav.' + item.key) }}</RouterLink>
-
-          <!-- Account -->
-          <div class="mt-2 space-y-1 border-t border-white/10 pt-2">
-            <template v-if="auth.isAuthenticated">
-              <RouterLink :to="{ name: 'account' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-white hover:bg-white/10" @click="mobileNav = false"><User class="h-4 w-4" /> {{ t('nav.myAccount') }}</RouterLink>
-              <RouterLink :to="{ name: 'admin-dashboard' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-white hover:bg-white/10" @click="mobileNav = false"><LayoutDashboard class="h-4 w-4" /> {{ t('nav.dashboard') }}</RouterLink>
-              <button class="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-white hover:bg-white/10" @click="logout"><LogOut class="h-4 w-4" /> {{ t('nav.logout') }}</button>
-            </template>
-            <template v-else>
-              <RouterLink :to="{ name: 'login' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-white hover:bg-white/10" @click="mobileNav = false"><User class="h-4 w-4" /> {{ t('nav.login') }}</RouterLink>
-              <RouterLink :to="{ name: 'register' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-white hover:bg-white/10" @click="mobileNav = false"><ChevronDown class="h-4 w-4 rotate-[-90deg] rtl:rotate-90" /> {{ t('nav.register') }}</RouterLink>
-            </template>
-            <RouterLink :to="{ name: 'support' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-white hover:bg-white/10" @click="mobileNav = false"><Phone class="h-4 w-4" /> {{ t('nav.support') }}</RouterLink>
-          </div>
-
-          <!-- Categories -->
-          <div v-if="categories.length" class="mt-2 border-t border-white/10 pt-2">
-            <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-white/70">{{ t('nav.categories') }}</p>
-            <button v-for="c in categories" :key="c.name" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-white/90 hover:bg-white/10" @click="goCategory(c.name)">
-              <span>{{ catName(c) }}</span>
-              <span class="text-xs text-white/60">({{ c.product_count }})</span>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
 

@@ -12,6 +12,7 @@ import { shop } from '@/services/shop';
 import { errorMessage } from '@/services/http';
 import { t } from '@/i18n';
 import { useValidation, required, iso2 } from '@/utils/validators';
+import { productImage, onImgError } from '@/utils/media';
 
 const router = useRouter();
 const cart = useCartStore();
@@ -212,8 +213,9 @@ onMounted(async () => {
         <div class="card p-5">
           <h3 class="font-semibold">{{ $t('checkout.orderSummary') }}</h3>
           <ul class="mt-4 space-y-3 border-b border-slate-100 pb-4">
-            <li v-for="item in items" :key="item.id" class="flex justify-between gap-2 text-sm">
-              <span class="text-slate-600">{{ item.product_name }} <span class="text-slate-400">× {{ item.quantity }}</span></span>
+            <li v-for="item in items" :key="item.id" class="flex items-center gap-2 text-sm">
+              <img :src="item.product_image || productImage(item)" :alt="item.product_name" class="h-10 w-10 shrink-0 rounded-lg border border-slate-100 object-cover" @error="onImgError" />
+              <span class="flex-1 text-slate-600">{{ item.product_name }} <span class="text-slate-400">× {{ item.quantity }}</span></span>
               <span class="font-medium">{{ item.line_total }} {{ currency }}</span>
             </li>
           </ul>
