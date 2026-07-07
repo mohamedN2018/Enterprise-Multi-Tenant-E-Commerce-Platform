@@ -125,6 +125,7 @@ class MembershipSerializer(serializers.ModelSerializer):
             "user",
             "user_email",
             "role",
+            "permissions",
             "is_active",
             "invited_by",
             "created_at",
@@ -132,13 +133,27 @@ class MembershipSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class _PermissionsField(serializers.ListField):
+    """A list of valid permission-area keys (unknown/duplicate values dropped)."""
+
+    child = serializers.CharField()
+
+    def to_internal_value(self, data):
+        from apps.stores.access import PERMISSION_AREAS
+
+        values = super().to_internal_value(data)
+        return [v for v in dict.fromkeys(values) if v in PERMISSION_AREAS]
+
+
 class MembershipCreateSerializer(serializers.Serializer):
     email = serializers.EmailField()
     role = serializers.CharField(max_length=16)
+    permissions = _PermissionsField(required=False, default=list)
 
 
 class MembershipUpdateSerializer(serializers.Serializer):
     role = serializers.CharField(max_length=16)
+    permissions = _PermissionsField(required=False, default=list)
 
 
 # --- Platform (super-admin) -------------------------------------------------

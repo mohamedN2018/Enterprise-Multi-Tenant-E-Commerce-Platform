@@ -335,8 +335,15 @@ export default {
       draft: 'مسودة', published: 'منشور', archived: 'مؤرشف', requested: 'مطلوب', suspended: 'موقوف'
     },
     roles: { platform: 'المشرف العام', owner: 'مالك', manager: 'مدير', employee: 'موظف', member: 'عضو' },
+    perms: {
+      catalog: 'المنتجات والكتالوج', inventory: 'المخزون', sales: 'المبيعات والطلبات', marketing: 'التسويق والعروض',
+      shipping: 'الشحن والمشتريات', finance: 'المالية والمدفوعات', settings: 'الإعدادات والإشعارات'
+    },
     team: {
       title: 'الفريق', subtitle: 'تحكّم في من يمكنه الوصول لهذا المتجر.', ownersManageRoles: 'المُلّاك يديرون الأدوار',
+      permissions: 'الصلاحيات', permissionsHint: 'اختر الأقسام اللي الموظف يقدر يعدّل فيها. باقي الأقسام هيشوفها للقراءة بس.',
+      editPermissions: 'تعديل الصلاحيات', permissionsSaved: 'تم حفظ الصلاحيات.', noPermissions: 'بدون صلاحيات تعديل',
+      managerNote: 'المدير يقدر يعدّل كل أقسام المتجر.', employeeNote: 'الموظف يعدّل بس الأقسام اللي تختارها تحت.',
       addMember: 'إضافة عضو', member: 'العضو', role: 'الدور', status: 'الحالة', joined: 'انضم في',
       noMembers: 'لا يوجد أعضاء', noMembersMsg: 'ادعُ أشخاصًا لمساعدتك في إدارة متجرك.', emailAddress: 'البريد الإلكتروني',
       memberAdded: 'تمت إضافة العضو.', roleUpdated: 'تم تحديث الدور.', memberRemoved: 'تمت إزالة العضو.',
@@ -720,8 +727,15 @@ export default {
       draft: 'Draft', published: 'Published', archived: 'Archived', requested: 'Requested', suspended: 'Suspended'
     },
     roles: { platform: 'Super Admin', owner: 'Owner', manager: 'Manager', employee: 'Employee', member: 'Member' },
+    perms: {
+      catalog: 'Products & catalog', inventory: 'Inventory', sales: 'Sales & orders', marketing: 'Marketing & promotions',
+      shipping: 'Shipping & procurement', finance: 'Finance & payouts', settings: 'Settings & notifications'
+    },
     team: {
       title: 'Team', subtitle: 'Manage who can access this store.', ownersManageRoles: 'Owners manage roles',
+      permissions: 'Permissions', permissionsHint: 'Pick the sections this employee may edit. They can still view the rest.',
+      editPermissions: 'Edit permissions', permissionsSaved: 'Permissions saved.', noPermissions: 'No edit permissions',
+      managerNote: 'A manager can edit every section of the store.', employeeNote: 'An employee can edit only the sections you tick below.',
       addMember: 'Add member', member: 'Member', role: 'Role', status: 'Status', joined: 'Joined',
       noMembers: 'No team members', noMembersMsg: 'Invite people to help run your store.', emailAddress: 'Email address',
       memberAdded: 'Member added.', roleUpdated: 'Role updated.', memberRemoved: 'Member removed.',

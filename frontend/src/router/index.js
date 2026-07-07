@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useTenantStore } from '@/stores/tenant';
 import { activeStore } from '@/services/http';
+import { PAGE_AREA } from '@/utils/permissions';
 import { t } from '@/i18n';
 
 // Layouts are eager (small, always needed); pages are lazy for route-splitting.
@@ -199,6 +201,16 @@ router.beforeEach(async (to) => {
     const PLATFORM_PAGES = new Set(['admin-platform', 'admin-seller-detail']);
     if (isSuper && to.path.startsWith('/admin') && !PLATFORM_PAGES.has(to.name) && !activeStore.id) {
       return { name: 'admin-platform' };
+    }
+    // Employees can only open console pages in the areas the owner granted them
+    // (once their role is resolved; the nav hides the rest, this catches deep links).
+    if (!isSuper) {
+      const tenant = useTenantStore();
+      const seg = /^(?:admin|seller)-(.+)$/.exec(to.name || '');
+      if (seg && tenant.role === 'employee') {
+        const area = PAGE_AREA[seg[1]];
+        if (area && !tenant.canArea(area)) return { name: 'seller-dashboard' };
+      }
     }
   }
   return true;

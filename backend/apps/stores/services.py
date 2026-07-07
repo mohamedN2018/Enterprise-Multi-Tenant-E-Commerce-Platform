@@ -125,8 +125,11 @@ class MembershipService(BaseService):
         return membership
 
     @atomic
-    def add_member(self, *, store: Store, email: str, role: str, invited_by) -> StoreMembership:
+    def add_member(
+        self, *, store: Store, email: str, role: str, invited_by, permissions=None
+    ) -> StoreMembership:
         self._assert_manageable_role(role)
+        perms = self._perms_for(role, permissions)
         user = self.user_repo.get_by_email(email)
         if user is None:
             raise ValidationError(
@@ -142,9 +145,12 @@ class MembershipService(BaseService):
                     self._assert_employee_capacity(store)
                 existing.restore()
                 existing.role = role
+                existing.permissions = perms
                 existing.is_active = True
                 existing.invited_by = invited_by
-                existing.save(update_fields=["role", "is_active", "invited_by", "updated_at"])
+                existing.save(
+                    update_fields=["role", "permissions", "is_active", "invited_by", "updated_at"]
+                )
                 return existing
             raise ConflictError(
                 "This user is already a member of the store.", code="already_member"
@@ -152,8 +158,13 @@ class MembershipService(BaseService):
         if role == StoreRole.EMPLOYEE:
             self._assert_employee_capacity(store)
         return self.repo.create(
-            store=store, user=user, role=role, is_active=True, invited_by=invited_by
+            store=store, user=user, role=role, permissions=perms, is_active=True, invited_by=invited_by
         )
+
+    @staticmethod
+    def _perms_for(role: str, permissions) -> list:
+        # Only employees carry a permission set; managers/owners write everything.
+        return list(permissions or []) if role == StoreRole.EMPLOYEE else []
 
     def _assert_employee_capacity(self, store: Store) -> None:
         cap = store.settings.max_employees
@@ -166,7 +177,7 @@ class MembershipService(BaseService):
 
     @atomic
     def change_role(
-        self, *, store: Store, membership: StoreMembership, role: str
+        self, *, store: Store, membership: StoreMembership, role: str, permissions=None
     ) -> StoreMembership:
         if membership.user_id == store.owner_id:
             raise ValidationError(
@@ -174,7 +185,8 @@ class MembershipService(BaseService):
             )
         self._assert_manageable_role(role)
         membership.role = role
-        membership.save(update_fields=["role", "updated_at"])
+        membership.permissions = self._perms_for(role, permissions)
+        membership.save(update_fields=["role", "permissions", "updated_at"])
         return membership
 
     @atomic

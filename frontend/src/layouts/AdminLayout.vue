@@ -148,6 +148,8 @@ const platformGroups = computed(() => [
 ]);
 
 // Store-management navigation — sellers always, admin once inside a store.
+// Each link carries its permission `area`; employees only see areas they were
+// granted (owners/managers/platform see everything — canArea returns true).
 const storeGroups = computed(() => [
   {
     title: t('admin.overview'),
@@ -159,58 +161,65 @@ const storeGroups = computed(() => [
   {
     title: t('admin.catalog'),
     links: [
-      { label: t('admin.products'), to: cr('products'), icon: Package },
-      { label: t('admin.categories'), to: cr('categories'), icon: Tags },
-      { label: t('admin.brands'), to: cr('brands'), icon: Bookmark },
-      { label: t('admin.attributes'), to: cr('attributes'), icon: SlidersHorizontal }
+      { label: t('admin.products'), to: cr('products'), icon: Package, area: 'catalog' },
+      { label: t('admin.categories'), to: cr('categories'), icon: Tags, area: 'catalog' },
+      { label: t('admin.brands'), to: cr('brands'), icon: Bookmark, area: 'catalog' },
+      { label: t('admin.attributes'), to: cr('attributes'), icon: SlidersHorizontal, area: 'catalog' }
     ]
   },
   {
     title: t('admin.sales'),
     links: [
-      { label: t('admin.orders'), to: cr('orders'), icon: ShoppingBag },
-      { label: t('admin.returns'), to: cr('returns'), icon: Undo2 },
-      { label: t('admin.payments'), to: cr('payments'), icon: CreditCard },
-      { label: t('admin.reviews'), to: cr('reviews'), icon: Star }
+      { label: t('admin.orders'), to: cr('orders'), icon: ShoppingBag, area: 'sales' },
+      { label: t('admin.returns'), to: cr('returns'), icon: Undo2, area: 'sales' },
+      { label: t('admin.payments'), to: cr('payments'), icon: CreditCard, area: 'sales' },
+      { label: t('admin.reviews'), to: cr('reviews'), icon: Star, area: 'sales' }
     ]
   },
   {
     title: t('admin.marketing'),
     links: [
-      { label: t('admin.promotions'), to: cr('promotions'), icon: BadgePercent },
-      { label: t('admin.campaigns'), to: cr('campaigns'), icon: Megaphone },
-      { label: t('admin.giftCards'), to: cr('giftcards'), icon: Gift }
+      { label: t('admin.promotions'), to: cr('promotions'), icon: BadgePercent, area: 'marketing' },
+      { label: t('admin.campaigns'), to: cr('campaigns'), icon: Megaphone, area: 'marketing' },
+      { label: t('admin.giftCards'), to: cr('giftcards'), icon: Gift, area: 'marketing' }
     ]
   },
   {
     title: t('admin.operations'),
     links: [
-      { label: t('admin.inventory'), to: cr('inventory'), icon: Boxes },
-      { label: t('admin.shipping'), to: cr('shipping'), icon: Truck },
-      { label: t('admin.procurement'), to: cr('procurement'), icon: Building2 },
-      { label: t('admin.pricing'), to: cr('pricing'), icon: Layers },
-      { label: t('admin.fraud'), to: cr('fraud'), icon: ShieldAlert }
+      { label: t('admin.inventory'), to: cr('inventory'), icon: Boxes, area: 'inventory' },
+      { label: t('admin.shipping'), to: cr('shipping'), icon: Truck, area: 'shipping' },
+      { label: t('admin.procurement'), to: cr('procurement'), icon: Building2, area: 'shipping' },
+      { label: t('admin.pricing'), to: cr('pricing'), icon: Layers, area: 'marketing' },
+      { label: t('admin.fraud'), to: cr('fraud'), icon: ShieldAlert, area: 'finance' }
     ]
   },
   {
     title: t('admin.finance'),
     links: [
-      { label: t('admin.payouts'), to: cr('payouts'), icon: Wallet },
-      { label: t('admin.finance'), to: cr('finance'), icon: Landmark }
+      { label: t('admin.payouts'), to: cr('payouts'), icon: Wallet, area: 'finance' },
+      { label: t('admin.finance'), to: cr('finance'), icon: Landmark, area: 'finance' }
     ]
   },
   {
     title: t('admin.store'),
     links: [
-      { label: t('admin.notifications'), to: cr('notifications'), icon: Bell },
+      { label: t('admin.notifications'), to: cr('notifications'), icon: Bell, area: 'settings' },
       ...(tenant.canManageMembers ? [{ label: t('admin.team'), to: cr('team'), icon: Users }] : []),
-      { label: t('admin.settings'), to: cr('settings'), icon: Settings }
+      { label: t('admin.settings'), to: cr('settings'), icon: Settings, area: 'settings' }
     ]
   }
 ]);
 
+// Filter links by the caller's granted areas, then drop groups left empty.
+const filteredStoreGroups = computed(() =>
+  storeGroups.value
+    .map((g) => ({ ...g, links: g.links.filter((l) => l.area == null || tenant.canArea(l.area)) }))
+    .filter((g) => g.links.length)
+);
+
 // Which nav to show: the admin sees the platform panel until they enter a store.
-const navGroups = computed(() => (inStore.value ? storeGroups.value : platformGroups.value));
+const navGroups = computed(() => (inStore.value ? filteredStoreGroups.value : platformGroups.value));
 
 const roleTone = {
   platform: 'bg-secondary-100 text-secondary-700',

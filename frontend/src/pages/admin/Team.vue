@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { UserPlus, Trash2, Users, Send } from 'lucide-vue-next';
+import { UserPlus, Trash2, Users, Send, ShieldCheck } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -13,11 +13,13 @@ import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
 import { t } from '@/i18n';
 import { useValidation, email, positive } from '@/utils/validators';
+import { AREAS } from '@/utils/permissions';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
 
 const roles = ['manager', 'employee'];
+const areaLabel = (a) => t('perms.' + a);
 const loading = ref(true);
 const members = ref([]);
 const storeId = ref(null);
@@ -100,8 +102,13 @@ const submitReq = async () => {
 
 const showInvite = ref(false);
 const inviting = ref(false);
-const form = ref({ email: '', role: 'employee' });
+const form = ref({ email: '', role: 'employee', permissions: [] });
 const { errors, run, clear } = useValidation(() => form.value, { email: [email()] });
+
+const toggleArea = (list, area) => {
+  const i = list.indexOf(area);
+  i > -1 ? list.splice(i, 1) : list.push(area);
+};
 
 // Block adding an employee past the agreed cap (client-side guard).
 const inviteBlocked = computed(() => form.value.role === 'employee' && limitReached.value);
@@ -110,10 +117,15 @@ const invite = async () => {
   if (inviteBlocked.value || !run()) return;
   inviting.value = true;
   try {
-    await seller.addMember(storeId.value, form.value);
+    const payload = {
+      email: form.value.email,
+      role: form.value.role,
+      permissions: form.value.role === 'employee' ? form.value.permissions : []
+    };
+    await seller.addMember(storeId.value, payload);
     ui.success(t('team.memberAdded'));
     showInvite.value = false;
-    form.value = { email: '', role: 'employee' };
+    form.value = { email: '', role: 'employee', permissions: [] };
     load();
   } catch (e) {
     ui.error(errorMessage(e));
@@ -124,11 +136,41 @@ const invite = async () => {
 
 const changeRole = async (member, role) => {
   try {
-    await seller.updateMember(storeId.value, member.id, { role });
+    // Keep an employee's granted areas when the role stays employee.
+    const permissions = role === 'employee' ? member.permissions || [] : [];
+    await seller.updateMember(storeId.value, member.id, { role, permissions });
     member.role = role;
+    member.permissions = permissions;
     ui.success(t('team.roleUpdated'));
   } catch (e) {
     ui.error(errorMessage(e));
+  }
+};
+
+// --- Edit an employee's permissions ---------------------------------------
+const showPerms = ref(false);
+const savingPerms = ref(false);
+const permsMember = ref(null);
+const permsForm = ref([]);
+const openPerms = (member) => {
+  permsMember.value = member;
+  permsForm.value = [...(member.permissions || [])];
+  showPerms.value = true;
+};
+const savePerms = async () => {
+  savingPerms.value = true;
+  try {
+    await seller.updateMember(storeId.value, permsMember.value.id, {
+      role: 'employee',
+      permissions: permsForm.value
+    });
+    permsMember.value.permissions = [...permsForm.value];
+    ui.success(t('team.permissionsSaved'));
+    showPerms.value = false;
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    savingPerms.value = false;
   }
 };
 
@@ -174,10 +216,16 @@ onMounted(load);
     <DataTable :columns="columns" :rows="members" :loading="loading" :empty-title="$t('team.noMembers')" :empty-message="$t('team.noMembersMsg')">
       <template #cell-user_email="{ row }">
         <div class="flex items-center gap-3">
-          <span class="grid h-9 w-9 place-items-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
+          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
             {{ (row.user_email || '?').charAt(0).toUpperCase() }}
           </span>
-          <span class="font-medium text-ink">{{ row.user_email }}</span>
+          <div class="min-w-0">
+            <span class="font-medium text-ink">{{ row.user_email }}</span>
+            <div v-if="row.role === 'employee'" class="mt-0.5 flex flex-wrap gap-1">
+              <span v-for="a in (row.permissions || [])" :key="a" class="chip border-primary-100 bg-primary-50 px-1.5 py-0.5 text-[10px] text-primary-700">{{ areaLabel(a) }}</span>
+              <span v-if="!(row.permissions || []).length" class="text-[11px] text-slate-400">{{ $t('team.noPermissions') }}</span>
+            </div>
+          </div>
         </div>
       </template>
       <template #cell-role="{ row }">
@@ -194,9 +242,14 @@ onMounted(load);
       <template #cell-is_active="{ value }"><StatusBadge :status="value ? 'active' : 'inactive'" /></template>
       <template #cell-created_at="{ value }">{{ (value || '').slice(0, 10) }}</template>
       <template #cell-actions="{ row }">
-        <button v-if="tenant.canAdminTeam && row.role !== 'owner'" class="btn btn-ghost btn-sm text-rose-600" @click="confirmRemove = row">
-          <Trash2 class="h-4 w-4" />
-        </button>
+        <div class="flex justify-end gap-1">
+          <button v-if="tenant.canAdminTeam && row.role === 'employee'" class="btn btn-ghost btn-sm" :title="$t('team.editPermissions')" @click="openPerms(row)">
+            <ShieldCheck class="h-4 w-4" />
+          </button>
+          <button v-if="tenant.canAdminTeam && row.role !== 'owner'" class="btn btn-ghost btn-sm text-rose-600" @click="confirmRemove = row">
+            <Trash2 class="h-4 w-4" />
+          </button>
+        </div>
       </template>
     </DataTable>
 
@@ -208,6 +261,17 @@ onMounted(load);
           <select v-model="form.role" class="input">
             <option v-for="r in roles" :key="r" :value="r">{{ $t('roles.' + r) }}</option>
           </select>
+          <p class="mt-1 text-xs text-muted">{{ form.role === 'manager' ? $t('team.managerNote') : $t('team.employeeNote') }}</p>
+        </div>
+        <div v-if="form.role === 'employee'">
+          <label class="label">{{ $t('team.permissions') }}</label>
+          <p class="mb-2 text-xs text-muted">{{ $t('team.permissionsHint') }}</p>
+          <div class="grid grid-cols-2 gap-2">
+            <label v-for="a in AREAS" :key="a" class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+              <input type="checkbox" :checked="form.permissions.includes(a)" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" @change="toggleArea(form.permissions, a)" />
+              {{ areaLabel(a) }}
+            </label>
+          </div>
         </div>
         <p v-if="inviteBlocked" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           {{ $t('team.limitReachedMsg', { max: maxEmployees }) }}
@@ -218,6 +282,26 @@ onMounted(load);
           <button class="btn btn-ghost" @click="showInvite = false">{{ $t('common.cancel') }}</button>
           <button form="invite-form" type="submit" class="btn btn-primary" :disabled="inviting || inviteBlocked">
             <Spinner v-if="inviting" :size="18" /><span v-else>{{ $t('team.addMember') }}</span>
+          </button>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Edit an employee's permissions -->
+    <Modal v-model="showPerms" :title="$t('team.editPermissions')">
+      <p class="mb-1 flex items-center gap-2 text-sm font-medium text-ink"><ShieldCheck class="h-4 w-4 text-primary-600" /> {{ permsMember?.user_email }}</p>
+      <p class="mb-3 text-xs text-muted">{{ $t('team.permissionsHint') }}</p>
+      <div class="grid grid-cols-2 gap-2">
+        <label v-for="a in AREAS" :key="a" class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+          <input type="checkbox" :checked="permsForm.includes(a)" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" @change="toggleArea(permsForm, a)" />
+          {{ areaLabel(a) }}
+        </label>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button class="btn btn-ghost" @click="showPerms = false">{{ $t('common.cancel') }}</button>
+          <button class="btn btn-primary" :disabled="savingPerms" @click="savePerms">
+            <Spinner v-if="savingPerms" :size="18" /><span v-else>{{ $t('common.save') }}</span>
           </button>
         </div>
       </template>

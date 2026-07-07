@@ -11,6 +11,7 @@ urlpatterns = [
     path("limit-requests/", views.UserLimitRequestView.as_view(), name="user-limit-requests"),
     path("<uuid:store_id>/", views.StoreDetailView.as_view(), name="store-detail"),
     path("<uuid:store_id>/settings/", views.StoreSettingsView.as_view(), name="store-settings"),
+    path("<uuid:store_id>/membership/", views.MyMembershipView.as_view(), name="my-membership"),
     path("<uuid:store_id>/members/", views.MemberListCreateView.as_view(), name="member-list"),
     path(
         "<uuid:store_id>/members/<uuid:member_id>/",

@@ -97,6 +97,18 @@ class StoreSettingsView(StoreAccessMixin, BaseAPIView):
         )
 
 
+class MyMembershipView(StoreAccessMixin, BaseAPIView):
+    """The caller's own membership (role + granted permissions) for a store.
+    Any active member may read it — used by the console to gate the UI."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses={200: MembershipSerializer}, tags=["stores"])
+    def get(self, request: Request, store_id) -> Response:
+        self.load_store(store_id)  # any active member (superusers bypass)
+        return APIResponse.success(MembershipSerializer(self.membership).data)
+
+
 class MemberListCreateView(StoreAccessMixin, BaseAPIView):
     permission_classes = [IsAuthenticated]
 
@@ -117,6 +129,7 @@ class MemberListCreateView(StoreAccessMixin, BaseAPIView):
             store=store,
             email=serializer.validated_data["email"],
             role=serializer.validated_data["role"],
+            permissions=serializer.validated_data.get("permissions", []),
             invited_by=request.user,
         )
         return APIResponse.success(
@@ -139,7 +152,10 @@ class MemberDetailView(StoreAccessMixin, BaseAPIView):
         serializer = MembershipUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         membership = service.change_role(
-            store=store, membership=membership, role=serializer.validated_data["role"]
+            store=store,
+            membership=membership,
+            role=serializer.validated_data["role"],
+            permissions=serializer.validated_data.get("permissions", []),
         )
         return APIResponse.success(MembershipSerializer(membership).data, message="Role updated.")
 

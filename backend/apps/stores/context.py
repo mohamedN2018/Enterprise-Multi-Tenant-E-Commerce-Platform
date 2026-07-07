@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from apps.core import tenancy
 from apps.core.exceptions import PermissionDeniedError, ValidationError
-from apps.stores.access import MANAGER_OR_OWNER, _superuser_membership
+from apps.stores.access import APP_PERMISSION_AREA, MANAGER_OR_OWNER, _superuser_membership
 from apps.stores.repositories import StoreMembershipRepository
 
 
@@ -45,6 +45,22 @@ class StoreContextMixin(RequireStoreMixin):
             raise PermissionDeniedError("You are not a member of this store.")
         self.membership = membership
 
-    def require_write(self) -> None:
-        if self.membership.role not in self.write_roles:
-            raise PermissionDeniedError("You do not have permission to modify this store's data.")
+    def require_write(self, area: str | None = None) -> None:
+        """Gate a mutation. Owners/managers (and platform admins via god-mode)
+        may write anything; an EMPLOYEE may write only the areas the owner
+        granted them. The area is derived from the view's app unless passed."""
+        membership = self.membership
+        if membership.role in self.write_roles:
+            return
+        if area is None:
+            area = self._write_area()
+        granted = getattr(membership, "permissions", None) or []
+        if area and area in granted:
+            return
+        raise PermissionDeniedError("You do not have permission to modify this store's data.")
+
+    def _write_area(self) -> str | None:
+        # View module is 'apps.<app>.<something>' → map the app to its area.
+        parts = type(self).__module__.split(".")
+        app = parts[1] if len(parts) > 2 and parts[0] == "apps" else ""
+        return APP_PERMISSION_AREA.get(app)

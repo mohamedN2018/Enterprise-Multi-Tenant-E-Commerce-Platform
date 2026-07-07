@@ -145,6 +145,9 @@ class StoreMembership(BaseModel):
     role = models.CharField(
         max_length=16, choices=StoreRole.choices, default=StoreRole.EMPLOYEE, db_index=True
     )
+    # Areas an EMPLOYEE may write (owners/managers ignore this — they can write
+    # everything). See apps.stores.access.PERMISSION_AREAS.
+    permissions = models.JSONField(default=list, blank=True)
     is_active = models.BooleanField(default=True, db_index=True)
     invited_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

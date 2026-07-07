@@ -17,20 +17,28 @@ export const useTenantStore = defineStore('tenant', {
     activeId: activeStore.id,
     loading: false,
     role: null,
-    roleForStore: null
+    roleForStore: null,
+    // Areas the current EMPLOYEE may write in the active store (null = all,
+    // for owner/manager/platform).
+    permissions: null
   }),
   getters: {
     active: (s) => s.stores.find((x) => x.id === s.activeId) || null,
     hasStores: (s) => s.stores.length > 0,
     currency: (s) => s.stores.find((x) => x.id === s.activeId)?.currency || 'EGP',
     isPlatform: (s) => s.role === 'platform',
+    // Can the caller write in a given permission area? Owner/manager/platform
+    // write everything; an employee writes only their granted areas.
+    canArea: (s) => (area) =>
+      WRITE_ROLES.includes(s.role) || (s.role === 'employee' && (s.permissions || []).includes(area)),
     // The super-admin is the platform controller; sellers are not.
     isAdmin: () => !!useAuthStore().user?.is_superuser,
     // Whether the console is currently *inside a store* (full store management)
     // vs the admin panel. Sellers are always in their store; the admin only when
     // they've explicitly entered one.
     viewingStore: (s) => (useAuthStore().user?.is_superuser ? !!s.activeId : true),
-    canWrite: (s) => WRITE_ROLES.includes(s.role),
+    canWrite: (s) =>
+      WRITE_ROLES.includes(s.role) || (s.role === 'employee' && (s.permissions || []).length > 0),
     canManageMembers: (s) => WRITE_ROLES.includes(s.role), // view + add
     canAdminTeam: (s) => OWNER_ROLES.includes(s.role), // change role / remove
     canDeleteStore: (s) => OWNER_ROLES.includes(s.role),
@@ -63,25 +71,29 @@ export const useTenantStore = defineStore('tenant', {
       const auth = useAuthStore();
       if (auth.user?.is_superuser) {
         this.role = 'platform';
+        this.permissions = null; // platform admin writes everything
         this.roleForStore = this.activeId;
         return this.role;
       }
       const store = this.active;
       if (!store) {
         this.role = null;
+        this.permissions = null;
         return null;
       }
       if (this.roleForStore === store.id && this.role) return this.role;
       if (store.owner && store.owner === auth.user?.id) {
         this.role = 'owner';
+        this.permissions = null;
       } else {
         try {
-          const members = await apiGet(`/stores/${store.id}/members/`);
-          const list = Array.isArray(members) ? members : members?.results || [];
-          const mine = list.find((m) => m.user_email === auth.user?.email);
+          // Any member can read their OWN membership (role + granted areas).
+          const mine = await apiGet(`/stores/${store.id}/membership/`);
           this.role = mine?.role || 'manager';
+          this.permissions = this.role === 'employee' ? mine?.permissions || [] : null;
         } catch {
           this.role = 'employee';
+          this.permissions = [];
         }
       }
       this.roleForStore = store.id;
