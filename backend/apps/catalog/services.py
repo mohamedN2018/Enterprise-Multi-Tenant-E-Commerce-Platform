@@ -107,6 +107,8 @@ class CatalogService(BaseService):
         )
         if variant.is_default:
             self._clear_other_defaults(product=product, keep=variant)
+        if "stock_quantity" in data:
+            self._sync_variant_stock(store=store, variant=variant, quantity=data["stock_quantity"])
         return variant
 
     @atomic
@@ -127,11 +129,56 @@ class CatalogService(BaseService):
         instance.save()
         if instance.is_default:
             self._clear_other_defaults(product=instance.product, keep=instance)
+        if "stock_quantity" in data:
+            self._sync_variant_stock(
+                store=instance.store, variant=instance, quantity=data["stock_quantity"]
+            )
         return instance
 
     @staticmethod
     def _clear_other_defaults(*, product: Product, keep: ProductVariant) -> None:
         ProductVariant.objects.filter(product=product).exclude(pk=keep.pk).update(is_default=False)
+
+    @staticmethod
+    def _default_warehouse(*, store):
+        """The store's stock-keeping warehouse. The simple product form treats
+        inventory as a single pool, so reuse the default/MAIN warehouse when it
+        exists and otherwise create it — a brand-new store can then sell at once."""
+        from apps.inventory.models import Warehouse
+
+        warehouse = (
+            Warehouse.objects.filter(store=store, is_default=True).first()
+            or Warehouse.objects.filter(store=store, code="MAIN").first()
+        )
+        if warehouse is None:
+            warehouse = Warehouse.objects.create(
+                store=store, code="MAIN", name="Main Warehouse", is_default=True
+            )
+        return warehouse
+
+    def _sync_variant_stock(self, *, store, variant: ProductVariant, quantity) -> None:
+        """Mirror the variant's form-entered ``stock_quantity`` into real warehouse
+        inventory (a ``StockItem``), which is what actually gates storefront
+        availability and checkout reservation. Without this a variant saved with a
+        quantity still reads as out of stock. Untracked variants (e.g. digital) hold
+        no physical stock and are always available, so they need no record."""
+        if not variant.track_inventory or quantity is None:
+            return
+        from apps.inventory.services import InventoryService
+
+        inventory = InventoryService()
+        warehouse = self._default_warehouse(store=store)
+        item = inventory.get_or_create_item(store=store, variant=variant, warehouse=warehouse)
+        # Absolute set (adjust), but never below what carts have already reserved.
+        target = max(int(quantity), item.reserved_quantity)
+        if target != item.quantity:
+            inventory.adjust(
+                store=store,
+                variant=variant,
+                warehouse=warehouse,
+                new_quantity=target,
+                note="Stock set from product form",
+            )
 
 
 class BundleService(BaseService):
