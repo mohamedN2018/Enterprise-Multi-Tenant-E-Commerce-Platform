@@ -53,6 +53,7 @@ LOCAL_APPS = [
     "apps.stores",
     "apps.catalog",
     "apps.inventory",
+    "apps.pos",
     "apps.orders",
     "apps.payments",
     "apps.promotions",

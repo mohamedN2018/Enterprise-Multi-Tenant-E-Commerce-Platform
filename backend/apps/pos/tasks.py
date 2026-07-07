@@ -1,0 +1,59 @@
+"""Outbound stock push to a linked cashier (platform -> POS).
+
+Runs in a Celery worker so an external webhook never blocks a checkout. Uses the
+stdlib ``urllib`` (no extra dependency) with a short timeout, and signs the body
+with the connection's secret so the cashier can trust it. Best-effort: transport
+errors are logged and swallowed — the cashier can always re-pull via GET /stock/.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import urllib.error
+import urllib.request
+
+from celery import shared_task
+
+from apps.pos import keys
+from apps.pos.models import PosConnection
+from apps.pos.services import PosService
+
+logger = logging.getLogger(__name__)
+
+WEBHOOK_TIMEOUT = 5  # seconds
+
+
+@shared_task(name="pos.push_stock_update", max_retries=3, default_retry_delay=30, bind=True)
+def push_stock_update(self, connection_id: str, sku: str) -> str:
+    connection = (
+        PosConnection.all_objects.filter(id=connection_id, is_active=True, is_deleted=False)
+        .select_related("store")
+        .first()
+    )
+    if connection is None or not connection.webhook_url:
+        return "skipped"
+
+    snapshot = PosService().stock_snapshot(store=connection.store, skus=[sku])
+    payload = {"event": "stock.updated", "item": snapshot[0] if snapshot else {"sku": sku}}
+    body = json.dumps(payload).encode()
+
+    request = urllib.request.Request(
+        connection.webhook_url,
+        data=body,
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "X-POS-Signature": keys.sign_payload(connection.webhook_secret, body),
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=WEBHOOK_TIMEOUT) as resp:
+            return f"sent:{resp.status}"
+    except (urllib.error.URLError, OSError) as exc:
+        logger.warning("POS webhook to %s failed: %s", connection.webhook_url, exc)
+        # Retry transient failures; give up quietly after max_retries.
+        try:
+            raise self.retry(exc=exc)
+        except self.MaxRetriesExceededError:
+            return "failed"

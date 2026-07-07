@@ -42,6 +42,7 @@ APP_PERMISSION_AREA = {
     "fraud": "finance",
     "notifications": "settings",
     "stores": "settings",
+    "pos": "settings",
 }
 
 

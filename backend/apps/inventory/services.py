@@ -266,6 +266,20 @@ class InventoryService(BaseService):
 
     # --- Warehouse helper ---
     @staticmethod
+    def default_warehouse(*, store) -> Warehouse:
+        """The store's stock-keeping warehouse, creating it on first use so a new
+        store can hold stock immediately. Prefer the flagged default, else MAIN."""
+        warehouse = (
+            Warehouse.objects.filter(store=store, is_default=True).first()
+            or Warehouse.objects.filter(store=store, code="MAIN").first()
+        )
+        if warehouse is None:
+            warehouse = Warehouse.objects.create(
+                store=store, code="MAIN", name="Main Warehouse", is_default=True
+            )
+        return warehouse
+
+    @staticmethod
     def ensure_single_default(*, store, warehouse: Warehouse) -> None:
         if warehouse.is_default:
             Warehouse.objects.filter(store=store, is_default=True).exclude(pk=warehouse.pk).update(
