@@ -16,7 +16,7 @@ import { errorMessage } from '@/services/http';
 import { downloadCsv } from '@/utils/csv';
 import { onImgError } from '@/utils/media';
 import { t } from '@/i18n';
-import { useValidation, required, positive, numberMin } from '@/utils/validators';
+import { useValidation, required, numberMin } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
@@ -104,21 +104,25 @@ const editing = ref(null);
 const saving = ref(false);
 const blank = () => ({ name: '', name_en: '', description: '', description_en: '', product_type: 'physical', status: 'draft', category: '', brand: '', price: '', stock: 0 });
 const form = ref(blank());
-// On create, a price is required so the product always gets a sellable variant
-// (no more price-less products). On edit, variants are managed separately.
-const { errors: pErrors, run: runProduct, clear: clearProduct } = useValidation(
-  () => form.value,
-  () => ({ name: [required()], ...(editing.value ? {} : { price: [required(), numberMin(0)] }) })
-);
+// The product's price/stock live on its default variant. The form edits that
+// variant directly, so every product always has a price (required).
+const defaultVariantId = ref(null);
+const { errors: pErrors, run: runProduct, clear: clearProduct } = useValidation(() => form.value, {
+  name: [required()],
+  price: [required(), numberMin(0)]
+});
 
 const openCreate = () => {
   editing.value = null;
+  defaultVariantId.value = null;
   form.value = blank();
   resetGallery();
   showModal.value = true;
 };
 const openEdit = (p) => {
   editing.value = p;
+  const dv = (p.variants || []).find((v) => v.is_default) || (p.variants || [])[0] || null;
+  defaultVariantId.value = dv?.id || null;
   form.value = {
     name: p.name,
     name_en: p.name_en || '',
@@ -127,7 +131,9 @@ const openEdit = (p) => {
     product_type: p.product_type,
     status: p.status,
     category: p.category || '',
-    brand: p.brand || ''
+    brand: p.brand || '',
+    price: dv?.price != null ? String(dv.price) : '',
+    stock: dv?.stock_quantity ?? 0
   };
   resetGallery(p);
   showModal.value = true;
@@ -235,17 +241,27 @@ const save = async () => {
     }
     if (!productId) throw new Error(t('prod.saveFailed'));
 
-    // The product is saved. Do the extras (default variant + image uploads)
-    // independently so a failure in one never silently drops the others.
+    // The price/stock live on the default variant. Update it if the product
+    // already has one, otherwise create it. Each step is independent so a
+    // failure in one never silently drops the others.
     const problems = [];
-    if (!editing.value && price !== '' && price != null && Number(price) >= 0) {
+    const priceNum = Number(price);
+    const stockNum = Number(stock) || 0;
+    if (price !== '' && price != null && !Number.isNaN(priceNum)) {
       try {
-        await seller.createVariant(productId, {
-          sku: genSku(payload.name_en || payload.name),
-          price: Number(price),
-          stock_quantity: Number(stock) || 0,
-          is_default: true
-        });
+        if (defaultVariantId.value) {
+          await seller.updateVariant(productId, defaultVariantId.value, {
+            price: priceNum,
+            stock_quantity: stockNum
+          });
+        } else {
+          await seller.createVariant(productId, {
+            sku: genSku(payload.name_en || payload.name),
+            price: priceNum,
+            stock_quantity: stockNum,
+            is_default: true
+          });
+        }
       } catch (e) {
         problems.push(errorMessage(e));
       }
@@ -266,30 +282,6 @@ const save = async () => {
     ui.error(errorMessage(e));
   } finally {
     saving.value = false;
-  }
-};
-
-// --- Variant quick-add (within edit) --------------------------------------
-const variantForm = ref({ name: '', sku: '', price: '', compare_at_price: '', stock_quantity: 0, is_default: false });
-const { errors: vErrors, run: runVariant, clear: clearVariant } = useValidation(() => variantForm.value, { price: [required(), numberMin(0)] });
-const addingVariant = ref(false);
-const addVariant = async () => {
-  if (!editing.value || !runVariant()) return;
-  addingVariant.value = true;
-  try {
-    const payload = { ...variantForm.value };
-    if (!payload.compare_at_price) delete payload.compare_at_price;
-    // SKU is auto-generated when left blank, so adding a price is one field.
-    if (!payload.sku) payload.sku = genSku(editing.value.name_en || editing.value.name);
-    const res = await seller.createVariant(editing.value.id, payload);
-    editing.value.variants = [...(editing.value.variants || []), res.data];
-    variantForm.value = { name: '', sku: '', price: '', compare_at_price: '', stock_quantity: 0, is_default: false };
-    ui.success(t('prod.variantAdded'));
-    fetch();
-  } catch (e) {
-    ui.error(errorMessage(e));
-  } finally {
-    addingVariant.value = false;
   }
 };
 
@@ -477,9 +469,9 @@ onMounted(async () => {
         </div>
         <FormField v-model="form.name" :label="$t('common.nameAr')" :error="pErrors.name" @update:model-value="clearProduct('name')" />
         <FormField v-model="form.name_en" :label="$t('common.nameEn')" :hint="$t('common.nameEnHint')" />
-        <!-- Starting price + stock (create only) → creates the default variant so the product has a price straight away -->
-        <div v-if="!editing" class="grid gap-4 rounded-xl border border-primary-100 bg-primary-50/50 p-3 sm:grid-cols-2 dark:border-primary-500/20 dark:bg-primary-500/5">
-          <FormField v-model="form.price" :label="`${$t('prod.startingPrice')} (${tenant.currency})`" type="number" step="0.01" min="0" :hint="$t('prod.startingPriceHint')" :error="pErrors.price" @update:model-value="clearProduct('price')" />
+        <!-- Price + stock (the product's default variant) -->
+        <div class="grid gap-4 rounded-xl border border-primary-100 bg-primary-50/50 p-3 sm:grid-cols-2 dark:border-primary-500/20 dark:bg-primary-500/5">
+          <FormField v-model="form.price" :label="`${$t('prod.startingPrice')} (${tenant.currency})`" type="number" step="0.01" min="0" :error="pErrors.price" @update:model-value="clearProduct('price')" />
           <FormField v-model="form.stock" :label="$t('prod.initialStock')" type="number" min="0" />
         </div>
         <div>
@@ -523,14 +515,15 @@ onMounted(async () => {
         </div>
       </form>
 
-      <!-- Variants (edit only) -->
-      <div v-if="editing" class="mt-6 border-t border-slate-100 pt-5">
+      <!-- Extra variants (only for multi-variant or digital products; a simple
+           product's single price is edited in the field above) -->
+      <div v-if="editing && (editing.variants?.length > 1 || editing.product_type === 'digital')" class="mt-6 border-t border-slate-100 pt-5">
         <div class="mb-3 flex items-center justify-between">
           <h4 class="text-sm font-semibold">{{ $t('prod.variantsHeading') }}</h4>
           <button type="button" class="btn btn-ghost btn-sm" @click="genModal = true"><Sparkles class="h-4 w-4" /> {{ $t('prod.generate') }}</button>
         </div>
-        <ul v-if="editing.variants?.length" class="mb-4 space-y-2">
-          <li v-for="v in editing.variants" :key="v.id" class="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
+        <ul v-if="editing.variants?.length" class="space-y-2">
+          <li v-for="v in editing.variants" :key="v.id" class="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm dark:bg-slate-800">
             <span>{{ v.name || v.sku }} <span class="text-slate-400">· {{ v.sku }}</span></span>
             <div class="flex items-center gap-2">
               <span class="font-medium">{{ v.price }} {{ tenant.currency }}</span>
@@ -538,20 +531,6 @@ onMounted(async () => {
             </div>
           </li>
         </ul>
-        <p v-if="!editing.variants?.length" class="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10">
-          {{ $t('prod.noVariantHint') }}
-        </p>
-        <form class="grid grid-cols-2 gap-3 sm:grid-cols-4" novalidate @submit.prevent="addVariant">
-          <FormField v-model="variantForm.price" :label="`${$t('common.price')} (${tenant.currency})`" type="number" step="0.01" min="0" :error="vErrors.price" @update:model-value="clearVariant('price')" />
-          <FormField v-model.number="variantForm.stock_quantity" :label="$t('common.stock')" type="number" min="0" />
-          <FormField v-model="variantForm.name" :label="$t('common.name')" :placeholder="$t('prod.defaultVariant')" />
-          <FormField v-model="variantForm.sku" :label="$t('common.sku')" :placeholder="$t('prod.skuAuto')" :hint="$t('prod.skuAutoHint')" />
-          <div class="col-span-2 sm:col-span-4">
-            <button type="submit" class="btn btn-outline btn-sm" :disabled="addingVariant">
-              <Plus class="h-4 w-4" /> {{ $t('prod.addVariant') }}
-            </button>
-          </div>
-        </form>
       </div>
 
       <template #footer>
