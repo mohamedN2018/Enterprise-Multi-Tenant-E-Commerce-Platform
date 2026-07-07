@@ -40,6 +40,26 @@ def test_create_variant_with_stock_creates_warehouse_inventory(make_store):
     assert item.warehouse.is_default or item.warehouse.code == "MAIN"
 
 
+def test_zero_stock_product_saves_in_store_warehouse(make_store):
+    """Adding a product with no stock still saves normally and gets a store-owned
+    warehouse record (0 on-hand) — the store's own inventory, independent of any
+    POS. It simply reads as out of stock until quantity is added."""
+    store, owner = make_store()
+    product = CatalogService().create_product(store=store, data={"name": "Preorder"})
+
+    variant = CatalogService().create_variant(
+        store=store,
+        product=product,
+        data={"sku": "PRE-1", "price": "99.00", "stock_quantity": 0, "is_default": True},
+    )
+
+    item = StockItem.objects.get(store=store, variant=variant)
+    assert item.quantity == 0
+    # The warehouse belongs to THIS store (its default) — not tied to the cashier.
+    assert item.warehouse.store_id == store.id
+    assert item.warehouse.is_default or item.warehouse.code == "MAIN"
+
+
 def test_update_variant_stock_adjusts_inventory(make_store):
     store, owner = make_store()
     product = CatalogService().create_product(store=store, data={"name": "Widget"})

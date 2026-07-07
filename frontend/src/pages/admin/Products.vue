@@ -472,7 +472,7 @@ onMounted(async () => {
         <!-- Price + stock (the product's default variant) -->
         <div class="grid gap-4 rounded-xl border border-primary-100 bg-primary-50/50 p-3 sm:grid-cols-2 dark:border-primary-500/20 dark:bg-primary-500/5">
           <FormField v-model="form.price" :label="`${$t('prod.startingPrice')} (${tenant.currency})`" type="number" step="0.01" min="0" :error="pErrors.price" @update:model-value="clearProduct('price')" />
-          <FormField v-model="form.stock" :label="$t('prod.initialStock')" type="number" min="0" />
+          <FormField v-model="form.stock" :label="$t('prod.initialStock')" :hint="$t('prod.initialStockHint')" type="number" min="0" placeholder="0" />
         </div>
         <div>
           <label class="label">{{ $t('common.description') }}</label>
