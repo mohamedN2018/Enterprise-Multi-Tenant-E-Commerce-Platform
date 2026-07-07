@@ -379,6 +379,17 @@ watch(() => router.currentRoute.value.fullPath, () => (sidebarOpen.value = false
         >
           <Menu class="h-5 w-5" />
         </button>
+        <!-- Always-visible way back to the public storefront (opens in a new tab) -->
+        <RouterLink
+          :to="{ name: 'home' }"
+          target="_blank"
+          rel="noopener"
+          class="flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 h-10 text-sm font-semibold text-primary-700 transition hover:bg-primary-100 dark:border-slate-700 dark:bg-slate-800 dark:text-primary-300"
+          :title="$t('admin.viewStorefront')"
+        >
+          <StoreIcon class="h-5 w-5" />
+          <span class="hidden sm:inline">{{ $t('admin.viewStorefront') }}</span>
+        </RouterLink>
         <div class="ms-auto flex items-center gap-3">
           <button
             class="grid h-10 w-10 place-items-center rounded-lg text-ink hover:bg-slate-100 dark:hover:bg-slate-800"

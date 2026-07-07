@@ -14,12 +14,14 @@ const neutralSvg = (w, h) =>
       `</g></svg>`
   );
 
-const FALLBACK = neutralSvg(8, 6);
+// Branded default product image (static, same-origin) — reliable everywhere and
+// nicer than a bare grey box. Shown whenever a product has no real image.
+const PRODUCT_FALLBACK = '/brand/product-placeholder.svg';
 
 // First real image from a product: the cover (`image`) or the first gallery item.
 const realProductImage = (p) => p?.image || p?.images?.[0]?.image || p?.images?.[0] || '';
 
-export const productImage = (p, w = 600, h = 450) => realProductImage(p) || neutralSvg(w, h);
+export const productImage = (p) => realProductImage(p) || PRODUCT_FALLBACK;
 
 export const catImage = (_name, s = 400) => neutralSvg(s, s);
 
@@ -33,7 +35,7 @@ export const onImgError = (e) => {
   const el = e.target;
   if (el.dataset.fb) return;
   el.dataset.fb = '1';
-  el.src = FALLBACK;
+  el.src = PRODUCT_FALLBACK;
 };
 
 export const money = (v, currency = '') => (v == null ? '—' : `${v} ${currency}`.trim());
