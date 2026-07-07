@@ -14,6 +14,7 @@ import { usePaginated } from '@/composables/usePaginated';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
 import { downloadCsv } from '@/utils/csv';
+import { onImgError } from '@/utils/media';
 import { t } from '@/i18n';
 import { useValidation, required, positive } from '@/utils/validators';
 
@@ -101,7 +102,7 @@ const priceRange = (p) => {
 const showModal = ref(false);
 const editing = ref(null);
 const saving = ref(false);
-const blank = () => ({ name: '', name_en: '', description: '', description_en: '', product_type: 'physical', status: 'draft', category: '', brand: '' });
+const blank = () => ({ name: '', name_en: '', description: '', description_en: '', product_type: 'physical', status: 'draft', category: '', brand: '', price: '', stock: 0 });
 const form = ref(blank());
 const { errors: pErrors, run: runProduct, clear: clearProduct } = useValidation(() => form.value, { name: [required()] });
 
@@ -203,11 +204,21 @@ const moveExisting = async (idx, dir) => {
   }
 };
 
+// A safe, unique-ish SKU for the auto-created default variant.
+const genSku = (base) => {
+  const slug = (base || '').toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 16);
+  return `${slug || 'SKU'}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+};
+
 const save = async () => {
   if (!runProduct()) return;
   saving.value = true;
   try {
     const payload = { ...form.value };
+    const price = payload.price;
+    const stock = payload.stock;
+    delete payload.price;
+    delete payload.stock;
     if (!payload.category) delete payload.category;
     if (!payload.brand) delete payload.brand;
     let productId = editing.value?.id;
@@ -216,6 +227,16 @@ const save = async () => {
     } else {
       const res = await seller.createProduct(payload);
       productId = res.data?.id;
+      // Give the new product a default variant so it has a price (and stock)
+      // straight away — otherwise it shows no price and can't be sold.
+      if (productId && price !== '' && price != null && Number(price) >= 0) {
+        await seller.createVariant(productId, {
+          sku: genSku(payload.name_en || payload.name),
+          price: Number(price),
+          stock_quantity: Number(stock) || 0,
+          is_default: true
+        });
+      }
     }
     for (const p of pendingImages.value) {
       await seller.addProductImage(productId, p.file, p.alt);
@@ -367,7 +388,10 @@ onMounted(async () => {
     <DataTable :columns="columns" :rows="items" :loading="loading" :selectable="tenant.canWrite" :selected="selected" :empty-title="$t('prod.noProducts')" :empty-message="$t('prod.noProductsMsg')" @update:selected="selected = $event">
       <template #cell-name="{ row }">
         <div class="flex items-center gap-3">
-          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-400"><Package class="h-4 w-4" /></span>
+          <span class="h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700">
+            <img v-if="row.image" :src="row.image" :alt="row.name" class="h-full w-full object-cover" @error="onImgError" />
+            <span v-else class="grid h-full w-full place-items-center text-slate-400"><Package class="h-4 w-4" /></span>
+          </span>
           <div>
             <p class="font-medium text-ink">{{ row.name }}</p>
             <p class="text-xs text-slate-400">{{ row.slug }}</p>
@@ -433,6 +457,11 @@ onMounted(async () => {
         </div>
         <FormField v-model="form.name" :label="$t('common.nameAr')" :error="pErrors.name" @update:model-value="clearProduct('name')" />
         <FormField v-model="form.name_en" :label="$t('common.nameEn')" :hint="$t('common.nameEnHint')" />
+        <!-- Starting price + stock (create only) → creates the default variant so the product has a price straight away -->
+        <div v-if="!editing" class="grid gap-4 rounded-xl border border-primary-100 bg-primary-50/50 p-3 sm:grid-cols-2 dark:border-primary-500/20 dark:bg-primary-500/5">
+          <FormField v-model="form.price" :label="`${$t('prod.startingPrice')} (${tenant.currency})`" type="number" step="0.01" min="0" :hint="$t('prod.startingPriceHint')" />
+          <FormField v-model="form.stock" :label="$t('prod.initialStock')" type="number" min="0" />
+        </div>
         <div>
           <label class="label">{{ $t('common.description') }}</label>
           <textarea v-model="form.description" rows="3" class="input"></textarea>
