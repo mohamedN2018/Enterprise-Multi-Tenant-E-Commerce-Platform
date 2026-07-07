@@ -227,21 +227,34 @@ const save = async () => {
     } else {
       const res = await seller.createProduct(payload);
       productId = res.data?.id;
-      // Give the new product a default variant so it has a price (and stock)
-      // straight away — otherwise it shows no price and can't be sold.
-      if (productId && price !== '' && price != null && Number(price) >= 0) {
+    }
+    if (!productId) throw new Error(t('prod.saveFailed'));
+
+    // The product is saved. Do the extras (default variant + image uploads)
+    // independently so a failure in one never silently drops the others.
+    const problems = [];
+    if (!editing.value && price !== '' && price != null && Number(price) >= 0) {
+      try {
         await seller.createVariant(productId, {
           sku: genSku(payload.name_en || payload.name),
           price: Number(price),
           stock_quantity: Number(stock) || 0,
           is_default: true
         });
+      } catch (e) {
+        problems.push(errorMessage(e));
       }
     }
     for (const p of pendingImages.value) {
-      await seller.addProductImage(productId, p.file, p.alt);
+      try {
+        await seller.addProductImage(productId, p.file, p.alt);
+      } catch (e) {
+        problems.push(errorMessage(e));
+      }
     }
-    ui.success(editing.value ? t('prod.productUpdated') : t('prod.productCreated'));
+
+    if (problems.length) ui.error(problems[0]);
+    else ui.success(editing.value ? t('prod.productUpdated') : t('prod.productCreated'));
     showModal.value = false;
     fetch();
   } catch (e) {

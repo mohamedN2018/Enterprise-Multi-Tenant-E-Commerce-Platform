@@ -80,14 +80,8 @@ const gallery = computed(() => {
   // (with their alt text), never fake "other angles" from a stock service.
   const real = product.value.images || [];
   if (real.length) return real.map((x) => ({ src: x.image, alt: x.alt || name }));
-  // Products with no uploaded images get a small varied placeholder set so the
-  // page still feels full.
-  return [
-    productImage(product.value, 800, 600),
-    productImage({ id: `${product.value.id}-2` }, 800, 600),
-    productImage({ id: `${product.value.id}-3` }, 800, 600),
-    productImage({ id: `${product.value.id}-4` }, 800, 600)
-  ].map((src) => ({ src, alt: name }));
+  // No uploaded images yet → a single neutral placeholder (no fake stock photos).
+  return [{ src: productImage(product.value, 800, 600), alt: name }];
 });
 
 const currency = computed(() => product.value?.currency || '');

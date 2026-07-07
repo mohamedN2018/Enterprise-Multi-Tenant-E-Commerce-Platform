@@ -159,6 +159,33 @@ def test_employee_cannot_add_image(store_client, make_store, make_user, add_memb
     assert resp.status_code == 403
 
 
+def test_create_flow_product_variant_image(store_client, make_store):
+    """The admin create flow end to end: product -> default variant -> gallery
+    image all persist, and the product then reports its cover image + price."""
+    store, owner = make_store()
+    client = store_client(owner, store)
+
+    product_id = client.post(
+        PRODUCT_LIST, {"name": "Real Product", "status": "published"}, format="json"
+    ).json()["data"]["id"]
+
+    variant = client.post(
+        reverse("v1:catalog:variant-list", kwargs={"product_id": product_id}),
+        {"sku": "REAL-1", "price": "99.00", "stock_quantity": 5, "is_default": True},
+        format="json",
+    )
+    assert variant.status_code == 201
+
+    image = client.post(_gallery_url(product_id), {"image": _png()}, format="multipart")
+    assert image.status_code == 201
+
+    detail = client.get(
+        reverse("v1:catalog:product-detail", kwargs={"product_id": product_id})
+    ).json()["data"]
+    assert detail["image"]  # cover comes from the uploaded gallery image
+    assert any(str(v["price"]) == "99.00" for v in detail["variants"])
+
+
 def test_gallery_is_store_scoped(store_client, make_store):
     store_a, owner_a = make_store()
     store_b, owner_b = make_store()
