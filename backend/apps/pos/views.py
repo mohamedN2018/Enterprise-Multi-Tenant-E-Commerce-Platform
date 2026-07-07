@@ -9,44 +9,14 @@ Two audiences, two auth schemes:
 
 from __future__ import annotations
 
-import logging
-
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from apps.core.exceptions import DomainError, NotFoundError
+from apps.core.exceptions import NotFoundError
 from apps.core.mixins import BaseAPIView
 from apps.core.responses import APIResponse
 from apps.pos.authentication import HasPosConnection, PosApiKeyAuthentication
-
-logger = logging.getLogger("apps.pos")
-
-
-class _DiagnosticView(BaseAPIView):
-    """TEMP diagnostic base: on a genuinely unexpected error (not a normal
-    domain/DRF error), log the traceback and surface the exception type+message
-    so a production 500 on these admin-only POS endpoints can be pinpointed.
-    Covers failures in ``initial()`` too (store context), which DRF routes here."""
-
-    def handle_exception(self, exc):
-        from django.core.exceptions import PermissionDenied
-        from django.http import Http404
-        from rest_framework.exceptions import APIException
-
-        if isinstance(exc, (DomainError, APIException, Http404, PermissionDenied)):
-            return super().handle_exception(exc)
-        logger.exception("POS supplier endpoint failed")
-        return Response(
-            {
-                "success": False,
-                "message": f"debug: {type(exc).__name__}: {exc}",
-                "data": None,
-                "errors": None,
-                "error_code": "pos_debug",
-            },
-            status=500,
-        )
 from apps.pos.models import PosConnection, PosSupplierConnection
 from apps.pos.serializers import (
     PosConnectionCreateSerializer,
@@ -164,7 +134,7 @@ class PosStockView(_PosMachineView):
 
 # --- Outbound: import products FROM an external POS supplier ----------------
 @extend_schema(tags=["POS"])
-class PosSupplierView(StoreContextMixin, _DiagnosticView):
+class PosSupplierView(StoreContextMixin, BaseAPIView):
     """View / connect / disconnect the store's link to an external POS supplier."""
 
     def _connection(self) -> PosSupplierConnection | None:
@@ -194,7 +164,7 @@ class PosSupplierView(StoreContextMixin, _DiagnosticView):
 
 
 @extend_schema(tags=["POS"])
-class PosSupplierImportView(StoreContextMixin, _DiagnosticView):
+class PosSupplierImportView(StoreContextMixin, BaseAPIView):
     """Pull the supplier's catalog and upsert it into this store."""
 
     def post(self, request: Request) -> Response:

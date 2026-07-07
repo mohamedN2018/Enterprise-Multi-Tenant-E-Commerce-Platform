@@ -182,6 +182,22 @@ def test_client_sends_browser_user_agent(monkeypatch):
     assert captured["key"] == "k"
 
 
+def test_arabic_store_name_header_is_latin1_safe():
+    """An Arabic store name must not crash urllib — HTTP header values are
+    latin-1, so non-ASCII identity headers are percent-encoded."""
+    client = PosSupplierClient(
+        api_url="https://x/api",
+        api_key="k",
+        store_name="سوبر ماركت النيل",
+        store_url="https://shop.example/store/nile",
+    )
+    headers = client._headers()
+    for value in headers.values():
+        value.encode("latin-1")  # would raise UnicodeEncodeError before the fix
+    assert headers["x-store-name"].isascii()
+    assert "%D8" in headers["x-store-name"]  # percent-encoded UTF-8 bytes
+
+
 def test_non_json_response_becomes_unavailable_not_500(monkeypatch):
     """A 200 with a non-JSON body is surfaced as a clean error, never a 500."""
     monkeypatch.setattr(

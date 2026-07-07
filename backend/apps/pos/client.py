@@ -12,6 +12,7 @@ import json
 import socket
 import urllib.error
 import urllib.request
+from urllib.parse import quote
 
 from apps.core.exceptions import DomainError
 
@@ -50,10 +51,14 @@ class PosSupplierClient:
             "Accept": "application/json",
             "User-Agent": USER_AGENT,
         }
+        # HTTP header values must be latin-1. A store name in Arabic (or any
+        # non-ASCII) would crash urllib before the request is sent, so
+        # percent-encode these optional identity headers — always ASCII-safe.
+        # The cashier can decodeURIComponent() them to show the original text.
         if self.store_name:
-            headers["x-store-name"] = self.store_name
+            headers["x-store-name"] = quote(self.store_name, safe="")
         if self.store_url:
-            headers["x-store-url"] = self.store_url
+            headers["x-store-url"] = quote(self.store_url, safe=":/?=&")
         return headers
 
     def _get(self, path: str, *, retries: int = 1):
