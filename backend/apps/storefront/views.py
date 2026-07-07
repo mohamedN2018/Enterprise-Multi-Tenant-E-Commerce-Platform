@@ -6,17 +6,18 @@ with explicit ``is_deleted=False`` filters instead of the tenant-scoped default.
 
 from __future__ import annotations
 
-from django.db.models import Avg, Count, F, Max, Q
+from django.db.models import Avg, Count, Exists, F, Max, OuterRef, Prefetch, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from apps.catalog.models import Category, Product, ProductStatus
+from apps.catalog.models import Category, Product, ProductStatus, ProductVariant
 from apps.core.exceptions import NotFoundError
 from apps.core.mixins import BaseAPIView, BaseGenericAPIView
 from apps.core.responses import APIResponse
+from apps.inventory.models import StockItem
 from apps.stores.models import Store, StoreStatus
 
 from .serializers import (
@@ -33,6 +34,29 @@ _PUBLIC_PRODUCTS = Q(
     store__status=StoreStatus.ACTIVE,
     store__is_deleted=False,
 )
+
+# Attach real warehouse stock to each variant so availability is computed without
+# a per-variant query. The storefront is cross-store and unauthenticated, so it
+# must use the unscoped ``all_objects`` manager.
+_STOCK_PREFETCH = Prefetch(
+    "variants__stock_items", queryset=StockItem.all_objects.filter(is_deleted=False)
+)
+
+
+def _in_stock_filter() -> Q:
+    """Keep only products with a sellable active variant: an untracked one (always
+    available, e.g. digital) or a tracked one holding net stock in some warehouse."""
+    untracked = ProductVariant.all_objects.filter(
+        product=OuterRef("pk"), is_active=True, is_deleted=False, track_inventory=False
+    )
+    tracked = StockItem.all_objects.filter(
+        variant__product=OuterRef("pk"),
+        variant__is_active=True,
+        variant__track_inventory=True,
+        is_deleted=False,
+        quantity__gt=F("reserved_quantity"),
+    )
+    return Q(Exists(untracked)) | Q(Exists(tracked))
 
 
 def _annotate_rating(qs):
@@ -130,7 +154,7 @@ class StorefrontAllProductsView(BaseGenericAPIView, generics.ListAPIView):
         qs = _annotate_rating(
             Product.all_objects.filter(_PUBLIC_PRODUCTS)
             .select_related("store")
-            .prefetch_related("variants", "images")
+            .prefetch_related("variants", "images", _STOCK_PREFETCH)
         )
         params = self.request.query_params
         if params.get("category"):
@@ -145,6 +169,9 @@ class StorefrontAllProductsView(BaseGenericAPIView, generics.ListAPIView):
                 variants__is_active=True,
                 variants__compare_at_price__gt=F("variants__price"),
             ).distinct()
+        # Hide sold-out products (used by the home page so they don't take space).
+        if params.get("in_stock"):
+            qs = qs.filter(_in_stock_filter())
         return qs.order_by("-created_at")
 
 
@@ -157,13 +184,16 @@ class StorefrontProductListView(BaseGenericAPIView, generics.ListAPIView):
         if getattr(self, "swagger_fake_view", False):
             return Product.all_objects.none()
         store = _active_store_or_404(self.kwargs["slug"])
-        return _annotate_rating(
+        qs = _annotate_rating(
             Product.all_objects.filter(
                 store=store, status=ProductStatus.PUBLISHED, is_deleted=False
             )
             .select_related("store")
-            .prefetch_related("variants", "images")
-        ).order_by("-created_at")
+            .prefetch_related("variants", "images", _STOCK_PREFETCH)
+        )
+        if self.request.query_params.get("in_stock"):
+            qs = qs.filter(_in_stock_filter())
+        return qs.order_by("-created_at")
 
 
 @extend_schema(tags=["Storefront"])
@@ -203,7 +233,7 @@ class StorefrontProductDetailView(BaseAPIView):
                 id=product_id, status=ProductStatus.PUBLISHED, is_deleted=False
             )
             .select_related("store")
-            .prefetch_related("variants", "images")
+            .prefetch_related("variants", "images", _STOCK_PREFETCH)
             .first()
         )
         if product is None:

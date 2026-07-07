@@ -6,14 +6,34 @@ or staff metadata.
 
 from __future__ import annotations
 
-from django.db.models import Sum
 from rest_framework import serializers
 
 from apps.catalog.models import Category, Product, ProductVariant
 from apps.core.i18n import localized
-from apps.inventory.models import StockItem
 from apps.reviews.models import Review
 from apps.stores.models import Store
+
+
+def variant_available(variant) -> bool:
+    """Whether a single variant is sellable, from *prefetched* stock items.
+
+    Untracked variants (e.g. digital) are always available; tracked ones need net
+    warehouse stock (on-hand minus reserved) in at least one warehouse. Relies on
+    the view having prefetched ``variants__stock_items`` (via ``all_objects``), so
+    it adds no per-variant query.
+    """
+    if not variant.track_inventory:
+        return True
+    return any(
+        (item.quantity - item.reserved_quantity) > 0
+        for item in variant.stock_items.all()
+        if not item.is_deleted
+    )
+
+
+def product_in_stock(product) -> bool:
+    """A product is in stock if any of its active variants is available."""
+    return any(variant_available(v) for v in product.variants.all() if v.is_active)
 
 
 class LocalizedNameMixin:
@@ -99,14 +119,7 @@ class StorefrontVariantSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_in_stock(self, obj) -> bool:
-        # Untracked variants (e.g. digital) are always available; otherwise use
-        # real warehouse availability (on-hand minus reserved across warehouses).
-        if not obj.track_inventory:
-            return True
-        agg = StockItem.all_objects.filter(variant=obj, is_deleted=False).aggregate(
-            on_hand=Sum("quantity"), reserved=Sum("reserved_quantity")
-        )
-        return max((agg["on_hand"] or 0) - (agg["reserved"] or 0), 0) > 0
+        return variant_available(obj)
 
 
 class StorefrontProductSerializer(LocalizedNameMixin, serializers.ModelSerializer):
@@ -123,6 +136,7 @@ class StorefrontProductSerializer(LocalizedNameMixin, serializers.ModelSerialize
     store_slug = serializers.CharField(source="store.slug", read_only=True)
     rating = serializers.SerializerMethodField()
     review_count = serializers.SerializerMethodField()
+    in_stock = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -141,8 +155,12 @@ class StorefrontProductSerializer(LocalizedNameMixin, serializers.ModelSerialize
             "store_slug",
             "rating",
             "review_count",
+            "in_stock",
         )
         read_only_fields = fields
+
+    def get_in_stock(self, obj) -> bool:
+        return product_in_stock(obj)
 
     def get_image(self, obj):
         # Primary/cover URL: first gallery image, else the legacy single image.

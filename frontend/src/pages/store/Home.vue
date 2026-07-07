@@ -87,9 +87,10 @@ onMounted(async () => {
   const results = await Promise.allSettled([
     storefront.categories(),
     storefront.stores({ page_size: 6 }),
-    storefront.products({ page_size: 8 }),
-    storefront.products({ on_sale: 1, page_size: 8 }),
-    storefront.products({ page_size: 24 })
+    // Home rails hide sold-out products so they don't take prime space.
+    storefront.products({ page_size: 8, in_stock: 1 }),
+    storefront.products({ on_sale: 1, page_size: 8, in_stock: 1 }),
+    storefront.products({ page_size: 24, in_stock: 1 })
   ]);
   const val = (i) => (results[i].status === 'fulfilled' ? results[i].value : null);
   const list = (i) => {

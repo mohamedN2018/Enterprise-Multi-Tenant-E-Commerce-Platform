@@ -23,6 +23,8 @@ const compareAt = computed(() => p.value.compare_at_price);
 const onSale = computed(() => compareAt.value && Number(compareAt.value) > Number(price.value));
 const rating = computed(() => Math.round(Number(p.value.rating ?? p.value.average_rating ?? 0)));
 const storeName = computed(() => p.value.store?.name || p.value.store_slug);
+// Sold out only when the backend explicitly says so (undefined = assume sellable).
+const soldOut = computed(() => p.value.in_stock === false);
 </script>
 
 <template>
@@ -31,10 +33,14 @@ const storeName = computed(() => p.value.store?.name || p.value.store_slug);
       <!-- Media -->
       <div class="product-media relative overflow-hidden rounded-t-xl">
         <RouterLink :to="to">
-          <img :src="img" :alt="p.name" loading="lazy" class="aspect-[4/3] w-full object-cover" @error="onImgError" />
+          <img :src="img" :alt="p.name" loading="lazy" class="aspect-[4/3] w-full object-cover" :class="{ 'opacity-60 grayscale': soldOut }" @error="onImgError" />
         </RouterLink>
-        <div v-if="onSale" class="corner-badge bg-secondary-500">{{ $t('product.sale') }}</div>
+        <div v-if="soldOut" class="corner-badge bg-slate-700">{{ $t('product.outOfStock') }}</div>
+        <div v-else-if="onSale" class="corner-badge bg-secondary-500">{{ $t('product.sale') }}</div>
         <div v-else-if="p.is_new" class="corner-badge bg-primary-600">{{ $t('product.new') }}</div>
+        <div v-if="soldOut" class="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span class="rounded-full bg-slate-900/80 px-4 py-1.5 text-sm font-semibold text-white shadow-pop">{{ $t('product.outOfStock') }}</span>
+        </div>
         <RouterLink :to="to" class="product-eye absolute inset-0 flex items-center justify-center bg-white/20 opacity-0">
           <span class="grid h-12 w-12 place-items-center rounded-full bg-primary-600 text-white transition hover:bg-secondary-500">
             <Eye class="h-5 w-5" />
@@ -59,8 +65,8 @@ const storeName = computed(() => p.value.store?.name || p.value.store_slug);
 
     <!-- Slide-up actions -->
     <div class="product-actions absolute inset-x-0 top-full z-10 rounded-b-xl border border-t-0 border-slate-200 bg-white px-4 pb-4 text-center">
-      <button class="btn btn-primary mb-3 w-full border border-secondary-500" :disabled="adding" @click="emit('add', p)">
-        <ShoppingCart class="h-4 w-4" /> {{ adding ? $t('product.adding') : $t('product.addToCart') }}
+      <button class="btn btn-primary mb-3 w-full border border-secondary-500 disabled:cursor-not-allowed disabled:opacity-60" :disabled="adding || soldOut" @click="emit('add', p)">
+        <ShoppingCart class="h-4 w-4" /> {{ soldOut ? $t('product.outOfStock') : (adding ? $t('product.adding') : $t('product.addToCart')) }}
       </button>
       <div class="flex items-center justify-between">
         <div class="flex">
