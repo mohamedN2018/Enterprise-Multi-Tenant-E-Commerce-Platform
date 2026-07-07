@@ -9,6 +9,7 @@ export const platform = {
   updateStore: (id, payload) => http.patch(`/platform/stores/${id}/`, payload),
   deleteStore: (id) => http.delete(`/platform/stores/${id}/`),
   sellers: (params) => http.get('/platform/sellers/', { params }),
+  seller: (id) => http.get(`/platform/sellers/${id}/`),
   createSeller: (payload) => http.post('/platform/sellers/', payload),
   updateSeller: (id, payload) => http.patch(`/platform/sellers/${id}/`, payload),
   requests: (params) => http.get('/platform/requests/', { params }),

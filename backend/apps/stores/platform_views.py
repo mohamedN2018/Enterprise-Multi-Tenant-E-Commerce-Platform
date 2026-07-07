@@ -223,6 +223,16 @@ class PlatformSellerListView(BaseAPIView):
 class PlatformSellerDetailView(BaseAPIView):
     permission_classes = [IsSuperAdmin]
 
+    @extend_schema(responses={200: SellerSerializer}, tags=["platform"])
+    def get(self, request: Request, user_id) -> Response:
+        """One seller plus every store they own (for the seller detail page)."""
+        if not User.objects.filter(id=user_id).exists():
+            raise NotFoundError("User not found.")
+        data = SellerSerializer(_seller_with_counts(user_id)).data
+        stores = _stores_qs().filter(owner_id=user_id)
+        data["stores"] = PlatformStoreSerializer(stores, many=True).data
+        return APIResponse.success(data)
+
     @extend_schema(
         request=SellerUpdateSerializer, responses={200: SellerSerializer}, tags=["platform"]
     )
@@ -234,13 +244,9 @@ class PlatformSellerDetailView(BaseAPIView):
         serializer.is_valid(raise_exception=True)
         user.max_stores = serializer.validated_data["max_stores"]
         user.save(update_fields=["max_stores", "updated_at"])
-
-        fresh = User.objects.annotate(
-            store_count=Count(
-                "owned_stores", filter=Q(owned_stores__is_deleted=False), distinct=True
-            )
-        ).get(id=user.id)
-        return APIResponse.success(SellerSerializer(fresh).data, message="Seller limit updated.")
+        return APIResponse.success(
+            SellerSerializer(_seller_with_counts(user.id)).data, message="Seller limit updated."
+        )
 
 
 class PlatformRequestListView(BaseAPIView):

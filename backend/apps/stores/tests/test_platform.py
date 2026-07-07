@@ -154,6 +154,29 @@ def test_create_seller_duplicate_email_rejected(client_for, superadmin, make_use
     assert resp.json()["error_code"] == "email_taken"
 
 
+def test_seller_detail_returns_their_stores(client_for, superadmin, make_user):
+    from apps.stores.services import StoreService
+
+    seller = make_user(email="owner1@example.com")
+    StoreService().create_store(owner=seller, data={"name": "Solo Shop"})
+
+    resp = client_for(superadmin).get(_platform_seller(seller.id))
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["email"] == "owner1@example.com"
+    assert data["store_count"] == 1
+    assert len(data["stores"]) == 1
+    assert data["stores"][0]["name"] == "Solo Shop"
+    assert "product_count" in data["stores"][0]
+
+
+def test_seller_detail_requires_superuser(client_for, make_user):
+    other = make_user()
+    resp = client_for(make_user()).get(_platform_seller(other.id))
+    assert resp.status_code == 403
+
+
 def test_create_seller_requires_superuser(client_for, make_user):
     resp = client_for(make_user()).post(
         PLATFORM_SELLERS,

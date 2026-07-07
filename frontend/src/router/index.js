@@ -14,6 +14,7 @@ import AuthLayout from '@/layouts/AuthLayout.vue';
 const CONSOLE_PAGES = [
   ['', 'dashboard', () => import('@/pages/admin/Dashboard.vue')],
   ['platform', 'platform', () => import('@/pages/admin/Platform.vue')],
+  ['sellers/:id', 'seller-detail', () => import('@/pages/admin/SellerDetail.vue')],
   ['analytics', 'analytics', () => import('@/pages/admin/Analytics.vue')],
   ['products', 'products', () => import('@/pages/admin/Products.vue')],
   ['categories', 'categories', () => import('@/pages/admin/Categories.vue')],
@@ -140,6 +141,7 @@ const TITLE_KEYS = {
 const CONSOLE_TITLE_KEYS = {
   dashboard: 'admin.dashboard',
   platform: 'admin.platform',
+  'seller-detail': 'platformPage.sellerDetailTitle',
   analytics: 'admin.analytics',
   products: 'admin.products',
   categories: 'admin.categories',
@@ -192,9 +194,10 @@ router.beforeEach(async (to) => {
       return { path: to.path.replace(/^\/seller/, '/admin'), query: to.query, hash: to.hash };
     }
     // The admin panel is separate from the stores: a super-admin must enter a
-    // store before opening any store-scoped console page. The platform panel is
-    // the only admin page reachable without an active store.
-    if (isSuper && to.path.startsWith('/admin') && to.name !== 'admin-platform' && !activeStore.id) {
+    // store before opening any store-scoped console page. Platform-panel pages
+    // (the panel itself + a seller's detail page) are reachable without one.
+    const PLATFORM_PAGES = new Set(['admin-platform', 'admin-seller-detail']);
+    if (isSuper && to.path.startsWith('/admin') && !PLATFORM_PAGES.has(to.name) && !activeStore.id) {
       return { name: 'admin-platform' };
     }
   }

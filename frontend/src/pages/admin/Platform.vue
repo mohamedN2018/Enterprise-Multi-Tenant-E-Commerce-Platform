@@ -17,7 +17,9 @@ import {
   X,
   LogIn,
   UserPlus,
-  Package
+  Package,
+  ChevronDown,
+  ArrowRight
 } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
@@ -123,6 +125,18 @@ const ownerGroups = computed(() => {
     (a, b) => b.stores.length - a.stores.length || (a.email || '').localeCompare(b.email || '')
   );
 });
+
+// Sellers are collapsed by default — expand one to peek at its stores inline
+// (quick view), or open the full seller page.
+const expanded = ref(new Set());
+const toggle = (email) => {
+  const next = new Set(expanded.value);
+  next.has(email) ? next.delete(email) : next.add(email);
+  expanded.value = next;
+};
+const openSeller = (g) => {
+  if (g.sellerId) router.push({ name: 'admin-seller-detail', params: { id: g.sellerId } });
+};
 
 const viewStorefront = (s) => window.open(`/products?store=${s.slug}`, '_blank', 'noopener');
 
@@ -353,37 +367,42 @@ onMounted(load);
 
         <div class="space-y-4">
           <div v-for="g in ownerGroups" :key="g.email" class="card overflow-hidden p-0">
-            <!-- Owner (seller) header -->
-            <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/40">
-              <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-violet-100 text-sm font-semibold text-violet-700">{{ (g.email || '?').charAt(0).toUpperCase() }}</span>
-              <div class="min-w-0 flex-1">
-                <p class="truncate font-semibold text-ink">{{ g.email }}</p>
-                <p class="text-xs text-muted">{{ $t('platformPage.owner') }}</p>
-              </div>
-              <span dir="ltr" class="chip border-slate-200 bg-white text-slate-600 dark:bg-slate-900"><StoreIcon class="h-3.5 w-3.5" /> {{ g.stores.length }} / {{ g.maxStores }}</span>
-              <button class="btn btn-outline btn-sm" @click="openStoreLimit({ id: g.sellerId, email: g.email, max_stores: g.maxStores })"><Pencil class="h-4 w-4" /> {{ $t('platformPage.setStoreLimit') }}</button>
+            <!-- Owner (seller) header — click to expand the store list inline -->
+            <div class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/70 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-800/40">
+              <button class="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-1 py-1 text-start hover:bg-slate-100/70 dark:hover:bg-slate-700/40" @click="toggle(g.email)">
+                <ChevronDown class="h-4 w-4 shrink-0 text-slate-400 transition" :class="expanded.has(g.email) ? 'rotate-180' : ''" />
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-violet-100 text-sm font-semibold text-violet-700">{{ (g.email || '?').charAt(0).toUpperCase() }}</span>
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate font-semibold text-ink">{{ g.email }}</span>
+                  <span class="block truncate text-xs text-muted">{{ $t('platformPage.owner') }} · <span dir="ltr">{{ g.stores.length }} / {{ g.maxStores }}</span> {{ $t('platformPage.ownedStores') }}</span>
+                </span>
+              </button>
+              <button class="btn btn-ghost btn-sm" :title="$t('platformPage.setStoreLimit')" @click="openStoreLimit({ id: g.sellerId, email: g.email, max_stores: g.maxStores })"><Pencil class="h-4 w-4" /></button>
+              <button class="btn btn-outline btn-sm" @click="openSeller(g)">{{ $t('platformPage.openSeller') }} <ArrowRight class="h-4 w-4 rtl:rotate-180" /></button>
             </div>
 
-            <!-- Their stores -->
-            <div v-if="g.stores.length" class="divide-y divide-slate-100 dark:divide-slate-800">
-              <div v-for="st in g.stores" :key="st.id" class="flex flex-wrap items-center gap-3 px-4 py-3">
-                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary-50 text-primary-600"><StoreIcon class="h-4 w-4" /></span>
-                <div class="min-w-0 flex-1">
-                  <p class="truncate font-medium text-ink">{{ st.name }}</p>
-                  <p class="text-xs text-muted">{{ st.slug }}</p>
+            <!-- Their stores (quick view — only when expanded) -->
+            <div v-if="expanded.has(g.email)">
+              <div v-if="g.stores.length" class="divide-y divide-slate-100 dark:divide-slate-800">
+                <div v-for="st in g.stores" :key="st.id" class="flex flex-wrap items-center gap-3 px-4 py-3">
+                  <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary-50 text-primary-600"><StoreIcon class="h-4 w-4" /></span>
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate font-medium text-ink">{{ st.name }}</p>
+                    <p class="text-xs text-muted">{{ st.slug }}</p>
+                  </div>
+                  <span dir="ltr" class="chip border-amber-200 bg-amber-50 text-amber-700" :title="$t('platformPage.totalProducts')"><Package class="h-3.5 w-3.5" /> {{ st.product_count ?? 0 }}</span>
+                  <button class="chip border-slate-200 bg-slate-50 text-slate-600 hover:border-primary-300" :title="$t('platformPage.setEmployeeLimit')" @click="openEmp(st)"><Users class="h-3.5 w-3.5" /> <span dir="ltr">{{ st.employee_count }} / {{ st.max_employees }}</span> <Pencil class="h-3 w-3 opacity-60" /></button>
+                  <select :value="st.status" class="input h-9 max-w-[140px] py-1 text-sm" @change="setStatus(st, $event.target.value)">
+                    <option v-for="s in STATUSES" :key="s" :value="s">{{ $t('platformPage.st.' + s) }}</option>
+                  </select>
+                  <button class="btn btn-primary btn-sm" :title="$t('platformPage.manageHint')" @click="enterStore(st)"><LogIn class="h-4 w-4" /> {{ $t('platformPage.manage') }}</button>
+                  <button class="btn btn-ghost btn-sm" @click="viewStorefront(st)"><Eye class="h-4 w-4" /> {{ $t('platformPage.view') }}</button>
                 </div>
-                <span dir="ltr" class="chip border-amber-200 bg-amber-50 text-amber-700" :title="$t('platformPage.totalProducts')"><Package class="h-3.5 w-3.5" /> {{ st.product_count ?? 0 }}</span>
-                <button class="chip border-slate-200 bg-slate-50 text-slate-600 hover:border-primary-300" :title="$t('platformPage.setEmployeeLimit')" @click="openEmp(st)"><Users class="h-3.5 w-3.5" /> <span dir="ltr">{{ st.employee_count }} / {{ st.max_employees }}</span> <Pencil class="h-3 w-3 opacity-60" /></button>
-                <select :value="st.status" class="input h-9 max-w-[140px] py-1 text-sm" @change="setStatus(st, $event.target.value)">
-                  <option v-for="s in STATUSES" :key="s" :value="s">{{ $t('platformPage.st.' + s) }}</option>
-                </select>
-                <button class="btn btn-primary btn-sm" :title="$t('platformPage.manageHint')" @click="enterStore(st)"><LogIn class="h-4 w-4" /> {{ $t('platformPage.manage') }}</button>
-                <button class="btn btn-ghost btn-sm" @click="viewStorefront(st)"><Eye class="h-4 w-4" /> {{ $t('platformPage.view') }}</button>
               </div>
-            </div>
-            <div v-else class="flex flex-wrap items-center gap-2 px-4 py-3 text-sm text-muted">
-              {{ $t('platformPage.noStoresForSeller') }}
-              <button class="btn btn-outline btn-sm" @click="openCreateForSeller(g.email)"><Plus class="h-4 w-4" /> {{ $t('platformPage.createStoreForSeller') }}</button>
+              <div v-else class="flex flex-wrap items-center gap-2 px-4 py-3 text-sm text-muted">
+                {{ $t('platformPage.noStoresForSeller') }}
+                <button class="btn btn-outline btn-sm" @click="openCreateForSeller(g.email)"><Plus class="h-4 w-4" /> {{ $t('platformPage.createStoreForSeller') }}</button>
+              </div>
             </div>
           </div>
 
