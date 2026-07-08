@@ -23,7 +23,38 @@ const realProductImage = (p) => p?.image || p?.images?.[0]?.image || p?.images?.
 
 export const productImage = (p) => realProductImage(p) || PRODUCT_FALLBACK;
 
-export const catImage = (_name, s = 400) => neutralSvg(s, s);
+// Categories carry no uploaded image, so we render a distinct, deterministic
+// tile per category: a brand-coordinated gradient keyed on the name plus its
+// initial. Same name → same colour every time; different names look varied but
+// belong to one set (no repetitive grey boxes).
+const escapeXml = (s) =>
+  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+// Warm + jewel tones that sit next to the orange/red brand palette.
+const CAT_HUES = [28, 8, 42, 174, 239, 347, 158, 262, 199, 96];
+
+export const catImage = (name = '', s = 400) => {
+  const label = String(name || '').trim();
+  let n = 0;
+  for (let i = 0; i < label.length; i += 1) n = (n + label.charCodeAt(i)) % 9973;
+  const hue = CAT_HUES[n % CAT_HUES.length];
+  const initial = escapeXml(label ? Array.from(label)[0].toUpperCase() : '★');
+  return (
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">` +
+        `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">` +
+        `<stop offset="0" stop-color="hsl(${hue} 68% 52%)"/>` +
+        `<stop offset="1" stop-color="hsl(${(hue + 18) % 360} 70% 38%)"/>` +
+        `</linearGradient></defs>` +
+        `<rect width="${s}" height="${s}" fill="url(#g)"/>` +
+        `<text x="50%" y="52%" text-anchor="middle" dominant-baseline="central" ` +
+        `font-family="Cairo, 'Segoe UI', Arial, sans-serif" font-size="${s * 0.42}" ` +
+        `font-weight="800" fill="rgba(255,255,255,0.92)">${initial}</text>` +
+        `</svg>`
+    )
+  );
+};
 
 export const storeBanner = (store, w = 1200, h = 320) => store?.banner || neutralSvg(w, h);
 

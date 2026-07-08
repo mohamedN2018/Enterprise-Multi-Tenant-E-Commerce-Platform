@@ -188,6 +188,16 @@ router.beforeEach(async (to) => {
   if (to.meta.guestOnly && auth.isAuthenticated) {
     return { name: 'home' };
   }
+  // Customers have no dashboard: block every console route for non-sellers and
+  // send them back to the storefront (this also catches stray/deep links).
+  const isConsole = to.path.startsWith('/admin') || to.path.startsWith('/seller');
+  if (isConsole && auth.isAuthenticated && !auth.isSeller) {
+    return { name: 'home' };
+  }
+  if (isConsole && !auth.isAuthenticated) {
+    return { name: 'login', query: { redirect: to.fullPath } };
+  }
+
   // Keep each role inside its own console prefix (also catches any stray links).
   if (auth.isAuthenticated) {
     const isSuper = !!auth.user?.is_superuser;

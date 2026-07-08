@@ -1,4 +1,4 @@
-"""Reviews & ratings tests (E1): create, verified purchase, moderation, votes, summary."""
+"""Reviews & ratings tests (E1): purchase-gated create, moderation, votes, summary."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from django.urls import reverse
 from apps.reviews.models import Review
 from apps.stores.models import StoreRole
 
-from .conftest import buy_and_confirm
+from .conftest import buy_and_deliver
 
 pytestmark = pytest.mark.django_db
 
@@ -28,44 +28,55 @@ def _approve(owner_client, review_id):
     return owner_client.post(reverse("v1:reviews:approve", kwargs={"review_id": review_id}))
 
 
-def test_create_review_is_pending_and_unverified(make_store, make_user, make_variant, store_client):
-    store, _owner = make_store()
-    product = make_variant(store).product
-    data = _create(store_client(make_user(), store), product).json()["data"]
-    assert data["status"] == "pending"
-    assert data["is_verified_purchase"] is False
+def _buyer_who_received(store_client, make_user, store, variant):
+    """A client whose user has a DELIVERED order for `variant` — eligible to review."""
+    client = store_client(make_user(), store)
+    buy_and_deliver(client, variant)
+    return client
 
 
-def test_verified_purchase_is_flagged(make_store, make_user, make_variant, store_client):
+def test_delivered_buyer_review_is_pending_and_verified(
+    make_store, make_user, make_variant, store_client
+):
     store, _owner = make_store()
     variant = make_variant(store)
-    buyer = make_user()
-    client = store_client(buyer, store)
-    buy_and_confirm(client, variant)
+    client = _buyer_who_received(store_client, make_user, store, variant)
     data = _create(client, variant.product).json()["data"]
+    assert data["status"] == "pending"
     assert data["is_verified_purchase"] is True
+
+
+def test_cannot_review_without_receiving(make_store, make_user, make_variant, store_client):
+    store, _owner = make_store()
+    variant = make_variant(store)
+    # Buyer never purchased/received the product → review is rejected.
+    resp = _create(store_client(make_user(), store), variant.product)
+    assert resp.status_code == 400
+    assert resp.json()["error_code"] == "not_purchased"
 
 
 def test_one_review_per_product(make_store, make_user, make_variant, store_client):
     store, _owner = make_store()
-    product = make_variant(store).product
-    client = store_client(make_user(), store)
-    assert _create(client, product).status_code == 201
-    dup = _create(client, product)
+    variant = make_variant(store)
+    client = _buyer_who_received(store_client, make_user, store, variant)
+    assert _create(client, variant.product).status_code == 201
+    dup = _create(client, variant.product)
     assert dup.status_code == 409
     assert dup.json()["error_code"] == "already_reviewed"
 
 
 def test_rating_out_of_range_rejected(make_store, make_user, make_variant, store_client):
     store, _owner = make_store()
-    product = make_variant(store).product
-    assert _create(store_client(make_user(), store), product, rating=6).status_code == 400
+    variant = make_variant(store)
+    client = _buyer_who_received(store_client, make_user, store, variant)
+    assert _create(client, variant.product, rating=6).status_code == 400
 
 
 def test_approved_reviews_show_in_public_list(make_store, make_user, make_variant, store_client):
     store, owner = make_store()
-    product = make_variant(store).product
-    buyer_client = store_client(make_user(), store)
+    variant = make_variant(store)
+    buyer_client = _buyer_who_received(store_client, make_user, store, variant)
+    product = variant.product
     review_id = _create(buyer_client, product).json()["data"]["id"]
     # Pending review is not public.
     assert buyer_client.get(REVIEWS, {"product": str(product.id)}).json()["data"] == []
@@ -76,8 +87,9 @@ def test_approved_reviews_show_in_public_list(make_store, make_user, make_varian
 
 def test_only_owner_can_edit(make_store, make_user, make_variant, store_client):
     store, _owner = make_store()
-    product = make_variant(store).product
-    review_id = _create(store_client(make_user(), store), product).json()["data"]["id"]
+    variant = make_variant(store)
+    buyer_client = _buyer_who_received(store_client, make_user, store, variant)
+    review_id = _create(buyer_client, variant.product).json()["data"]["id"]
     other = store_client(make_user(), store)
     resp = other.patch(
         reverse("v1:reviews:detail", kwargs={"review_id": review_id}), {"rating": 1}, format="json"
@@ -87,8 +99,9 @@ def test_only_owner_can_edit(make_store, make_user, make_variant, store_client):
 
 def test_helpful_vote_is_counted_and_idempotent(make_store, make_user, make_variant, store_client):
     store, owner = make_store()
-    product = make_variant(store).product
-    review_id = _create(store_client(make_user(), store), product).json()["data"]["id"]
+    variant = make_variant(store)
+    buyer_client = _buyer_who_received(store_client, make_user, store, variant)
+    review_id = _create(buyer_client, variant.product).json()["data"]["id"]
     _approve(store_client(owner, store), review_id)
     voter = store_client(make_user(), store)
     url = reverse("v1:reviews:vote", kwargs={"review_id": review_id})
@@ -99,12 +112,12 @@ def test_helpful_vote_is_counted_and_idempotent(make_store, make_user, make_vari
 
 def test_summary_aggregates_approved_ratings(make_store, make_user, make_variant, store_client):
     store, owner = make_store()
-    product = make_variant(store).product
+    variant = make_variant(store)
+    product = variant.product
     owner_client = store_client(owner, store)
     for rating in (4, 2):
-        review_id = _create(store_client(make_user(), store), product, rating=rating).json()[
-            "data"
-        ]["id"]
+        client = _buyer_who_received(store_client, make_user, store, variant)
+        review_id = _create(client, product, rating=rating).json()["data"]["id"]
         _approve(owner_client, review_id)
     summary = owner_client.get(SUMMARY, {"product": str(product.id)}).json()["data"]
     assert summary["count"] == 2
@@ -115,8 +128,9 @@ def test_summary_aggregates_approved_ratings(make_store, make_user, make_variant
 
 def test_employee_cannot_moderate(make_store, make_user, add_member, make_variant, store_client):
     store, owner = make_store()
-    product = make_variant(store).product
-    review_id = _create(store_client(make_user(), store), product).json()["data"]["id"]
+    variant = make_variant(store)
+    buyer_client = _buyer_who_received(store_client, make_user, store, variant)
+    review_id = _create(buyer_client, variant.product).json()["data"]["id"]
     employee = make_user()
     add_member(store, employee, StoreRole.EMPLOYEE)
     url = reverse("v1:reviews:approve", kwargs={"review_id": review_id})

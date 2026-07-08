@@ -6,7 +6,7 @@ import FormField from '@/components/ui/FormField.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
-import { errorMessage, apiGet } from '@/services/http';
+import { errorMessage } from '@/services/http';
 import { t } from '@/i18n';
 import { useValidation, email, required } from '@/utils/validators';
 
@@ -28,20 +28,13 @@ const { errors, run, clear } = useValidation(
   { email: [email()], password: [required()] }
 );
 
-// Auto-detect the signed-in identity and pick their landing route.
-const landingRoute = async () => {
+// Auto-detect the signed-in identity and pick their landing route. The backend
+// tells us whether the account is a seller (owner/member); customers go to the
+// storefront even when they use the seller entry, and the router keeps them out
+// of the console.
+const landingRoute = () => {
   if (auth.user?.is_superuser) return { name: 'admin-platform' };
-  let isSeller = sellerMode.value;
-  if (!isSeller) {
-    try {
-      const res = await apiGet('/stores/');
-      const stores = Array.isArray(res) ? res : res?.results || [];
-      isSeller = stores.length > 0;
-    } catch {
-      /* treat as buyer on error */
-    }
-  }
-  return isSeller ? { name: 'seller-dashboard' } : { name: 'home' };
+  return auth.isSeller ? { name: 'seller-dashboard' } : { name: 'home' };
 };
 
 const submit = async () => {

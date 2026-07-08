@@ -130,7 +130,7 @@ onMounted(async () => {
             >
               <template v-if="auth.isAuthenticated">
                 <RouterLink :to="{ name: 'account' }" class="dropdown-item"><User class="h-4 w-4" /> {{ t('nav.myAccount') }}</RouterLink>
-                <RouterLink :to="{ name: 'admin-dashboard' }" class="dropdown-item"><LayoutDashboard class="h-4 w-4" /> {{ t('nav.dashboard') }}</RouterLink>
+                <RouterLink v-if="auth.isSeller" :to="{ name: 'admin-dashboard' }" class="dropdown-item"><LayoutDashboard class="h-4 w-4" /> {{ t('nav.dashboard') }}</RouterLink>
                 <RouterLink :to="{ name: 'cart' }" class="dropdown-item"><ShoppingCart class="h-4 w-4" /> {{ t('nav.myCart') }}</RouterLink>
                 <button class="dropdown-item w-full text-secondary-500 hover:bg-secondary-500 hover:text-white" @click="logout">
                   <LogOut class="h-4 w-4" /> {{ t('nav.logout') }}
@@ -210,7 +210,7 @@ onMounted(async () => {
           <div class="mt-1 space-y-1 border-t border-slate-100 pt-2 dark:border-slate-800">
             <template v-if="auth.isAuthenticated">
               <RouterLink :to="{ name: 'account' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-ink hover:bg-primary-50 dark:text-white dark:hover:bg-slate-800" @click="mobileNav = false"><User class="h-4 w-4" /> {{ t('nav.myAccount') }}</RouterLink>
-              <RouterLink :to="{ name: 'admin-dashboard' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-ink hover:bg-primary-50 dark:text-white dark:hover:bg-slate-800" @click="mobileNav = false"><LayoutDashboard class="h-4 w-4" /> {{ t('nav.dashboard') }}</RouterLink>
+              <RouterLink v-if="auth.isSeller" :to="{ name: 'admin-dashboard' }" class="flex items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-ink hover:bg-primary-50 dark:text-white dark:hover:bg-slate-800" @click="mobileNav = false"><LayoutDashboard class="h-4 w-4" /> {{ t('nav.dashboard') }}</RouterLink>
               <button class="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 font-medium text-secondary-500 hover:bg-secondary-50 dark:hover:bg-slate-800" @click="logout"><LogOut class="h-4 w-4" /> {{ t('nav.logout') }}</button>
             </template>
             <template v-else>

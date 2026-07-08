@@ -11,6 +11,11 @@ from apps.accounts.models import User, UserDevice
 
 # --- Output ----------------------------------------------------------------
 class UserSerializer(serializers.ModelSerializer):
+    # True when the user may reach the seller/admin console: a super-admin, a
+    # store owner, or an active member of a store. Plain customers get False,
+    # so the frontend hides the dashboard entirely for them.
+    is_seller = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = (
@@ -20,12 +25,22 @@ class UserSerializer(serializers.ModelSerializer):
             "is_staff",
             "is_superuser",
             "is_verified",
+            "is_seller",
             "two_factor_enabled",
             "max_stores",
             "last_login",
             "created_at",
         )
         read_only_fields = fields
+
+    def get_is_seller(self, obj) -> bool:
+        if obj.is_superuser:
+            return True
+        from apps.stores.models import Store, StoreMembership
+
+        if StoreMembership.objects.filter(user=obj, is_active=True).exists():
+            return True
+        return Store.objects.filter(owner=obj).exists()
 
 
 class DeviceSerializer(serializers.ModelSerializer):

@@ -19,6 +19,12 @@ class ReviewService(BaseService):
     @atomic
     def create_review(self, *, store, user, product, rating, title="", body="") -> Review:
         rating = _validate_rating(rating)
+        # A customer may only review a product they actually bought AND received.
+        if not self._has_received(store=store, user=user, product=product):
+            raise ValidationError(
+                "You can only review a product after you have received it.",
+                code="not_purchased",
+            )
         if Review.all_objects.filter(
             store=store, product=product, user=user, is_deleted=False
         ).exists():
@@ -31,7 +37,7 @@ class ReviewService(BaseService):
             title=title,
             body=body,
             status=ReviewStatus.PENDING,
-            is_verified_purchase=self._has_purchased(store=store, user=user, product=product),
+            is_verified_purchase=True,  # gated on a delivered order above
         )
 
     @atomic
@@ -87,13 +93,14 @@ class ReviewService(BaseService):
         }
 
     @staticmethod
-    def _has_purchased(*, store, user, product) -> bool:
+    def _has_received(*, store, user, product) -> bool:
+        """True only when the user has a DELIVERED order containing this product."""
         from apps.orders.models import OrderItem, OrderStatus
 
         return OrderItem.all_objects.filter(
             store=store,
             is_deleted=False,
             order__user=user,
-            order__status=OrderStatus.CONFIRMED,
+            order__status=OrderStatus.DELIVERED,
             variant__product=product,
         ).exists()

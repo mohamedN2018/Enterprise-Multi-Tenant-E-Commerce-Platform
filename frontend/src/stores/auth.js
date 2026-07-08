@@ -8,6 +8,9 @@ export const useAuthStore = defineStore('auth', {
   }),
   getters: {
     isAuthenticated: (s) => Boolean(s.user),
+    // Only sellers (store owners/members) and the super-admin get a dashboard;
+    // plain customers do not, so we hide and block the console for them.
+    isSeller: (s) => Boolean(s.user?.is_seller || s.user?.is_superuser),
     displayName: (s) => s.user?.first_name || s.user?.email?.split('@')[0] || 'Account'
   },
   actions: {

@@ -47,7 +47,12 @@ const submitReview = async () => {
     ui.success(t('product.reviewSubmitted'));
     reviewForm.value = { rating: 5, title: '', body: '' };
   } catch (e) {
-    ui.error(errorMessage(e));
+    // Reviews are limited to buyers who have received the product.
+    if (e?.response?.data?.error_code === 'not_purchased') {
+      ui.error(t('product.reviewNeedPurchase'));
+    } else {
+      ui.error(errorMessage(e));
+    }
   } finally {
     submittingReview.value = false;
   }

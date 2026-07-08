@@ -88,7 +88,7 @@ export default {
       notFound: 'المنتج غير موجود', notFoundMsg: 'ربما تم حذف هذا المنتج أو لم يعد متاحًا.',
       browseProducts: 'تصفّح المنتجات', noDescription: 'لا يوجد وصف لهذا المنتج.',
       detail: 'التفاصيل', shopDetail: 'تفاصيل المنتج', loading: 'جارٍ تحميل المنتج…', out: 'غير متوفر',
-      reviewsCount: 'تقييم', signInReviewToast: 'من فضلك سجّل الدخول لكتابة تقييم.', reviewSubmitted: 'تم إرسال تقييمك للمراجعة. شكرًا لك!',
+      reviewsCount: 'تقييم', signInReviewToast: 'من فضلك سجّل الدخول لكتابة تقييم.', reviewSubmitted: 'تم إرسال تقييمك للمراجعة. شكرًا لك!', reviewNeedPurchase: 'يمكنك تقييم المنتج فقط بعد شرائه واستلامه.',
       signInToShop: 'من فضلك سجّل الدخول لبدء التسوّق.', addedToCart: 'تمت الإضافة إلى السلة.', unavailableToast: 'هذا المنتج غير متاح حاليًا.',
       signInToSave: 'من فضلك سجّل الدخول لحفظ المنتجات.', savedToWishlist: 'تم الحفظ في المفضلة.', alreadyInWishlist: 'موجود بالفعل في مفضلتك.',
       superAdminNoShop: 'المشرف العام لا يمكنه الشراء — حسابك للإشراف فقط.'
@@ -486,7 +486,7 @@ export default {
       notFound: 'Product not found', notFoundMsg: 'This product may have been removed or is no longer available.',
       browseProducts: 'Browse products', noDescription: 'No description provided for this product.',
       detail: 'Detail', shopDetail: 'Shop Detail', loading: 'Loading product…', out: 'out',
-      reviewsCount: 'reviews', signInReviewToast: 'Please sign in to write a review.', reviewSubmitted: 'Review submitted for moderation. Thank you!',
+      reviewsCount: 'reviews', signInReviewToast: 'Please sign in to write a review.', reviewSubmitted: 'Review submitted for moderation. Thank you!', reviewNeedPurchase: 'You can only review a product after you have bought and received it.',
       signInToShop: 'Please sign in to start shopping.', addedToCart: 'Added to cart.', unavailableToast: 'This product is currently unavailable.',
       signInToSave: 'Please sign in to save items.', savedToWishlist: 'Saved to wishlist.', alreadyInWishlist: 'Already in your wishlist.',
       superAdminNoShop: 'The super admin cannot place orders — your account is for oversight only.'

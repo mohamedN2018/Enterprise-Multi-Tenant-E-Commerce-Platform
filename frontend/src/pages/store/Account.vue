@@ -451,7 +451,7 @@ onMounted(() => {
             <div><dt class="text-xs font-medium uppercase tracking-wide text-slate-400">{{ $t('account.memberSince') }}</dt><dd class="mt-1 font-medium">{{ (auth.user?.created_at || '').slice(0, 10) }}</dd></div>
             <div><dt class="text-xs font-medium uppercase tracking-wide text-slate-400">{{ $t('account.accountType') }}</dt><dd class="mt-1 font-medium">{{ auth.user?.is_staff ? $t('account.staff') : $t('account.customer') }}</dd></div>
           </dl>
-          <div class="mt-6 border-t border-slate-100 pt-6">
+          <div v-if="auth.isSeller" class="mt-6 border-t border-slate-100 pt-6">
             <RouterLink :to="{ name: 'admin-dashboard' }" class="btn btn-outline btn-sm">{{ $t('account.sellerDashboard') }}</RouterLink>
           </div>
         </section>

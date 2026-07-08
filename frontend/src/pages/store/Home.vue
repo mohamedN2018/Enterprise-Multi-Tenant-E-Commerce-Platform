@@ -133,7 +133,12 @@ onMounted(async () => {
       <div class="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-primary-600/25 blur-3xl"></div>
       <div class="pointer-events-none absolute -bottom-32 left-1/4 h-80 w-80 rounded-full bg-secondary-500/20 blur-3xl"></div>
 
-      <div class="container relative grid gap-6 pb-12 pt-10 lg:grid-cols-[240px_1fr] lg:pb-16 lg:pt-14">
+      <!-- The category rail only claims its column when there are categories, so
+           the hero never renders an empty gap while data is still loading. -->
+      <div
+        class="container relative grid gap-6 pb-12 pt-10 lg:pb-16 lg:pt-14"
+        :class="topCategories.length ? 'lg:grid-cols-[240px_1fr]' : 'lg:grid-cols-1'"
+      >
         <!-- Categories quick-nav (desktop) -->
         <aside v-if="topCategories.length" class="hidden lg:block">
           <div class="overflow-hidden rounded-2xl border border-white/15 bg-white/5 backdrop-blur">

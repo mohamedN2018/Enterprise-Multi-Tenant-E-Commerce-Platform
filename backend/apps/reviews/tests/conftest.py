@@ -104,3 +104,12 @@ def buy_and_confirm(client, variant, qty=1):
     order = client.post(reverse("v1:cart:checkout")).json()["data"]
     client.post(reverse("v1:orders:confirm", kwargs={"order_id": order["id"]}))
     return order
+
+
+def buy_and_deliver(client, variant, qty=1):
+    """Buy, confirm, and mark the order DELIVERED — the precondition to review."""
+    from apps.orders.models import Order, OrderStatus
+
+    order = buy_and_confirm(client, variant, qty)
+    Order.all_objects.filter(id=order["id"]).update(status=OrderStatus.DELIVERED)
+    return order
