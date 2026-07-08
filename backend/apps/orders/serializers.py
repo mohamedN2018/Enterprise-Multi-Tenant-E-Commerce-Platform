@@ -158,6 +158,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "pos_synced_at",
             "pos_reference",
             "shipping_address",
+            "notes",
             "placed_at",
             "items",
             "events",
@@ -171,6 +172,7 @@ class CheckoutSerializer(serializers.Serializer):
     country = serializers.CharField(required=False, allow_blank=True, default="")
     currency = serializers.CharField(required=False, allow_blank=True, default="", max_length=3)
     address_id = serializers.UUIDField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_blank=True, default="", max_length=500)
 
 
 class OrderStatusUpdateSerializer(serializers.Serializer):

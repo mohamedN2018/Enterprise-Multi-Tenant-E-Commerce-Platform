@@ -130,6 +130,7 @@ class Order(TenantOwnedModel):
     pos_reference = models.CharField(max_length=120, blank=True, editable=False)
     # Snapshot of the chosen address book entry (so later edits don't alter history).
     shipping_address = models.JSONField(default=dict, blank=True)
+    notes = models.CharField(max_length=500, blank=True)  # buyer's order note
     placed_at = models.DateTimeField(default=timezone.now, editable=False)
 
     class Meta(TenantOwnedModel.Meta):

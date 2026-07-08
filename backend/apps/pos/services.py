@@ -26,7 +26,7 @@ from apps.core.services import BaseService, atomic
 from apps.inventory.models import StockItem
 from apps.inventory.services import InventoryService
 from apps.pos import keys
-from apps.pos.client import PosSupplierClient
+from apps.pos.client import PosAuthError, PosSupplierClient, PosUnavailableError
 from apps.pos.models import PosConnection, PosImportedProduct, PosSupplierConnection
 from apps.pos.security import assert_public_url, is_public_url
 
@@ -262,10 +262,15 @@ class PosSupplierService(BaseService):
                 }
             )
         address = order.shipping_address if isinstance(order.shipping_address, dict) else {}
+        address_str = "، ".join(
+            p for p in (address.get("line1"), address.get("line2"), address.get("city"), address.get("region")) if p
+        )
         payload = {
             "external_id": order.number,
             "customer_name": address.get("full_name") or "",
             "customer_phone": address.get("phone") or "",
+            "address": address_str,
+            "notes": order.notes or "",
             "total_amount": float(order.total),
             "tax_amount": float(order.tax_total),
             "discount_amount": float(order.discount_total),
@@ -281,6 +286,49 @@ class PosSupplierService(BaseService):
             order.pos_synced_at = timezone.now()
             order.save(update_fields=["pos_reference", "pos_synced_at", "updated_at"])
         return result
+
+    def check_cashier_stock(self, *, store, lines) -> list:
+        """Names of cart lines the linked cashier can't currently fulfil (its live
+        stock < requested) — so the buyer sees "unavailable" BEFORE paying. Best
+        effort: returns [] when no cashier is linked or it's unreachable (we then
+        fall back to our own warehouse checks). ``lines`` = iterable of
+        (variant, quantity)."""
+        connection = PosSupplierConnection.all_objects.filter(
+            store=store, is_connected=True, is_deleted=False
+        ).first()
+        if connection is None:
+            return []
+        need = {}  # cashier product id -> [name, requested qty]
+        for variant, qty in lines:
+            product = getattr(variant, "product", None)
+            if product is None:
+                continue
+            ref = PosImportedProduct.all_objects.filter(
+                store=store, connection=connection, product=product, is_deleted=False
+            ).first()
+            if ref is None:
+                continue
+            entry = need.setdefault(str(ref.external_id), [product.name, 0])
+            entry[1] += int(qty)
+        if not need:
+            return []
+        try:
+            products = self._client(
+                store=store, api_url=connection.api_url, api_key=connection.api_key
+            ).fetch_products()
+        except (PosUnavailableError, PosAuthError):
+            return []  # can't verify → don't block the sale
+        stock_by_id = {
+            str(p["id"]): p.get("stock")
+            for p in products
+            if isinstance(p, dict) and p.get("id") is not None
+        }
+        out = []
+        for ext_id, (name, qty) in need.items():
+            available = stock_by_id.get(ext_id)
+            if available is not None and int(available) < qty:
+                out.append(name)
+        return out
 
     def push_order_for(self, *, store, order) -> dict:
         """Manual (re)send of a paid order to the store's connected cashier. Raises

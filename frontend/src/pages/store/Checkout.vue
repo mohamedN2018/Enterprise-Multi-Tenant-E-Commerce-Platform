@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Plus, MapPin, Lock, Check, Truck } from 'lucide-vue-next';
+import { Plus, MapPin, Lock, Check, Truck, StickyNote } from 'lucide-vue-next';
 import FormField from '@/components/ui/FormField.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import PageHero from '@/components/ui/PageHero.vue';
@@ -26,6 +26,7 @@ const showForm = ref(false);
 const savingAddress = ref(false);
 const shippingMethods = ref([]);
 const selectedMethod = ref(null);
+const notes = ref('');
 
 const blankAddress = () => ({
   label: 'Home',
@@ -126,12 +127,19 @@ const placeOrder = async () => {
       address_id: selectedAddress.value || undefined,
       shipping_method_id: selectedMethod.value || undefined,
       country: chosen?.country || cart.shopStore?.country || '',
-      currency: cart.shopStore?.currency || ''
+      currency: cart.shopStore?.currency || '',
+      notes: notes.value.trim() || undefined
     });
     ui.success(t('checkout.orderPlaced'));
     router.push({ name: 'order-confirmation', params: { id: order.id } });
   } catch (e) {
-    ui.error(errorMessage(e));
+    // Cashier ran out of stock between browsing and paying → tell the buyer clearly.
+    if (e?.response?.data?.error_code === 'out_of_stock') {
+      const items = e.response.data.errors?.out_of_stock || [];
+      ui.error(t('checkout.outOfStock', { items: items.join('، ') }));
+    } else {
+      ui.error(errorMessage(e));
+    }
   } finally {
     placing.value = false;
   }
@@ -227,6 +235,12 @@ onMounted(async () => {
               <span class="text-sm font-semibold">{{ Number(m.price) > 0 ? `${m.price} ${currency}` : $t('checkout.free') }}</span>
             </label>
           </div>
+        </section>
+
+        <!-- Order notes -->
+        <section class="card p-6">
+          <h2 class="mb-3 flex items-center gap-2 font-semibold"><StickyNote class="h-5 w-5 text-primary-600" /> {{ $t('checkout.notes') }}</h2>
+          <textarea v-model="notes" rows="2" class="input" maxlength="500" :placeholder="$t('checkout.notesPlaceholder')"></textarea>
         </section>
       </div>
 

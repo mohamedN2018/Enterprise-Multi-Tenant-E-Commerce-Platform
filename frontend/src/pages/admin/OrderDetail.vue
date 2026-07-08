@@ -187,6 +187,12 @@ onMounted(load);
         </div>
       </div>
 
+      <!-- Buyer's note -->
+      <div v-if="order.notes" class="no-print mb-6 card border-s-4 border-primary-500 p-4">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ $t('checkout.notes') }}</p>
+        <p class="mt-1 text-sm text-ink">{{ order.notes }}</p>
+      </div>
+
       <!-- Invoice (printable) -->
       <div class="print-area mx-auto max-w-3xl rounded-xl border border-slate-200 bg-white p-8">
         <div class="flex items-start justify-between border-b border-slate-100 pb-6">

@@ -13,7 +13,7 @@ from apps.core.exceptions import ConflictError, NotFoundError, ValidationError
 from apps.inventory.models import StockItem
 from apps.pos import client as client_mod
 from apps.pos import security
-from apps.pos.client import PosAuthError, PosSupplierClient, PosUnavailableError
+from apps.pos.client import PosAuthError, PosOutOfStockError, PosSupplierClient, PosUnavailableError
 from apps.pos.models import PosSupplierConnection
 from apps.pos.services import PosSupplierService
 from apps.stores.models import StoreRole
@@ -285,6 +285,44 @@ def test_push_order_maps_items_and_skips_unmapped(make_store, make_variant, monk
     order.refresh_from_db()
     assert order.pos_reference == "tx1"
     assert order.pos_synced_at is not None
+
+
+def test_check_cashier_stock_flags_shortfall(make_store, make_variant, monkeypatch):
+    """Before payment we flag lines the cashier can't fulfil; unreachable → allow."""
+    from apps.pos.models import PosImportedProduct, PosSupplierConnection
+
+    store, owner = make_store()
+    product, variant = make_variant(store, sku="S-1", stock=10)
+    conn = PosSupplierConnection.objects.create(
+        store=store, provider="q-shop POS", api_url="https://x/api", api_key="k", is_connected=True
+    )
+    PosImportedProduct.objects.create(store=store, connection=conn, external_id="C-1", product=product)
+
+    monkeypatch.setattr(client_mod.PosSupplierClient, "fetch_products", lambda self: [{"id": "C-1", "stock": 1}])
+    svc = PosSupplierService()
+    assert svc.check_cashier_stock(store=store, lines=[(variant, 3)]) == [product.name]
+    assert svc.check_cashier_stock(store=store, lines=[(variant, 1)]) == []
+
+    def _down(self):
+        raise PosUnavailableError()
+
+    monkeypatch.setattr(client_mod.PosSupplierClient, "fetch_products", _down)
+    assert svc.check_cashier_stock(store=store, lines=[(variant, 3)]) == []
+
+
+def test_client_409_raises_out_of_stock(monkeypatch):
+    import io
+    import urllib.error
+
+    def _conflict(req, timeout=None):
+        raise urllib.error.HTTPError(
+            req.full_url, 409, "Conflict", {}, io.BytesIO(b'{"out_of_stock":["Cola"]}')
+        )
+
+    monkeypatch.setattr(client_mod.urllib.request, "urlopen", _conflict)
+    with pytest.raises(PosOutOfStockError) as excinfo:
+        PosSupplierClient(api_url="https://x/api", api_key="k").push_order({"external_id": "O1"})
+    assert excinfo.value.items == ["Cola"]
 
 
 def test_manual_push_requires_cashier_and_confirmed(make_store):

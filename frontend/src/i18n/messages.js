@@ -117,6 +117,7 @@ export default {
       fullName: 'الاسم الكامل', line1: 'العنوان 1', line2: 'العنوان 2', region: 'المنطقة/المحافظة',
       postal: 'الرمز البريدي', saveAddress: 'حفظ العنوان', preparing: 'جارٍ تجهيز الدفع…', emptyCart: 'سلتك فارغة',
       emptyCartMsg: 'أضف عناصر للسلة قبل إتمام الدفع.', browseProducts: 'تصفّح المنتجات', orderPlaced: 'تم تأكيد الطلب بنجاح!',
+      notes: 'ملاحظات الطلب', notesPlaceholder: 'أي تعليمات للتوصيل؟ (مثال: التوصيل بعد 5 مساءً)', outOfStock: 'بعض المنتجات لم تعد متوفرة: {items}',
       addressSaved: 'تم حفظ العنوان.'
     },
     flyout: {
@@ -514,6 +515,7 @@ export default {
       fullName: 'Full name', line1: 'Address line 1', line2: 'Address line 2', region: 'State / Region',
       postal: 'Postal code', saveAddress: 'Save address', preparing: 'Preparing checkout…', emptyCart: 'Your cart is empty',
       emptyCartMsg: 'Add items to your cart before checking out.', browseProducts: 'Browse products', orderPlaced: 'Order placed successfully!',
+      notes: 'Order notes', notesPlaceholder: 'Any delivery instructions? (e.g. deliver after 5 PM)', outOfStock: 'Some items are no longer available: {items}',
       addressSaved: 'Address saved.'
     },
     flyout: {

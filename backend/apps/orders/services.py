@@ -181,6 +181,7 @@ class CheckoutService(BaseService):
         country=None,
         currency=None,
         address_id=None,
+        notes="",
     ) -> Order:
         cart = (
             Cart.objects.filter(store=store, user=user, status=CartStatus.ACTIVE)
@@ -190,6 +191,20 @@ class CheckoutService(BaseService):
         items = list(cart.items.select_related("variant__product")) if cart else []
         if not items:
             raise ValidationError("Your cart is empty.", code="empty_cart")
+
+        # If a cashier (POS) is linked, verify its LIVE stock before taking payment,
+        # so the buyer sees "unavailable" rather than a rejected order afterwards.
+        from apps.pos.services import PosSupplierService
+
+        unavailable = PosSupplierService().check_cashier_stock(
+            store=store, lines=[(i.variant, i.quantity) for i in items]
+        )
+        if unavailable:
+            raise ConflictError(
+                "Some items are no longer in stock.",
+                code="out_of_stock",
+                errors={"out_of_stock": unavailable},
+            )
 
         # Optional shipping address: snapshot it and let it drive the destination
         # country (overriding the explicit country arg). No address -> unchanged.
@@ -223,6 +238,7 @@ class CheckoutService(BaseService):
             coupon_code=coupon.code if coupon else "",
             shipping_method=method.name if method else "",
             shipping_address=shipping_address,
+            notes=notes or "",
             status=OrderStatus.PENDING,
         )
         reference = f"order:{order.id}"

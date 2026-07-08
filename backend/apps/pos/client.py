@@ -37,6 +37,16 @@ class PosUnavailableError(DomainError):
     message = "Couldn't reach the cashier system. Please try again shortly."
 
 
+class PosOutOfStockError(DomainError):
+    status_code = 409
+    code = "pos_out_of_stock"
+    message = "Some items are no longer in stock."
+
+    def __init__(self, *, items=None):
+        super().__init__(errors={"out_of_stock": items or []})
+        self.items = items or []
+
+
 class PosSupplierClient:
     def __init__(self, *, api_url: str, api_key: str, store_name: str = "", store_url: str = "", timeout: int = 8):
         self.base = (api_url or "").rstrip("/")
@@ -81,6 +91,12 @@ class PosSupplierClient:
             except urllib.error.HTTPError as exc:
                 if exc.code == 401:
                     raise PosAuthError() from exc
+                if exc.code == 409:  # cashier: insufficient stock
+                    try:
+                        detail = json.loads(exc.read().decode("utf-8", "replace") or "{}")
+                    except (ValueError, OSError):
+                        detail = {}
+                    raise PosOutOfStockError(items=detail.get("out_of_stock") or []) from exc
                 if 500 <= exc.code < 600 and attempt < retries:
                     attempt += 1
                     continue
