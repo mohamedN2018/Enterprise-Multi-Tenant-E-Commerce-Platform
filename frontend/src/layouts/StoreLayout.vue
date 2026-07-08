@@ -110,7 +110,6 @@ onMounted(async () => {
       <div class="container flex h-11 items-center gap-4 text-sm">
         <div class="hidden items-center gap-4 text-muted lg:flex">
           <RouterLink :to="{ name: 'support' }" class="flex items-center gap-1.5 hover:text-primary-600"><LifeBuoy class="h-4 w-4" /> {{ t('nav.help') }}</RouterLink>
-          <a :href="`tel:${SUPPORT_PHONE}`" class="flex items-center gap-1.5 hover:text-primary-600" dir="ltr"><Phone class="h-4 w-4" /> {{ t('nav.support') }}</a>
           <a :href="`mailto:${SUPPORT_EMAIL}`" class="flex items-center gap-1.5 hover:text-primary-600"><Mail class="h-4 w-4" /> {{ t('nav.contact') }}</a>
           <RouterLink :to="{ name: 'account' }" class="flex items-center gap-1.5 hover:text-primary-600"><Truck class="h-4 w-4" /> {{ t('nav.trackOrder') }}</RouterLink>
         </div>
@@ -284,7 +283,7 @@ onMounted(async () => {
           >
             {{ catName(c) }}
           </button>
-          <a :href="`tel:${SUPPORT_PHONE}`" class="btn btn-secondary ms-auto my-2 shrink-0 rounded-full" dir="ltr"><Phone class="h-4 w-4" /> (+012) 1234 567890</a>
+          <RouterLink :to="{ name: 'products', query: { on_sale: 1 } }" class="btn btn-secondary ms-auto my-2 shrink-0 rounded-full"><Flame class="h-4 w-4" /> {{ t('nav.todayDeals') }}</RouterLink>
         </nav>
       </div>
     </div>

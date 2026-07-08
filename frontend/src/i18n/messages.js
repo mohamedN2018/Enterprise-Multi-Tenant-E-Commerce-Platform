@@ -27,7 +27,7 @@ export default {
     },
     nav: {
       home: 'الرئيسية', shop: 'المتجر', stores: 'المتاجر', account: 'حسابي', help: 'مركز المساعدة',
-      deals: 'العروض', trackOrder: 'تتبّع طلبك',
+      deals: 'العروض', trackOrder: 'تتبّع طلبك', todayDeals: 'عروض اليوم',
       support: 'الدعم', contact: 'راسلنا', callUs: 'اتصل بنا', myAccount: 'حسابي',
       login: 'تسجيل الدخول', register: 'إنشاء حساب', logout: 'تسجيل الخروج', dashboard: 'لوحة التحكم',
       myCart: 'سلتي', allCategories: 'كل الأقسام', wishlist: 'المفضلة', compare: 'مقارنة',
@@ -426,7 +426,7 @@ export default {
     },
     nav: {
       home: 'Home', shop: 'Shop', stores: 'Stores', account: 'Account', help: 'Help Center', support: 'Support',
-      deals: 'Deals', trackOrder: 'Track order',
+      deals: 'Deals', trackOrder: 'Track order', todayDeals: "Today's Deals",
       contact: 'Contact', callUs: 'Call Us', myAccount: 'My Account', login: 'Login', register: 'Register',
       logout: 'Log Out', dashboard: 'Dashboard', myCart: 'My Cart', allCategories: 'All Categories',
       wishlist: 'Wishlist', compare: 'Compare', searchPlaceholder: 'Search Looking For?', yourCart: 'Your cart',

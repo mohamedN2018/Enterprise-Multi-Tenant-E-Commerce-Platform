@@ -42,19 +42,37 @@ const loading = ref(true);
 const tab = ref('all');
 const recent = ref(getRecentlyViewed());
 
-// Amazon-style recommendation rails derived from the product pool.
-const bestSellers = computed(() =>
-  [...pool.value]
-    .sort(
-      (a, b) =>
-        Number(b.rating ?? b.average_rating ?? 0) - Number(a.rating ?? a.average_rating ?? 0) ||
-        Number(b.review_count ?? 0) - Number(a.review_count ?? 0)
-    )
-    .slice(0, 12)
+// Amazon-style recommendation rails — each product appears in ONE place only, so
+// the page never shows the same items twice (important with a small catalogue).
+const sortedByRating = computed(() =>
+  [...pool.value].sort(
+    (a, b) =>
+      Number(b.rating ?? b.average_rating ?? 0) - Number(a.rating ?? a.average_rating ?? 0) ||
+      Number(b.review_count ?? 0) - Number(a.review_count ?? 0)
+  )
 );
-const moreToConsider = computed(() => pool.value.slice(0, 12));
-const alsoBought = computed(() => pool.value.slice(6, 18));
-const heroBest = computed(() => bestSellers.value.slice(0, 4));
+const heroBest = computed(() => sortedByRating.value.slice(0, 4));
+// Build the rails once, skipping anything already shown in the hero or the main
+// products grid (newest/deals), then dividing the rest between the rails.
+const rails = computed(() => {
+  const seen = new Set([...heroBest.value, ...newest.value, ...deals.value].map((p) => p?.id));
+  const grab = (source, n) => {
+    const out = [];
+    for (const p of source) {
+      if (out.length >= n) break;
+      if (p && !seen.has(p.id)) { seen.add(p.id); out.push(p); }
+    }
+    return out;
+  };
+  return {
+    bestSellers: grab(sortedByRating.value, 10),
+    moreToConsider: grab(pool.value, 10),
+    alsoBought: grab(pool.value, 10)
+  };
+});
+const bestSellers = computed(() => rails.value.bestSellers);
+const moreToConsider = computed(() => rails.value.moreToConsider);
+const alsoBought = computed(() => rails.value.alsoBought);
 const topCategories = computed(() => categories.value.slice(0, 8));
 
 const services = [
@@ -288,11 +306,11 @@ onMounted(async () => {
       </div>
     </section>
 
-    <!-- ===== RECOMMENDATION RAILS ===== -->
-    <div v-if="moreToConsider.length" class="container space-y-10 py-4">
-      <ProductCarousel :title="$t('rec.moreToConsider')" :products="moreToConsider" :adding-id="adding" @add="add" />
-      <ProductCarousel v-if="bestSellers.length" :title="$t('rec.bestSellers')" :products="bestSellers" :adding-id="adding" @add="add" />
-      <ProductCarousel v-if="alsoBought.length" :title="$t('rec.alsoBought')" :products="alsoBought" :adding-id="adding" @add="add" />
+    <!-- ===== RECOMMENDATION RAILS (only when there are enough distinct items) ===== -->
+    <div v-if="bestSellers.length >= 4 || moreToConsider.length >= 4 || alsoBought.length >= 4" class="container space-y-10 py-4">
+      <ProductCarousel v-if="bestSellers.length >= 4" :title="$t('rec.bestSellers')" :products="bestSellers" :adding-id="adding" @add="add" />
+      <ProductCarousel v-if="moreToConsider.length >= 4" :title="$t('rec.moreToConsider')" :products="moreToConsider" :adding-id="adding" @add="add" />
+      <ProductCarousel v-if="alsoBought.length >= 4" :title="$t('rec.alsoBought')" :products="alsoBought" :adding-id="adding" @add="add" />
     </div>
 
     <!-- ===== RECENTLY VIEWED ===== -->
