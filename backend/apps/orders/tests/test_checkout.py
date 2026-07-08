@@ -14,11 +14,39 @@ pytestmark = pytest.mark.django_db
 
 ADD = reverse("v1:cart:item-add")
 CHECKOUT = reverse("v1:cart:checkout")
+QUOTE = reverse("v1:cart:quote")
 ORDERS = reverse("v1:orders:list")
 
 
 def _add(client, variant, qty):
     return client.post(ADD, {"variant_id": str(variant.id), "quantity": qty}, format="json")
+
+
+def test_quote_matches_the_placed_order(
+    store_client, make_store, make_user, make_variant, seed_stock
+):
+    """The checkout preview (with tax + shipping) equals the order that follows."""
+    store = make_store()
+    variant = make_variant(store, price="20.00")
+    seed_stock(store, variant, 10)
+    client = store_client(make_user(), store)
+    _add(client, variant, 3)
+
+    q = client.post(QUOTE, {}, format="json").json()["data"]
+    assert q["subtotal"] == "60.00"
+
+    order = client.post(CHECKOUT).json()["data"]
+    assert order["subtotal"] == q["subtotal"]
+    assert order["tax_total"] == q["tax"]
+    assert order["shipping_total"] == q["shipping"]
+    assert order["total"] == q["total"]
+
+
+def test_quote_empty_cart_is_zero(store_client, make_store, make_user):
+    store = make_store()
+    client = store_client(make_user(), store)
+    q = client.post(QUOTE, {}, format="json").json()["data"]
+    assert q["total"] == "0.00"
 
 
 def test_checkout_creates_order_and_reserves_stock(

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Plus, MapPin, Lock, Check, Truck } from 'lucide-vue-next';
 import FormField from '@/components/ui/FormField.vue';
@@ -44,6 +44,27 @@ const form = ref(blankAddress());
 const currency = computed(() => cart.shopStore?.currency || '');
 const data = computed(() => cart.cart);
 const items = computed(() => data.value?.items || []);
+
+// Server-computed preview so the summary shows the REAL total (tax + shipping
+// included) — matching the order that gets placed. Falls back to the cart data.
+const quote = ref(null);
+const totals = computed(() => quote.value || data.value || {});
+const refreshQuote = async () => {
+  const chosen = addresses.value.find((a) => a.id === selectedAddress.value);
+  try {
+    const res = await shop.quote(cart.headers, {
+      shipping_method_id: selectedMethod.value || undefined,
+      address_id: selectedAddress.value || undefined,
+      country: chosen?.country || cart.shopStore?.country || '',
+      currency: cart.shopStore?.currency || ''
+    });
+    quote.value = res.data;
+  } catch {
+    quote.value = null;
+  }
+};
+// Re-quote whenever the shipping method or address changes.
+watch([selectedMethod, selectedAddress], refreshQuote);
 
 const loadAddresses = async () => {
   try {
@@ -119,6 +140,7 @@ const placeOrder = async () => {
 onMounted(async () => {
   await cart.refreshCart();
   await Promise.all([loadAddresses(), loadShipping()]);
+  await refreshQuote();
   loading.value = false;
 });
 </script>
@@ -220,9 +242,11 @@ onMounted(async () => {
             </li>
           </ul>
           <dl class="mt-4 space-y-2 text-sm">
-            <div class="flex justify-between"><dt class="text-slate-500">{{ $t('common.subtotal') }}</dt><dd class="font-medium">{{ data.subtotal }} {{ currency }}</dd></div>
-            <div v-if="Number(data.discount) > 0" class="flex justify-between text-emerald-600"><dt>{{ $t('common.discount') }}</dt><dd>−{{ data.discount }} {{ currency }}</dd></div>
-            <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>{{ $t('common.total') }}</dt><dd>{{ data.total }} {{ currency }}</dd></div>
+            <div class="flex justify-between"><dt class="text-slate-500">{{ $t('common.subtotal') }}</dt><dd class="font-medium">{{ totals.subtotal }} {{ currency }}</dd></div>
+            <div v-if="Number(totals.discount) > 0" class="flex justify-between text-emerald-600"><dt>{{ $t('common.discount') }}</dt><dd>−{{ totals.discount }} {{ currency }}</dd></div>
+            <div v-if="quote && Number(quote.tax) > 0" class="flex justify-between"><dt class="text-slate-500">{{ $t('orderDetailPage.tax') }}</dt><dd>{{ quote.tax }} {{ currency }}</dd></div>
+            <div v-if="quote" class="flex justify-between"><dt class="text-slate-500">{{ $t('orderDetailPage.shipping') }}</dt><dd>{{ Number(quote.shipping) > 0 ? `${quote.shipping} ${currency}` : $t('checkout.free') }}</dd></div>
+            <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>{{ $t('common.total') }}</dt><dd>{{ totals.total }} {{ currency }}</dd></div>
           </dl>
           <button class="btn btn-primary btn-lg mt-5 w-full" :disabled="placing" @click="placeOrder">
             <Spinner v-if="placing" :size="18" />

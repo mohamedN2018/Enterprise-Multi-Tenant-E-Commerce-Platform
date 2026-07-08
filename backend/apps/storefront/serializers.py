@@ -31,6 +31,19 @@ def variant_available(variant) -> bool:
     )
 
 
+def variant_available_qty(variant):
+    """Net sellable units for a tracked variant (on-hand minus reserved), or None
+    for an untracked variant (treated as unlimited). Lets the storefront cap the
+    order quantity to what's actually in stock. Uses prefetched stock items."""
+    if not variant.track_inventory:
+        return None
+    return sum(
+        max(item.quantity - item.reserved_quantity, 0)
+        for item in variant.stock_items.all()
+        if not item.is_deleted
+    )
+
+
 def product_in_stock(product) -> bool:
     """A product is in stock if any of its active variants is available."""
     return any(variant_available(v) for v in product.variants.all() if v.is_active)
@@ -104,6 +117,7 @@ class StorefrontCategorySerializer(LocalizedNameMixin, serializers.ModelSerializ
 
 class StorefrontVariantSerializer(serializers.ModelSerializer):
     in_stock = serializers.SerializerMethodField()
+    available = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductVariant
@@ -115,11 +129,15 @@ class StorefrontVariantSerializer(serializers.ModelSerializer):
             "compare_at_price",
             "is_default",
             "in_stock",
+            "available",
         )
         read_only_fields = fields
 
     def get_in_stock(self, obj) -> bool:
         return variant_available(obj)
+
+    def get_available(self, obj):
+        return variant_available_qty(obj)
 
 
 class StorefrontProductSerializer(LocalizedNameMixin, serializers.ModelSerializer):

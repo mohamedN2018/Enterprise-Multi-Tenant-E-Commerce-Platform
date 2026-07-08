@@ -60,6 +60,27 @@ def test_sold_out_product_flagged_but_hidden_when_filtered(active_store, make_pr
     assert str(product.id) not in [p["id"] for p in _list(in_stock=1)]
 
 
+def test_available_quantity_is_exposed_for_capping(active_store, make_product):
+    """The storefront reports the exact sellable count so the buyer can't order
+    more than what's in stock; untracked variants report null (unlimited)."""
+    store, product = _product(active_store, make_product, "capqty")
+    CatalogService().create_variant(
+        store=store,
+        product=product,
+        data={"sku": "CAP-1", "price": "10.00", "stock_quantity": 5, "is_default": True},
+    )
+    variant = _detail(product)["variants"][0]
+    assert variant["available"] == 5
+
+    store2, product2 = _product(active_store, make_product, "capdigital")
+    CatalogService().create_variant(
+        store=store2,
+        product=product2,
+        data={"sku": "CAP-D", "price": "10.00", "track_inventory": False, "is_default": True},
+    )
+    assert _detail(product2)["variants"][0]["available"] is None
+
+
 def test_untracked_variant_is_always_in_stock(active_store, make_product):
     store, product = _product(active_store, make_product, "digital")
     CatalogService().create_variant(

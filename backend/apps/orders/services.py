@@ -191,49 +191,28 @@ class CheckoutService(BaseService):
         )
         country = address_country or country
 
-        subtotal = _money(sum((i.line_total for i in items), Decimal("0.00")))
-        coupon, coupon_discount = self._resolve_discount(
-            store=store, user=user, code=cart.coupon_code, subtotal=subtotal
-        )
-        # Automatic campaigns (flash sales, BXGY, order discounts, free shipping).
-        # With no live campaigns this is a zero result, leaving totals unchanged.
-        promo = self._auto_promotions(store=store, items=items, subtotal=subtotal)
-        discount = _money(min(coupon_discount + promo.discount, subtotal))
-        taxable = subtotal - discount
-        # Destination-based tax: use the shipping country, falling back to the
-        # store's own country (and then the store's flat default rate).
-        tax_total, taxed_total = self._totals(
-            store=store, amount=taxable, country=country or store.country or None
-        )
-        weight = sum(
-            (Decimal(str(item.variant.weight or 0)) * item.quantity for item in items),
-            Decimal("0"),
-        )
-        method, shipping_total = self._shipping(
+        priced = self._price_cart(
             store=store,
-            method_id=shipping_method_id,
+            user=user,
+            cart=cart,
+            items=items,
+            shipping_method_id=shipping_method_id,
             country=country,
-            subtotal=subtotal,
-            weight=weight,
+            currency=currency,
         )
-        if promo.free_shipping:
-            shipping_total = Decimal("0.00")
-        total = _money(taxed_total + shipping_total)
-
-        # Optional settlement currency: convert all amounts once, recording the
-        # order in the chosen currency. Defaults to the store currency (identity).
-        order_currency, fx = self._resolve_currency(store=store, currency=currency)
+        coupon, coupon_discount = priced["coupon"], priced["coupon_discount"]
+        method, order_currency, fx = priced["method"], priced["currency"], priced["fx"]
 
         order = Order.objects.create(
             store=store,
             user=user,
             number=self._generate_number(store),
             currency=order_currency,
-            subtotal=fx(subtotal),
-            discount_total=fx(discount),
-            tax_total=fx(tax_total),
-            shipping_total=fx(shipping_total),
-            total=fx(total),
+            subtotal=fx(priced["subtotal"]),
+            discount_total=fx(priced["discount"]),
+            tax_total=fx(priced["tax_total"]),
+            shipping_total=fx(priced["shipping_total"]),
+            total=fx(priced["total"]),
             coupon_code=coupon.code if coupon else "",
             shipping_method=method.name if method else "",
             shipping_address=shipping_address,
@@ -266,6 +245,91 @@ class CheckoutService(BaseService):
         cart.save(update_fields=["status", "updated_at"])
         order_placed.send(sender=self.__class__, order=order)
         return order
+
+    def _price_cart(self, *, store, user, cart, items, shipping_method_id, country, currency):
+        """Compute the full money breakdown for a cart. The single source of truth
+        shared by ``checkout`` (persisted) and ``quote`` (preview), so the total a
+        buyer sees at checkout always matches the order that gets placed."""
+        subtotal = _money(sum((i.line_total for i in items), Decimal("0.00")))
+        coupon, coupon_discount = self._resolve_discount(
+            store=store, user=user, code=cart.coupon_code, subtotal=subtotal
+        )
+        # Automatic campaigns (flash sales, BXGY, order discounts, free shipping).
+        promo = self._auto_promotions(store=store, items=items, subtotal=subtotal)
+        discount = _money(min(coupon_discount + promo.discount, subtotal))
+        taxable = subtotal - discount
+        # Destination-based tax: shipping country, then the store's own country.
+        tax_total, taxed_total = self._totals(
+            store=store, amount=taxable, country=country or store.country or None
+        )
+        weight = sum(
+            (Decimal(str(item.variant.weight or 0)) * item.quantity for item in items),
+            Decimal("0"),
+        )
+        method, shipping_total = self._shipping(
+            store=store, method_id=shipping_method_id, country=country, subtotal=subtotal, weight=weight
+        )
+        if promo.free_shipping:
+            shipping_total = Decimal("0.00")
+        total = _money(taxed_total + shipping_total)
+        order_currency, fx = self._resolve_currency(store=store, currency=currency)
+        return {
+            "subtotal": subtotal,
+            "discount": discount,
+            "tax_total": tax_total,
+            "shipping_total": shipping_total,
+            "total": total,
+            "coupon": coupon,
+            "coupon_discount": coupon_discount,
+            "method": method,
+            "currency": order_currency,
+            "fx": fx,
+        }
+
+    def quote(self, *, store, user, shipping_method_id=None, country=None, currency=None, address_id=None) -> dict:
+        """Preview the checkout totals (incl. tax + shipping) without placing the
+        order, so the summary shown to the buyer is the real, final amount."""
+        cart = (
+            Cart.objects.filter(store=store, user=user, status=CartStatus.ACTIVE)
+            .prefetch_related("items__variant__product")
+            .first()
+        )
+        items = list(cart.items.select_related("variant__product")) if cart else []
+        order_currency, _ = self._resolve_currency(store=store, currency=currency)
+        empty = {
+            "currency": order_currency,
+            "subtotal": "0.00",
+            "discount": "0.00",
+            "tax": "0.00",
+            "shipping": "0.00",
+            "total": "0.00",
+            "shipping_method": None,
+        }
+        if not items:
+            return empty
+        _shipping_address, address_country = self._resolve_address(
+            store=store, user=user, address_id=address_id
+        )
+        country = address_country or country
+        priced = self._price_cart(
+            store=store,
+            user=user,
+            cart=cart,
+            items=items,
+            shipping_method_id=shipping_method_id,
+            country=country,
+            currency=currency,
+        )
+        fx = priced["fx"]
+        return {
+            "currency": priced["currency"],
+            "subtotal": str(fx(priced["subtotal"])),
+            "discount": str(fx(priced["discount"])),
+            "tax": str(fx(priced["tax_total"])),
+            "shipping": str(fx(priced["shipping_total"])),
+            "total": str(fx(priced["total"])),
+            "shipping_method": priced["method"].name if priced["method"] else None,
+        }
 
     @atomic
     def confirm_order(self, *, order: Order) -> Order:

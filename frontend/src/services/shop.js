@@ -30,6 +30,9 @@ export const shop = {
   // Shipping (buyer)
   availableShipping: (headers, params) => http.get('/shipping/methods/', { headers, params }),
 
+  // Checkout totals preview (subtotal + discount + tax + shipping = total)
+  quote: (headers, payload) => http.post('/cart/quote/', payload, { headers }),
+
   // Returns (buyer)
   returns: (headers) => http.get('/returns/', { headers }),
   createReturn: (headers, payload) => http.post('/returns/', payload, { headers }),

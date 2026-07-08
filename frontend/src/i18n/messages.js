@@ -78,6 +78,7 @@ export default {
     },
     product: {
       addToCart: 'أضف للسلة', adding: 'جارٍ الإضافة…', outOfStock: 'غير متوفر', options: 'الخيارات',
+      onlyLeft: 'متبقّي {n} فقط في المخزون', maxQty: 'وصلت للحد الأقصى المتاح', maxQtyReached: 'ده أقصى عدد متاح ({n})',
       inStock: 'متوفر وجاهز للشحن', unavailable: 'غير متاح حاليًا', fastDelivery: 'توصيل سريع ومتتبَّع',
       securePayment: 'دفع آمن', description: 'الوصف', reviews: 'التقييمات', writeReview: 'اكتب تقييمًا',
       yourRating: 'تقييمك', reviewTitle: 'عنوان (اختياري)', reviewBody: 'شاركنا تجربتك…', submitReview: 'إرسال التقييم',
@@ -472,6 +473,7 @@ export default {
     },
     product: {
       addToCart: 'Add to cart', adding: 'Adding…', outOfStock: 'Out of stock', options: 'Options',
+      onlyLeft: 'Only {n} left in stock', maxQty: 'Maximum available reached', maxQtyReached: "That's the most available ({n})",
       inStock: 'In stock and ready to ship', unavailable: 'Currently unavailable', fastDelivery: 'Fast, tracked delivery',
       securePayment: 'Secure payment', description: 'Description', reviews: 'Reviews', writeReview: 'Write a review',
       yourRating: 'Your rating', reviewTitle: 'Title (optional)', reviewBody: 'Share your experience…', submitReview: 'Submit review',

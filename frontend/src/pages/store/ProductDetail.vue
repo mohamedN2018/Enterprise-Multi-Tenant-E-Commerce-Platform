@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { Minus, Plus, ShoppingCart, Store as StoreIcon, Check, Truck, ShieldCheck, Shuffle, Heart } from 'lucide-vue-next';
+import { Minus, Plus, ShoppingCart, Store as StoreIcon, Check, Truck, ShieldCheck, Shuffle, Heart, Info } from 'lucide-vue-next';
 import StarRating from '@/components/ui/StarRating.vue';
 import PageHero from '@/components/ui/PageHero.vue';
 import ProductCard from '@/components/ProductCard.vue';
@@ -90,6 +90,24 @@ const compareAt = computed(() => selectedVariant.value?.compare_at_price);
 const onSale = computed(() => compareAt.value && Number(compareAt.value) > Number(price.value));
 const inStock = computed(() => selectedVariant.value?.in_stock !== false);
 
+// Cap the order quantity to what's actually in stock. `available` is null for
+// untracked variants (unlimited); otherwise it's the exact sellable count.
+const available = computed(() => {
+  const a = selectedVariant.value?.available;
+  return a == null ? null : Math.max(Number(a) || 0, 0);
+});
+const maxQty = computed(() => (available.value == null ? Infinity : available.value));
+const atMax = computed(() => qty.value >= maxQty.value);
+const incQty = () => {
+  if (qty.value < maxQty.value) qty.value += 1;
+};
+// A "only N left" nudge when stock is limited/running low.
+const lowStock = computed(() => available.value != null && available.value > 0 && available.value <= 10);
+// Keep the chosen quantity within the available range when the variant changes.
+watch(selectedVariant, () => {
+  if (qty.value > maxQty.value) qty.value = Math.max(1, maxQty.value);
+});
+
 const load = async (id) => {
   loading.value = true;
   notFound.value = false;
@@ -118,7 +136,7 @@ const load = async (id) => {
   }
 };
 
-const addToCart = () => add(product.value, { variant: selectedVariant.value, quantity: qty.value });
+const addToCart = () => add(product.value, { variant: selectedVariant.value, quantity: Math.min(qty.value, maxQty.value) });
 
 watch(() => route.params.id, (id) => id && load(id), { immediate: true });
 </script>
@@ -190,7 +208,7 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
               <div class="inline-flex items-center rounded-full border border-slate-200">
                 <button class="grid h-11 w-11 place-items-center rounded-full text-ink hover:bg-lightbg disabled:opacity-40" :disabled="qty <= 1" @click="qty--"><Minus class="h-4 w-4" /></button>
                 <span class="w-10 text-center font-semibold">{{ qty }}</span>
-                <button class="grid h-11 w-11 place-items-center rounded-full text-ink hover:bg-lightbg" @click="qty++"><Plus class="h-4 w-4" /></button>
+                <button class="grid h-11 w-11 place-items-center rounded-full text-ink hover:bg-lightbg disabled:cursor-not-allowed disabled:opacity-40" :disabled="atMax" :title="atMax ? $t('product.maxQty') : ''" @click="incQty"><Plus class="h-4 w-4" /></button>
               </div>
               <button class="btn btn-primary btn-lg flex-1 border border-secondary-500 sm:flex-none" :disabled="!inStock || adding === product.id" @click="addToCart">
                 <ShoppingCart class="h-5 w-5" /> {{ inStock ? $t('product.addToCart') : $t('product.outOfStock') }}
@@ -198,6 +216,13 @@ watch(() => route.params.id, (id) => id && load(id), { immediate: true });
               <button class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500 disabled:opacity-50" :title="$t('product.wishlist')" :disabled="wishSaving === product.id" @click="saveWishlist(product, { variant: selectedVariant })"><Heart class="h-5 w-5" /></button>
               <RouterLink :to="{ name: 'products', query: { store: product.store_slug } }" class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 text-primary-600 hover:border-primary-500" :title="$t('product.moreFromStore')"><Shuffle class="h-5 w-5" /></RouterLink>
             </div>
+
+            <!-- Stock nudge: "only N left" / max-quantity reached -->
+            <p v-if="inStock && available != null && (atMax || lowStock)" class="mt-3 flex items-center gap-1.5 text-sm font-medium text-secondary-600">
+              <Info class="h-4 w-4 shrink-0" />
+              <span v-if="atMax">{{ $t('product.maxQtyReached', { n: available }) }}</span>
+              <span v-else>{{ $t('product.onlyLeft', { n: available }) }}</span>
+            </p>
 
             <div class="mt-6 flex items-center gap-1.5 text-sm" :class="inStock ? 'text-emerald-600' : 'text-secondary-500'">
               <Check v-if="inStock" class="h-4 w-4" /> {{ inStock ? $t('product.inStock') : $t('product.unavailable') }}

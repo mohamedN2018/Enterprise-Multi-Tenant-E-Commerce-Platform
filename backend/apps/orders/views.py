@@ -139,6 +139,28 @@ class CheckoutView(RequireStoreMixin, BaseAPIView):
         )
 
 
+class CheckoutQuoteView(RequireStoreMixin, BaseAPIView):
+    """Preview the checkout totals (subtotal, discount, tax, shipping, total) for
+    the current cart + chosen shipping method/address, without placing the order —
+    so the buyer sees the real final amount, tax and shipping included."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=CheckoutSerializer)
+    def post(self, request: Request) -> Response:
+        serializer = CheckoutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        quote = CheckoutService().quote(
+            store=self.store,
+            user=request.user,
+            shipping_method_id=serializer.validated_data.get("shipping_method_id"),
+            country=serializer.validated_data.get("country") or "",
+            currency=serializer.validated_data.get("currency") or "",
+            address_id=serializer.validated_data.get("address_id"),
+        )
+        return APIResponse.success(quote)
+
+
 @extend_schema(tags=["Orders"])
 class OrderListView(RequireStoreMixin, BaseGenericAPIView, generics.ListAPIView):
     permission_classes = [IsAuthenticated]
