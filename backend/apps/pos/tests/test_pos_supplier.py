@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from apps.catalog.models import Product
 from apps.catalog.services import CatalogService
-from apps.core.exceptions import ValidationError
+from apps.core.exceptions import ConflictError, NotFoundError, ValidationError
 from apps.inventory.models import StockItem
 from apps.pos import client as client_mod
 from apps.pos import security
@@ -285,6 +285,21 @@ def test_push_order_maps_items_and_skips_unmapped(make_store, make_variant, monk
     order.refresh_from_db()
     assert order.pos_reference == "tx1"
     assert order.pos_synced_at is not None
+
+
+def test_manual_push_requires_cashier_and_confirmed(make_store):
+    from apps.orders.models import Order
+
+    store, owner = make_store()
+    order = Order.objects.create(store=store, user=owner, number="ORD-2", status="confirmed", total="10.00")
+    # No cashier linked → clean not-found.
+    with pytest.raises(NotFoundError):
+        PosSupplierService().push_order_for(store=store, order=order)
+    # An unpaid order can't be sent.
+    order.status = "pending"
+    order.save(update_fields=["status"])
+    with pytest.raises(ConflictError):
+        PosSupplierService().push_order_for(store=store, order=order)
 
 
 # --- Security: encryption at rest -------------------------------------------

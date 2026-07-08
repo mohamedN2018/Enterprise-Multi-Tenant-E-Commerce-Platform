@@ -171,6 +171,7 @@ export const seller = {
   confirmOrder: (id) => http.post(`/orders/manage/${id}/confirm/`),
   cancelOrder: (id) => http.post(`/orders/manage/${id}/cancel/`),
   updateOrderStatus: (id, payload) => http.post(`/orders/manage/${id}/status/`, payload),
+  pushOrderToCashier: (id) => http.post(`/orders/manage/${id}/push-to-cashier/`),
 
   // Inventory
   stock: (params) => http.get('/inventory/stock/', { params }),

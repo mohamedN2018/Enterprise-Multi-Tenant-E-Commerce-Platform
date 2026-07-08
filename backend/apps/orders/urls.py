@@ -25,6 +25,11 @@ urlpatterns = [
         views.OrderManageStatusView.as_view(),
         name="manage-status",
     ),
+    path(
+        "manage/<uuid:order_id>/push-to-cashier/",
+        views.OrderManagePushView.as_view(),
+        name="manage-push",
+    ),
     # Buyer
     path("", views.OrderListView.as_view(), name="list"),
     path("<uuid:order_id>/", views.OrderDetailView.as_view(), name="detail"),

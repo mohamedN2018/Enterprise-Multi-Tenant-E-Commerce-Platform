@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowLeft, Printer, Check, X, XCircle, Truck, Ticket, ShoppingBag } from 'lucide-vue-next';
+import { ArrowLeft, Printer, Check, X, XCircle, Truck, Ticket, ShoppingBag, Send } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import Spinner from '@/components/ui/Spinner.vue';
@@ -11,6 +11,7 @@ import FormField from '@/components/ui/FormField.vue';
 import { useTenantStore } from '@/stores/tenant';
 import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
+import { pos } from '@/services/pos';
 import { errorMessage } from '@/services/http';
 import { useValidation, required } from '@/utils/validators';
 import OrderTimeline from '@/components/OrderTimeline.vue';
@@ -29,6 +30,23 @@ const acting = ref(false);
 
 const currency = computed(() => order.value?.currency || '');
 const address = computed(() => (order.value?.shipping_address && typeof order.value.shipping_address === 'object' ? order.value.shipping_address : null));
+
+// Cashier (POS) push — manual (re)send of a paid order to the linked cashier.
+const hasCashier = ref(false);
+const pushing = ref(false);
+const isPaid = computed(() => order.value && !['pending', 'cancelled'].includes(order.value.status));
+const pushToCashier = async () => {
+  pushing.value = true;
+  try {
+    const res = await seller.pushOrderToCashier(order.value.id);
+    order.value = res.data;
+    ui.success(t('orderDetailPage.posSent'));
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    pushing.value = false;
+  }
+};
 
 // Fulfillment status advance (processing → shipped → out for delivery → delivered)
 const nextStatuses = computed(() => NEXT_STATUS[order.value?.status] || []);
@@ -60,6 +78,12 @@ const load = async () => {
     order.value = res.data;
     advTracking.value = order.value?.tracking_number || '';
     advCarrier.value = order.value?.carrier || '';
+    try {
+      const sup = await pos.supplier();
+      hasCashier.value = !!sup?.data?.is_connected;
+    } catch {
+      hasCashier.value = false;
+    }
   } catch {
     failed.value = true;
   } finally {
@@ -124,6 +148,9 @@ onMounted(load);
             <button class="btn btn-ghost btn-sm" @click="router.push({ name: 'admin-orders' })"><ArrowLeft class="h-4 w-4 rtl:rotate-180" /> {{ $t('orderDetailPage.back') }}</button>
             <button class="btn btn-outline btn-sm" @click="print"><Printer class="h-4 w-4" /> {{ $t('orderDetailPage.printInvoice') }}</button>
             <button v-if="tenant.canWrite" class="btn btn-outline btn-sm" @click="openTrack"><Truck class="h-4 w-4" /> {{ $t('orderDetailPage.trackingLabel') }}</button>
+            <button v-if="tenant.canWrite && hasCashier && isPaid" class="btn btn-outline btn-sm" :disabled="pushing" @click="pushToCashier">
+              <Send class="h-4 w-4" /> {{ order.pos_synced_at ? $t('orderDetailPage.posResend') : $t('orderDetailPage.posSend') }}
+            </button>
             <template v-if="tenant.canWrite && order.status === 'pending'">
               <button class="btn btn-danger btn-sm" :disabled="acting" @click="act('cancel')"><X class="h-4 w-4" /> {{ $t('orderDetailPage.cancel') }}</button>
               <button class="btn btn-primary btn-sm" :disabled="acting" @click="act('confirm')"><Check class="h-4 w-4" /> {{ $t('orderDetailPage.confirm') }}</button>

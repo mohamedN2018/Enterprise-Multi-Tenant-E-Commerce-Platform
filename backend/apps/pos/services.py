@@ -282,6 +282,23 @@ class PosSupplierService(BaseService):
             order.save(update_fields=["pos_reference", "pos_synced_at", "updated_at"])
         return result
 
+    def push_order_for(self, *, store, order) -> dict:
+        """Manual (re)send of a paid order to the store's connected cashier. Raises
+        a clean error if the order isn't confirmed or no cashier is linked."""
+        if order.status in ("pending", "cancelled"):
+            raise ConflictError(
+                "Only a confirmed order can be sent to the cashier.",
+                code="order_not_confirmed",
+            )
+        connection = PosSupplierConnection.all_objects.filter(
+            store=store, is_connected=True, is_deleted=False
+        ).first()
+        if connection is None:
+            raise NotFoundError(
+                "No cashier system is connected to this store.", code="no_cashier"
+            )
+        return self.push_order(connection=connection, order=order)
+
     # --- Upsert one external product ---
     def _upsert(self, *, store, connection: PosSupplierConnection, item: dict) -> bool:
         external_id = str(item["id"])

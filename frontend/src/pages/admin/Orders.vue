@@ -71,6 +71,10 @@ onMounted(async () => {
         <option value="">{{ $t('common.allStatuses') }}</option>
         <option value="pending">{{ $t('status.pending') }}</option>
         <option value="confirmed">{{ $t('status.confirmed') }}</option>
+        <option value="processing">{{ $t('status.processing') }}</option>
+        <option value="shipped">{{ $t('status.shipped') }}</option>
+        <option value="out_for_delivery">{{ $t('status.out_for_delivery') }}</option>
+        <option value="delivered">{{ $t('status.delivered') }}</option>
         <option value="cancelled">{{ $t('status.cancelled') }}</option>
       </select>
     </div>
@@ -80,7 +84,12 @@ onMounted(async () => {
       <template #cell-created_at="{ row }">{{ (row.placed_at || row.created_at || '').slice(0, 10) }}</template>
       <template #cell-items="{ row }">{{ row.items?.length || 0 }}</template>
       <template #cell-total="{ row }">{{ row.total }} {{ row.currency }}</template>
-      <template #cell-status="{ value }"><StatusBadge :status="value" /></template>
+      <template #cell-status="{ row }">
+        <div class="flex flex-wrap items-center gap-1.5">
+          <StatusBadge :status="row.status" />
+          <span v-if="row.pos_synced_at" class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400" :title="$t('orderDetailPage.posSynced')">{{ $t('orderDetailPage.posSyncedShort') }}</span>
+        </div>
+      </template>
       <template #cell-actions="{ row }">
         <button class="btn btn-ghost btn-sm" @click.stop="openOrder(row)"><Eye class="h-4 w-4" /> {{ $t('ordersPage.view') }}</button>
       </template>

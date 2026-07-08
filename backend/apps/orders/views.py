@@ -261,6 +261,23 @@ class OrderManageCancelView(OrderManageDetailView):
 
 
 @extend_schema(tags=["Orders"])
+class OrderManagePushView(OrderManageDetailView):
+    """Manually (re)send a paid order to the store's linked cashier."""
+
+    @extend_schema(request=None, responses=OrderSerializer)
+    def post(self, request: Request, order_id) -> Response:
+        self.require_write()
+        from apps.pos.services import PosSupplierService
+
+        order = self._get_order(order_id)
+        PosSupplierService().push_order_for(store=self.store, order=order)
+        return APIResponse.success(
+            OrderSerializer(self._get_order(order_id)).data,
+            message="Order sent to the cashier.",
+        )
+
+
+@extend_schema(tags=["Orders"])
 class OrderManageStatusView(OrderManageDetailView):
     """Advance an order along the fulfillment flow (processing → shipped → out for
     delivery → delivered), optionally attaching a tracking number + carrier."""
