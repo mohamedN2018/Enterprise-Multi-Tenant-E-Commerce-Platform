@@ -7,6 +7,7 @@ from apps.stores import platform_views as views
 app_name = "platform"
 
 urlpatterns = [
+    path("theme/", views.PlatformThemeView.as_view(), name="theme"),
     path("stores/", views.PlatformStoreListCreateView.as_view(), name="store-list"),
     path("stores/<uuid:store_id>/", views.PlatformStoreDetailView.as_view(), name="store-detail"),
     path("sellers/", views.PlatformSellerListView.as_view(), name="seller-list"),

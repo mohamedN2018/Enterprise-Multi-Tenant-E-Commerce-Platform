@@ -9,6 +9,7 @@ from __future__ import annotations
 from django.db.models import Count, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,13 +19,15 @@ from apps.core.exceptions import NotFoundError, ValidationError
 from apps.core.mixins import BaseAPIView
 from apps.core.permissions import IsSuperAdmin
 from apps.core.responses import APIResponse
-from apps.stores.models import LimitRequest, Store, StoreRole, StoreStatus
+from apps.stores.models import LimitRequest, PlatformTheme, Store, StoreRole, StoreStatus
 from apps.stores.serializers import (
+    DEFAULT_THEME,
     LimitRequestSerializer,
     PlatformSellerCreateSerializer,
     PlatformStoreCreateSerializer,
     PlatformStoreSerializer,
     PlatformStoreUpdateSerializer,
+    PlatformThemeSerializer,
     SellerSerializer,
     SellerUpdateSerializer,
 )
@@ -290,3 +293,26 @@ class PlatformRequestApproveView(PlatformRequestActionView):
 
 class PlatformRequestRejectView(PlatformRequestActionView):
     action = "reject"
+
+
+@extend_schema(tags=["Platform"])
+class PlatformThemeView(BaseAPIView):
+    """The marketplace-wide theme. Anyone may read it (the whole site renders with
+    it); only the platform admin may change it."""
+
+    def get_permissions(self):
+        return [AllowAny()] if self.request.method == "GET" else [IsSuperAdmin()]
+
+    def _current(self) -> dict:
+        return {**DEFAULT_THEME, **(PlatformTheme.load().config or {})}
+
+    def get(self, request: Request) -> Response:
+        return APIResponse.success(self._current())
+
+    def patch(self, request: Request) -> Response:
+        payload = PlatformThemeSerializer(data=request.data, partial=True)
+        payload.is_valid(raise_exception=True)
+        theme = PlatformTheme.load()
+        theme.config = {**DEFAULT_THEME, **(theme.config or {}), **payload.validated_data}
+        theme.save()
+        return APIResponse.success(theme.config, message="Theme updated.")

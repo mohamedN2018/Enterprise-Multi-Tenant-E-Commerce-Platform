@@ -31,6 +31,7 @@ import {
   LogOut,
   ShieldCheck,
   Globe,
+  Palette,
   Star,
   Bell,
   Volume2,
@@ -143,7 +144,10 @@ const inStore = computed(() => tenant.viewingStore);
 const platformGroups = computed(() => [
   {
     title: t('admin.platformTitle'),
-    links: [{ label: t('admin.adminPanel'), to: cr('platform'), icon: Globe }]
+    links: [
+      { label: t('admin.adminPanel'), to: cr('platform'), icon: Globe },
+      { label: t('appearance.nav'), to: cr('appearance'), icon: Palette }
+    ]
   }
 ]);
 

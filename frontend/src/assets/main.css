@@ -2,6 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Brand theme defaults (the q-shop palette). The platform admin can override any
+   of these at runtime via the theme store, re-coloring the whole site. Values are
+   space-separated RGB triplets so Tailwind's `rgb(var(--x) / <alpha>)` works. */
+:root {
+  --c-primary-50: 255 248 238;
+  --c-primary-100: 255 233 204;
+  --c-primary-200: 253 207 148;
+  --c-primary-300: 251 179 92;
+  --c-primary-400: 247 158 47;
+  --c-primary-500: 247 145 21;
+  --c-primary-600: 242 139 0;
+  --c-primary-700: 198 111 0;
+  --c-primary-800: 158 89 0;
+  --c-primary-900: 122 69 0;
+  --c-secondary-50: 255 241 238;
+  --c-secondary-100: 255 221 214;
+  --c-secondary-200: 255 184 168;
+  --c-secondary-300: 255 143 120;
+  --c-secondary-400: 253 90 60;
+  --c-secondary-500: 249 36 0;
+  --c-secondary-600: 224 31 0;
+  --c-secondary-700: 187 26 0;
+  --c-secondary-800: 150 23 0;
+  --c-secondary-900: 122 22 0;
+  --c-bg: 245 245 245;
+  --font-sans: 'Cairo';
+  --font-heading: 'Cairo';
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;

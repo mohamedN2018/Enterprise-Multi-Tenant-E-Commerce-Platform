@@ -375,3 +375,38 @@ def test_seller_requests_more_stores_and_admin_approves(client_for, make_store, 
     # Owner can now self-create additional stores up to the new cap.
     second = client_for(owner).post(STORE_LIST, {"name": "Second"}, format="json")
     assert second.status_code == 201
+
+
+# --- Platform theme (branding) ----------------------------------------------
+PLATFORM_THEME = reverse("v1:platform:theme")
+
+
+def test_theme_is_public_and_has_defaults():
+    from rest_framework.test import APIClient
+
+    data = APIClient().get(PLATFORM_THEME).json()["data"]
+    assert data["primary"].startswith("#") and data["font"] in ("Cairo", "Roboto", "Open Sans")
+
+
+def test_superadmin_updates_theme_and_it_persists(client_for, superadmin):
+    resp = client_for(superadmin).patch(
+        PLATFORM_THEME, {"primary": "#3366cc", "font": "Roboto"}, format="json"
+    )
+    assert resp.status_code == 200
+    from rest_framework.test import APIClient
+
+    data = APIClient().get(PLATFORM_THEME).json()["data"]
+    assert data["primary"] == "#3366cc" and data["font"] == "Roboto"
+    assert data["secondary"].startswith("#")  # untouched default stays
+
+
+def test_non_admin_cannot_change_theme(client_for, make_user):
+    assert client_for(make_user()).patch(
+        PLATFORM_THEME, {"primary": "#000000"}, format="json"
+    ).status_code == 403
+
+
+def test_invalid_theme_color_rejected(client_for, superadmin):
+    assert client_for(superadmin).patch(
+        PLATFORM_THEME, {"primary": "red"}, format="json"
+    ).status_code == 400

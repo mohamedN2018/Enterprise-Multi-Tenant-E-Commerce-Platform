@@ -5,7 +5,7 @@ import App from './App.vue';
 import router from './router';
 import { useAuthStore } from './stores/auth';
 import { t, applyDir } from './i18n';
-import { applyTheme } from './theme';
+import { applyTheme, loadBrand } from './theme';
 
 // Self-hosted fonts (bundled locally via @fontsource — no external CDN/link).
 // Cairo (Arabic-first body + headings), Open Sans (body), Roboto (headings).
@@ -28,6 +28,8 @@ import './assets/main.css';
 // Apply saved language (dir/lang) + theme before first paint.
 applyDir();
 applyTheme();
+// Apply the marketplace brand theme (cached instantly, then refreshed).
+loadBrand();
 
 // Note: charts (apexcharts) are imported lazily inside the Dashboard page so the
 // heavy charting library only ships in that route's chunk.

@@ -20,6 +20,10 @@ export const seller = {
     http.patch(`/stores/${id}/members/${memberId}/`, payload),
   removeMember: (id, memberId) => http.delete(`/stores/${id}/members/${memberId}/`),
 
+  // Platform branding (super-admin)
+  getPlatformTheme: () => http.get('/platform/theme/'),
+  updatePlatformTheme: (payload) => http.patch('/platform/theme/', payload),
+
   // Analytics
   dashboard: () => http.get('/analytics/dashboard/'),
 

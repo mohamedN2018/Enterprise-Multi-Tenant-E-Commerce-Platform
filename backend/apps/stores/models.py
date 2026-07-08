@@ -229,3 +229,24 @@ class LimitRequest(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.kind} {self.current_limit}->{self.requested_limit} ({self.status})"
+
+
+class PlatformTheme(models.Model):
+    """Singleton: marketplace-wide branding (colors + background + font) set by
+    the platform admin and applied across the whole site (storefront + console)."""
+
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    config = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Platform theme"
+
+    def save(self, *args, **kwargs):
+        self.id = 1  # enforce a single row
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls) -> "PlatformTheme":
+        obj, _ = cls.objects.get_or_create(id=1)
+        return obj
