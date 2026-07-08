@@ -350,7 +350,12 @@ CHANNEL_LAYERS = {
 }
 
 # --- Celery ----------------------------------------------------------------
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/2")
+# Default the broker to the same Redis host as everything else (REDIS_URL), on
+# db 2 — so setting REDIS_URL alone is enough and the worker never silently
+# points at localhost (which would make tasks never run). Overridable directly.
+_REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
+_REDIS_BASE = _REDIS_URL.rsplit("/", 1)[0] if "/" in _REDIS_URL.split("://", 1)[-1] else _REDIS_URL
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=f"{_REDIS_BASE}/2")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="django-db")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"

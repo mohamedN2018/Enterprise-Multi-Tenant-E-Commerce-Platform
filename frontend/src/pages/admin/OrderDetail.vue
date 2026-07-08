@@ -132,6 +132,14 @@ onMounted(load);
         </PageHeader>
       </div>
 
+      <!-- Cashier sync indicator (shown once the order reaches the cashier) -->
+      <div v-if="order.pos_synced_at" class="no-print mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+        <Check class="h-4 w-4 shrink-0" />
+        <span class="font-medium">{{ $t('orderDetailPage.posSynced') }}</span>
+        <span class="text-emerald-600/80">· {{ (order.pos_synced_at || '').replace('T', ' ').slice(0, 16) }}</span>
+        <span v-if="order.pos_reference" class="text-emerald-600/70">· {{ order.pos_reference.slice(0, 8) }}</span>
+      </div>
+
       <!-- Fulfillment tracking + status control -->
       <div class="no-print mb-6 grid gap-4 lg:grid-cols-2">
         <div class="card p-5">

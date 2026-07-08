@@ -155,6 +155,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "shipping_method",
             "carrier",
             "tracking_number",
+            "pos_synced_at",
+            "pos_reference",
             "shipping_address",
             "placed_at",
             "items",

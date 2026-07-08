@@ -125,6 +125,9 @@ class Order(TenantOwnedModel):
     shipping_method = models.CharField(max_length=120, blank=True)
     carrier = models.CharField(max_length=120, blank=True)  # shipping company
     tracking_number = models.CharField(max_length=120, blank=True)
+    # Sync to the linked cashier (POS): when it was pushed + the cashier's ref.
+    pos_synced_at = models.DateTimeField(null=True, blank=True, editable=False)
+    pos_reference = models.CharField(max_length=120, blank=True, editable=False)
     # Snapshot of the chosen address book entry (so later edits don't alter history).
     shipping_address = models.JSONField(default=dict, blank=True)
     placed_at = models.DateTimeField(default=timezone.now, editable=False)

@@ -273,7 +273,14 @@ class PosSupplierService(BaseService):
             "items": items,
         }
         client = self._client(store=store, api_url=connection.api_url, api_key=connection.api_key)
-        return client.push_order(payload)
+        result = client.push_order(payload)
+        # Record the sync on the order so the seller can see it was sent.
+        ref = str(result.get("id") or "")
+        if ref:
+            order.pos_reference = ref
+            order.pos_synced_at = timezone.now()
+            order.save(update_fields=["pos_reference", "pos_synced_at", "updated_at"])
+        return result
 
     # --- Upsert one external product ---
     def _upsert(self, *, store, connection: PosSupplierConnection, item: dict) -> bool:

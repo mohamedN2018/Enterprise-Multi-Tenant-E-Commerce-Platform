@@ -281,6 +281,11 @@ def test_push_order_maps_items_and_skips_unmapped(make_store, make_variant, monk
     # Only the mapped line is sent, with the cashier's product id.
     assert captured["items"] == [{"product_id": "CASHIER-9", "quantity": 2, "unit_price": 50.0}]
 
+    # The order is stamped as synced so the seller can see it reached the cashier.
+    order.refresh_from_db()
+    assert order.pos_reference == "tx1"
+    assert order.pos_synced_at is not None
+
 
 # --- Security: encryption at rest -------------------------------------------
 def test_api_key_is_encrypted_at_rest(store_client, make_store, mock_pos):
