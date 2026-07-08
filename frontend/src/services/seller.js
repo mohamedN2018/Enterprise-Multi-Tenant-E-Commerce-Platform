@@ -170,6 +170,7 @@ export const seller = {
   order: (id) => http.get(`/orders/manage/${id}/`),
   confirmOrder: (id) => http.post(`/orders/manage/${id}/confirm/`),
   cancelOrder: (id) => http.post(`/orders/manage/${id}/cancel/`),
+  updateOrderStatus: (id, payload) => http.post(`/orders/manage/${id}/status/`, payload),
 
   // Inventory
   stock: (params) => http.get('/inventory/stock/', { params }),

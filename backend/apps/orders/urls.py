@@ -20,6 +20,11 @@ urlpatterns = [
         views.OrderManageCancelView.as_view(),
         name="manage-cancel",
     ),
+    path(
+        "manage/<uuid:order_id>/status/",
+        views.OrderManageStatusView.as_view(),
+        name="manage-status",
+    ),
     # Buyer
     path("", views.OrderListView.as_view(), name="list"),
     path("<uuid:order_id>/", views.OrderDetailView.as_view(), name="detail"),

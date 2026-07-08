@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from apps.orders.models import Cart, CartItem, Order, OrderItem
+from apps.orders.models import Cart, CartItem, Order, OrderEvent, OrderItem
 
 
 def product_cover_url(product) -> str | None:
@@ -128,8 +128,16 @@ class OrderItemSerializer(serializers.ModelSerializer):
         return product_cover_url(getattr(obj.variant, "product", None))
 
 
+class OrderEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderEvent
+        fields = ("id", "status", "note", "created_at")
+        read_only_fields = fields
+
+
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    events = OrderEventSerializer(many=True, read_only=True)
 
     class Meta:
         model = Order
@@ -145,10 +153,12 @@ class OrderSerializer(serializers.ModelSerializer):
             "total",
             "coupon_code",
             "shipping_method",
+            "carrier",
             "tracking_number",
             "shipping_address",
             "placed_at",
             "items",
+            "events",
             "created_at",
         )
         read_only_fields = fields
@@ -159,3 +169,10 @@ class CheckoutSerializer(serializers.Serializer):
     country = serializers.CharField(required=False, allow_blank=True, default="")
     currency = serializers.CharField(required=False, allow_blank=True, default="", max_length=3)
     address_id = serializers.UUIDField(required=False, allow_null=True)
+
+
+class OrderStatusUpdateSerializer(serializers.Serializer):
+    status = serializers.CharField()
+    note = serializers.CharField(required=False, allow_blank=True, default="")
+    tracking_number = serializers.CharField(required=False, allow_blank=True, default=None)
+    carrier = serializers.CharField(required=False, allow_blank=True, default=None)

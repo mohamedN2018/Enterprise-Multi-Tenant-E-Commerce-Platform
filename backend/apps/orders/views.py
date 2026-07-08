@@ -22,6 +22,7 @@ from apps.orders.serializers import (
     CartSerializer,
     CheckoutSerializer,
     OrderSerializer,
+    OrderStatusUpdateSerializer,
     UpdateCartItemSerializer,
 )
 from apps.orders.services import CartService, CheckoutService
@@ -170,7 +171,7 @@ class OrderListView(RequireStoreMixin, BaseGenericAPIView, generics.ListAPIView)
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return Order.objects.none()
-        return Order.objects.filter(user=self.request.user).prefetch_related("items")
+        return Order.objects.filter(user=self.request.user).prefetch_related("items", "events")
 
 
 @extend_schema(tags=["Orders"])
@@ -179,7 +180,7 @@ class OrderDetailView(RequireStoreMixin, BaseAPIView):
 
     def _get_order(self, request, order_id) -> Order:
         order = (
-            Order.objects.filter(id=order_id, user=request.user).prefetch_related("items").first()
+            Order.objects.filter(id=order_id, user=request.user).prefetch_related("items", "events").first()
         )
         if order is None:
             raise NotFoundError("Order not found.")
@@ -221,7 +222,7 @@ class OrderManageListView(StoreContextMixin, BaseGenericAPIView, generics.ListAP
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return Order.objects.none()
-        return Order.objects.filter(store=self.store).prefetch_related("items")
+        return Order.objects.filter(store=self.store).prefetch_related("items", "events")
 
 
 @extend_schema(tags=["Orders"])
@@ -230,7 +231,7 @@ class OrderManageDetailView(StoreContextMixin, BaseAPIView):
 
     def _get_order(self, order_id) -> Order:
         order = (
-            Order.objects.filter(id=order_id, store=self.store).prefetch_related("items").first()
+            Order.objects.filter(id=order_id, store=self.store).prefetch_related("items", "events").first()
         )
         if order is None:
             raise NotFoundError("Order not found.")
@@ -257,3 +258,23 @@ class OrderManageCancelView(OrderManageDetailView):
         self.require_write()
         order = CheckoutService().cancel_order(order=self._get_order(order_id))
         return APIResponse.success(OrderSerializer(order).data, message="Order cancelled.")
+
+
+@extend_schema(tags=["Orders"])
+class OrderManageStatusView(OrderManageDetailView):
+    """Advance an order along the fulfillment flow (processing → shipped → out for
+    delivery → delivered), optionally attaching a tracking number + carrier."""
+
+    @extend_schema(request=OrderStatusUpdateSerializer, responses=OrderSerializer)
+    def post(self, request: Request, order_id) -> Response:
+        self.require_write()
+        payload = OrderStatusUpdateSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        order = CheckoutService().advance_status(
+            order=self._get_order(order_id),
+            status=payload.validated_data["status"],
+            note=payload.validated_data.get("note", ""),
+            tracking_number=payload.validated_data.get("tracking_number"),
+            carrier=payload.validated_data.get("carrier"),
+        )
+        return APIResponse.success(OrderSerializer(order).data, message="Order status updated.")

@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { CheckCircle2, Package, ArrowRight } from 'lucide-vue-next';
+import { CheckCircle2, Package, ArrowRight, Truck } from 'lucide-vue-next';
+import OrderTimeline from '@/components/OrderTimeline.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import PageHero from '@/components/ui/PageHero.vue';
@@ -51,6 +52,13 @@ onMounted(async () => {
         <h1 class="mt-5 text-2xl font-bold">{{ $t('order.thankYou') }}</h1>
         <p class="mt-1 text-slate-500">{{ $t('order.placedPrefix') }} <span class="font-semibold text-ink">#{{ order.number }}</span> {{ $t('order.placedSuffix') }}</p>
         <div class="mt-3 flex justify-center"><StatusBadge :status="order.status" /></div>
+        <p v-if="order.status === 'delivered'" class="mt-3 text-sm font-medium text-emerald-600">{{ $t('orderTrack.delivered') }}</p>
+      </div>
+
+      <!-- Shipment tracking timeline -->
+      <div class="card mt-6 p-6">
+        <h2 class="mb-4 flex items-center gap-2 font-semibold"><Truck class="h-5 w-5 text-primary-600" /> {{ $t('orderTrack.trackTitle') }}</h2>
+        <OrderTimeline :order="order" />
       </div>
 
       <div class="card mt-6 p-6">

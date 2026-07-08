@@ -49,6 +49,47 @@ def test_quote_empty_cart_is_zero(store_client, make_store, make_user):
     assert q["total"] == "0.00"
 
 
+def test_fulfillment_tracking_flow(
+    store_client, make_store, make_user, make_variant, seed_stock
+):
+    """Buyer places + pays; seller advances processing → shipped → delivered with a
+    tracking number, and every step is recorded on the order's timeline."""
+    owner = make_user()
+    store = make_store(owner=owner)
+    variant = make_variant(store, price="20.00")
+    seed_stock(store, variant, 10)
+    buyer_client = store_client(make_user(), store)
+    owner_client = store_client(owner, store)
+
+    _add(buyer_client, variant, 1)
+    order_id = buyer_client.post(CHECKOUT).json()["data"]["id"]
+    buyer_client.post(reverse("v1:orders:confirm", kwargs={"order_id": order_id}))
+
+    def advance(status, **extra):
+        return owner_client.post(
+            reverse("v1:orders:manage-status", kwargs={"order_id": order_id}),
+            {"status": status, **extra},
+            format="json",
+        )
+
+    # Can't skip a step (confirmed must go to processing first).
+    assert advance("shipped").status_code == 409
+    assert advance("processing").status_code == 200
+    resp = advance("shipped", tracking_number="TRK-123", carrier="Bosta")
+    assert resp.status_code == 200
+    assert resp.json()["data"]["tracking_number"] == "TRK-123"
+    assert resp.json()["data"]["carrier"] == "Bosta"
+    assert advance("delivered").status_code == 200
+    # Delivered is terminal.
+    assert advance("delivered").status_code == 409
+
+    events = owner_client.get(
+        reverse("v1:orders:manage-detail", kwargs={"order_id": order_id})
+    ).json()["data"]["events"]
+    statuses = [e["status"] for e in events]
+    assert statuses == ["pending", "confirmed", "processing", "shipped", "delivered"]
+
+
 def test_checkout_creates_order_and_reserves_stock(
     store_client, make_store, make_user, make_variant, seed_stock
 ):

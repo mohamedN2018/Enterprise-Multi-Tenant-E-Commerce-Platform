@@ -9,8 +9,21 @@ from __future__ import annotations
 
 from django.dispatch import receiver
 
-from apps.core.signals import order_cancelled, order_confirmed, order_placed
+from apps.core.signals import (
+    order_cancelled,
+    order_confirmed,
+    order_placed,
+    order_status_changed,
+)
 from apps.notifications.services import NotificationService
+
+# Buyer-facing message per fulfillment status.
+_STATUS_MESSAGES = {
+    "processing": "Your order is being prepared.",
+    "shipped": "Your order has been shipped.",
+    "out_for_delivery": "Your order is out for delivery.",
+    "delivered": "Your order has been delivered. Enjoy!",
+}
 
 
 def _notify(order, *, event_type: str, title: str, body: str) -> None:
@@ -51,4 +64,17 @@ def on_order_cancelled(sender, order, **kwargs) -> None:
         event_type="order.cancelled",
         title=f"Order {order.number} cancelled",
         body="Your order has been cancelled.",
+    )
+
+
+@receiver(order_status_changed, dispatch_uid="notifications.order_status_changed")
+def on_order_status_changed(sender, order, status, **kwargs) -> None:
+    body = _STATUS_MESSAGES.get(str(status))
+    if not body:
+        return
+    _notify(
+        order,
+        event_type=f"order.{status}",
+        title=f"Order {order.number} update",
+        body=body,
     )

@@ -333,10 +333,11 @@ export default {
     },
     status: {
       pending: 'قيد الانتظار', confirmed: 'مؤكد', cancelled: 'ملغي', canceled: 'ملغي', completed: 'مكتمل',
-      delivered: 'تم التسليم', shipped: 'تم الشحن', processing: 'قيد المعالجة', paid: 'مدفوع', failed: 'فشل',
+      delivered: 'تم التسليم', shipped: 'تم الشحن', processing: 'قيد التجهيز', out_for_delivery: 'في الطريق للتسليم', paid: 'مدفوع', failed: 'فشل',
       refunded: 'مسترد', approved: 'معتمد', rejected: 'مرفوض', active: 'مفعّل', inactive: 'غير مفعّل',
       draft: 'مسودة', published: 'منشور', archived: 'مؤرشف', requested: 'مطلوب', suspended: 'موقوف'
     },
+    orderTrack: { current: 'الحالية', trackingNo: 'رقم التتبّع', carrier: 'شركة الشحن', updateTitle: 'تحديث حالة الطلب والشحن', moveTo: 'تحديث إلى: {label}', trackingPlaceholder: 'رقم التتبّع من شركة الشحن', carrierPlaceholder: 'مثال: بوسطة، أرامكس', statusUpdated: 'تم تحديث حالة الطلب.', trackTitle: 'تتبّع الشحنة', delivered: 'تم تسليم طلبك بنجاح 🎉' },
     roles: { platform: 'المشرف العام', owner: 'مالك', manager: 'مدير', employee: 'موظف', member: 'عضو' },
     perms: {
       catalog: 'المنتجات والكتالوج', inventory: 'المخزون', sales: 'المبيعات والطلبات', marketing: 'التسويق والعروض',
@@ -728,10 +729,11 @@ export default {
     },
     status: {
       pending: 'Pending', confirmed: 'Confirmed', cancelled: 'Cancelled', canceled: 'Cancelled', completed: 'Completed',
-      delivered: 'Delivered', shipped: 'Shipped', processing: 'Processing', paid: 'Paid', failed: 'Failed',
+      delivered: 'Delivered', shipped: 'Shipped', processing: 'Processing', out_for_delivery: 'Out for delivery', paid: 'Paid', failed: 'Failed',
       refunded: 'Refunded', approved: 'Approved', rejected: 'Rejected', active: 'Active', inactive: 'Inactive',
       draft: 'Draft', published: 'Published', archived: 'Archived', requested: 'Requested', suspended: 'Suspended'
     },
+    orderTrack: { current: 'Current', trackingNo: 'Tracking number', carrier: 'Carrier', updateTitle: 'Update order status & shipping', moveTo: 'Mark as {label}', trackingPlaceholder: 'Carrier tracking number', carrierPlaceholder: 'e.g. Bosta, Aramex', statusUpdated: 'Order status updated.', trackTitle: 'Track shipment', delivered: 'Your order was delivered 🎉' },
     roles: { platform: 'Super Admin', owner: 'Owner', manager: 'Manager', employee: 'Employee', member: 'Member' },
     perms: {
       catalog: 'Products & catalog', inventory: 'Inventory', sales: 'Sales & orders', marketing: 'Marketing & promotions',

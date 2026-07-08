@@ -13,6 +13,8 @@ import { useUiStore } from '@/stores/ui';
 import { seller } from '@/services/seller';
 import { errorMessage } from '@/services/http';
 import { useValidation, required } from '@/utils/validators';
+import OrderTimeline from '@/components/OrderTimeline.vue';
+import { NEXT_STATUS, statusLabel } from '@/utils/orderStatus';
 import { t } from '@/i18n';
 
 const route = useRoute();
@@ -28,15 +30,26 @@ const acting = ref(false);
 const currency = computed(() => order.value?.currency || '');
 const address = computed(() => (order.value?.shipping_address && typeof order.value.shipping_address === 'object' ? order.value.shipping_address : null));
 
-// Status timeline
-const STEPS = computed(() => [t('orderDetailPage.placed'), t('orderDetailPage.confirmedStep'), t('orderDetailPage.fulfilled')]);
-const isCancelled = computed(() => ['cancelled', 'canceled', 'refunded'].includes(order.value?.status));
-const stageIndex = computed(() => {
-  const s = order.value?.status;
-  if (['delivered', 'completed', 'fulfilled'].includes(s)) return 2;
-  if (['confirmed', 'shipped', 'processing'].includes(s)) return 1;
-  return 0;
-});
+// Fulfillment status advance (processing → shipped → out for delivery → delivered)
+const nextStatuses = computed(() => NEXT_STATUS[order.value?.status] || []);
+const advTracking = ref('');
+const advCarrier = ref('');
+const advancing = ref(false);
+const advance = async (status) => {
+  advancing.value = true;
+  try {
+    const payload = { status };
+    if (advTracking.value.trim()) payload.tracking_number = advTracking.value.trim();
+    if (advCarrier.value.trim()) payload.carrier = advCarrier.value.trim();
+    const res = await seller.updateOrderStatus(order.value.id, payload);
+    order.value = res.data;
+    ui.success(t('orderTrack.statusUpdated'));
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    advancing.value = false;
+  }
+};
 
 const load = async () => {
   loading.value = true;
@@ -45,6 +58,8 @@ const load = async () => {
     await tenant.ensureReady();
     const res = await seller.order(route.params.id);
     order.value = res.data;
+    advTracking.value = order.value?.tracking_number || '';
+    advCarrier.value = order.value?.carrier || '';
   } catch {
     failed.value = true;
   } finally {
@@ -117,22 +132,22 @@ onMounted(load);
         </PageHeader>
       </div>
 
-      <!-- Status timeline -->
-      <div class="no-print mb-6">
-        <div v-if="isCancelled" class="flex items-center gap-2 rounded-xl border border-secondary-200 bg-secondary-50 px-5 py-4 text-sm font-medium text-secondary-700">
-          <XCircle class="h-5 w-5" /> {{ $t('orderDetailPage.wasStatus', { status: $t('status.' + order.status) }) }}
+      <!-- Fulfillment tracking + status control -->
+      <div class="no-print mb-6 grid gap-4 lg:grid-cols-2">
+        <div class="card p-5">
+          <h3 class="mb-4 flex items-center gap-2 font-semibold"><Truck class="h-5 w-5 text-primary-600" /> {{ $t('orderTrack.trackTitle') }}</h3>
+          <OrderTimeline :order="order" />
         </div>
-        <div v-else class="card p-5">
-          <div class="flex items-center">
-            <template v-for="(step, i) in STEPS" :key="step">
-              <div class="flex flex-col items-center">
-                <span class="grid h-9 w-9 place-items-center rounded-full text-sm font-semibold" :class="i <= stageIndex ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-400'">
-                  <Check v-if="i < stageIndex" class="h-4 w-4" /><span v-else>{{ i + 1 }}</span>
-                </span>
-                <span class="mt-1.5 text-xs" :class="i <= stageIndex ? 'font-semibold text-ink' : 'text-muted'">{{ step }}</span>
-              </div>
-              <div v-if="i < STEPS.length - 1" class="mx-3 h-0.5 flex-1 rounded" :class="i < stageIndex ? 'bg-primary-600' : 'bg-slate-200'"></div>
-            </template>
+        <div v-if="tenant.canWrite && nextStatuses.length" class="card h-fit p-5">
+          <h3 class="mb-3 font-semibold">{{ $t('orderTrack.updateTitle') }}</h3>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <FormField v-model="advCarrier" :label="$t('orderTrack.carrier')" :placeholder="$t('orderTrack.carrierPlaceholder')" />
+            <FormField v-model="advTracking" :label="$t('orderTrack.trackingNo')" :placeholder="$t('orderTrack.trackingPlaceholder')" />
+          </div>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <button v-for="s in nextStatuses" :key="s" class="btn btn-primary btn-sm" :disabled="advancing" @click="advance(s)">
+              {{ $t('orderTrack.moveTo', { label: statusLabel(s) }) }}
+            </button>
           </div>
         </div>
       </div>

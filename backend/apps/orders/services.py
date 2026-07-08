@@ -13,14 +13,21 @@ from apps.core.exceptions import (
     ValidationError,
 )
 from apps.core.services import BaseService, atomic
-from apps.core.signals import order_cancelled, order_confirmed, order_placed
+from apps.core.signals import (
+    order_cancelled,
+    order_confirmed,
+    order_placed,
+    order_status_changed,
+)
 from apps.inventory.models import ReservationStatus, StockItem, StockReservation
 from apps.inventory.services import InventoryService
 from apps.orders.models import (
+    FULFILLMENT_NEXT,
     Cart,
     CartItem,
     CartStatus,
     Order,
+    OrderEvent,
     OrderItem,
     OrderStatus,
 )
@@ -243,6 +250,7 @@ class CheckoutService(BaseService):
 
         cart.status = CartStatus.CHECKED_OUT
         cart.save(update_fields=["status", "updated_at"])
+        self._record_event(order, OrderStatus.PENDING, "Order placed")
         order_placed.send(sender=self.__class__, order=order)
         return order
 
@@ -349,6 +357,7 @@ class CheckoutService(BaseService):
         from apps.rewards.services import LoyaltyService
 
         LoyaltyService().earn_for_order(order=order)
+        self._record_event(order, OrderStatus.CONFIRMED)
         order_confirmed.send(sender=self.__class__, order=order)
         return order
 
@@ -362,8 +371,39 @@ class CheckoutService(BaseService):
             self.inventory.release(reservation=reservation)
         order.status = OrderStatus.CANCELLED
         order.save(update_fields=["status", "updated_at"])
+        self._record_event(order, OrderStatus.CANCELLED)
         order_cancelled.send(sender=self.__class__, order=order)
         return order
+
+    @atomic
+    def advance_status(self, *, order: Order, status, note: str = "", tracking_number=None, carrier=None) -> Order:
+        """Move an order along the fulfillment flow (processing → shipped → out for
+        delivery → delivered), recording a tracking event the customer can follow."""
+        try:
+            new_status = OrderStatus(status)
+        except ValueError as exc:
+            raise ValidationError("Unknown order status.", code="invalid_status") from exc
+        if new_status not in FULFILLMENT_NEXT.get(order.status, set()):
+            raise ConflictError(
+                f"An order can't move from '{order.status}' to '{new_status}'.",
+                code="invalid_transition",
+            )
+        fields = ["status", "updated_at"]
+        order.status = new_status
+        if tracking_number is not None:
+            order.tracking_number = tracking_number
+            fields.append("tracking_number")
+        if carrier is not None:
+            order.carrier = carrier
+            fields.append("carrier")
+        order.save(update_fields=fields)
+        self._record_event(order, new_status, note)
+        order_status_changed.send(sender=self.__class__, order=order, status=new_status)
+        return order
+
+    @staticmethod
+    def _record_event(order: Order, status, note: str = "") -> None:
+        OrderEvent.objects.create(store=order.store, order=order, status=status, note=note or "")
 
     # --- Helpers ---
     def _resolve_discount(self, *, store, user, code: str, subtotal: Decimal):

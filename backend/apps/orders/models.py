@@ -90,7 +90,21 @@ class CartItem(TenantOwnedModel):
 class OrderStatus(models.TextChoices):
     PENDING = "pending", "Pending"
     CONFIRMED = "confirmed", "Confirmed"
+    PROCESSING = "processing", "Processing"
+    SHIPPED = "shipped", "Shipped"
+    OUT_FOR_DELIVERY = "out_for_delivery", "Out for delivery"
+    DELIVERED = "delivered", "Delivered"
     CANCELLED = "cancelled", "Cancelled"
+
+
+# Allowed fulfillment transitions (after payment is confirmed). Confirm/cancel
+# keep their dedicated flows; delivered/cancelled are terminal.
+FULFILLMENT_NEXT = {
+    OrderStatus.CONFIRMED: {OrderStatus.PROCESSING},
+    OrderStatus.PROCESSING: {OrderStatus.SHIPPED},
+    OrderStatus.SHIPPED: {OrderStatus.OUT_FOR_DELIVERY, OrderStatus.DELIVERED},
+    OrderStatus.OUT_FOR_DELIVERY: {OrderStatus.DELIVERED},
+}
 
 
 class Order(TenantOwnedModel):
@@ -99,7 +113,7 @@ class Order(TenantOwnedModel):
     )
     number = models.CharField(max_length=40)
     status = models.CharField(
-        max_length=16, choices=OrderStatus.choices, default=OrderStatus.PENDING, db_index=True
+        max_length=20, choices=OrderStatus.choices, default=OrderStatus.PENDING, db_index=True
     )
     currency = models.CharField(max_length=3, default="EGP")
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -109,6 +123,7 @@ class Order(TenantOwnedModel):
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     coupon_code = models.CharField(max_length=64, blank=True)
     shipping_method = models.CharField(max_length=120, blank=True)
+    carrier = models.CharField(max_length=120, blank=True)  # shipping company
     tracking_number = models.CharField(max_length=120, blank=True)
     # Snapshot of the chosen address book entry (so later edits don't alter history).
     shipping_address = models.JSONField(default=dict, blank=True)
@@ -149,3 +164,20 @@ class OrderItem(TenantOwnedModel):
 
     def __str__(self) -> str:
         return f"{self.quantity} x {self.sku}"
+
+
+class OrderEvent(TenantOwnedModel):
+    """Append-only timeline of an order's status changes — the shipment tracking
+    the customer sees (placed → confirmed → processing → shipped → … → delivered)."""
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="events")
+    status = models.CharField(max_length=20, choices=OrderStatus.choices)
+    note = models.CharField(max_length=255, blank=True)
+
+    class Meta(TenantOwnedModel.Meta):
+        verbose_name = "Order event"
+        ordering = ("created_at",)
+        indexes = [models.Index(fields=["order", "created_at"])]
+
+    def __str__(self) -> str:
+        return f"{self.order_id} → {self.status}"
