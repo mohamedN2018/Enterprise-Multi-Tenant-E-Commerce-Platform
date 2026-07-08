@@ -236,6 +236,45 @@ class PosSupplierService(BaseService):
         )
         return {"created": created, "updated": updated, "skipped": skipped}
 
+    # --- Push a placed order to the cashier (so it shows in the cashier log) ---
+    def push_order(self, *, connection: PosSupplierConnection, order) -> dict:
+        """Send a confirmed store order to the cashier's order log / revenue. Each
+        line is mapped to its cashier product id from the import; lines with no
+        cashier equivalent are omitted (the cashier ignores unknown ids). Idempotent
+        on the cashier side via ``external_id`` (the order number), so retries are
+        safe."""
+        store = connection.store
+        items = []
+        for line in order.items.all():
+            product = getattr(line.variant, "product", None)
+            if product is None:
+                continue
+            ref = PosImportedProduct.all_objects.filter(
+                store=store, connection=connection, product=product, is_deleted=False
+            ).first()
+            if ref is None:
+                continue  # not a cashier product — can't be recorded there
+            items.append(
+                {
+                    "product_id": ref.external_id,
+                    "quantity": line.quantity,
+                    "unit_price": float(line.unit_price),
+                }
+            )
+        address = order.shipping_address if isinstance(order.shipping_address, dict) else {}
+        payload = {
+            "external_id": order.number,
+            "customer_name": address.get("full_name") or "",
+            "customer_phone": address.get("phone") or "",
+            "total_amount": float(order.total),
+            "tax_amount": float(order.tax_total),
+            "discount_amount": float(order.discount_total),
+            "payment_method": "ONLINE",
+            "items": items,
+        }
+        client = self._client(store=store, api_url=connection.api_url, api_key=connection.api_key)
+        return client.push_order(payload)
+
     # --- Upsert one external product ---
     def _upsert(self, *, store, connection: PosSupplierConnection, item: dict) -> bool:
         external_id = str(item["id"])

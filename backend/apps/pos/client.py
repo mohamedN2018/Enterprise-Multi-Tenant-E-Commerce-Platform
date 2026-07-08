@@ -61,12 +61,17 @@ class PosSupplierClient:
             headers["x-store-url"] = quote(self.store_url, safe=":/?=&")
         return headers
 
-    def _get(self, path: str, *, retries: int = 1):
+    def _request(self, method: str, path: str, *, data=None, retries: int = 1):
         # Keep the total blocking budget (attempts × timeout) well under the
         # server's worker timeout so a slow/unreachable POS fails fast with a
         # clear error rather than hanging into a gateway 500.
+        headers = self._headers()
+        body_bytes = None
+        if data is not None:
+            body_bytes = json.dumps(data).encode()
+            headers["Content-Type"] = "application/json"
         request = urllib.request.Request(
-            f"{self.base}{path}", headers=self._headers(), method="GET"
+            f"{self.base}{path}", data=body_bytes, headers=headers, method=method
         )
         attempt = 0
         while True:
@@ -94,6 +99,9 @@ class PosSupplierClient:
                     "The cashier system returned an unexpected (non-JSON) response."
                 ) from exc
 
+    def _get(self, path: str, *, retries: int = 1):
+        return self._request("GET", path, retries=retries)
+
     def verify(self) -> dict:
         """GET /integration/store — 200 confirms the key; returns store summary."""
         data = self._get("/integration/store")
@@ -105,3 +113,8 @@ class PosSupplierClient:
         if isinstance(data, dict):  # tolerate {results:[...]} or {products:[...]}
             data = data.get("products") or data.get("results") or []
         return data if isinstance(data, list) else []
+
+    def push_order(self, payload: dict) -> dict:
+        """POST /integration/orders — push a placed order to the cashier's log."""
+        data = self._request("POST", "/integration/orders", data=payload)
+        return data if isinstance(data, dict) else {}

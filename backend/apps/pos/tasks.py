@@ -59,3 +59,39 @@ def push_stock_update(self, connection_id: str, sku: str) -> str:
             raise self.retry(exc=exc)
         except self.MaxRetriesExceededError:
             return "failed"
+
+
+@shared_task(name="pos.push_order_to_cashier", max_retries=3, default_retry_delay=60, bind=True)
+def push_order_to_cashier(self, order_id: str) -> str:
+    """Push a confirmed store order to the linked cashier's order log. Idempotent
+    on the cashier side (external_id), so a retry is safe. Only transient
+    (unavailable) failures are retried; an invalid key just fails quietly."""
+    from apps.orders.models import Order
+    from apps.pos.client import PosAuthError, PosUnavailableError
+    from apps.pos.models import PosSupplierConnection
+    from apps.pos.services import PosSupplierService
+
+    order = (
+        Order.all_objects.filter(id=order_id, is_deleted=False)
+        .select_related("store")
+        .prefetch_related("items__variant__product")
+        .first()
+    )
+    if order is None:
+        return "skipped"
+    connection = PosSupplierConnection.all_objects.filter(
+        store=order.store, is_connected=True, is_deleted=False
+    ).first()
+    if connection is None:
+        return "skipped"
+    try:
+        result = PosSupplierService().push_order(connection=connection, order=order)
+        return f"pushed:{result.get('id', '')}"
+    except PosUnavailableError as exc:
+        try:
+            raise self.retry(exc=exc)
+        except self.MaxRetriesExceededError:
+            return "failed"
+    except (PosAuthError, Exception) as exc:  # noqa: BLE001 — best-effort, don't retry auth/data errors
+        logger.warning("POS order push failed for %s: %s", order_id, exc)
+        return "failed"

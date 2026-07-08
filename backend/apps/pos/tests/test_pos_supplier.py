@@ -233,6 +233,55 @@ def test_import_skips_a_failing_row(store_client, make_store, mock_pos, monkeypa
     assert Product.all_objects.filter(store=store, is_deleted=False).count() == 1
 
 
+# --- Push placed orders to the cashier --------------------------------------
+def test_push_order_maps_items_and_skips_unmapped(make_store, make_variant, monkeypatch):
+    """A confirmed order is pushed with each line mapped to its cashier product id;
+    lines with no cashier equivalent are omitted."""
+    from apps.orders.models import Order, OrderItem
+    from apps.pos.models import PosImportedProduct, PosSupplierConnection
+
+    store, owner = make_store()
+    product, variant = make_variant(store, sku="MAP-1", stock=5)
+    _unmapped_product, unmapped = make_variant(store, sku="LOCAL-1", stock=5)
+
+    conn = PosSupplierConnection.objects.create(
+        store=store, provider="q-shop POS", api_url="https://x/api", api_key="k", is_connected=True
+    )
+    PosImportedProduct.objects.create(
+        store=store, connection=conn, external_id="CASHIER-9", product=product
+    )
+
+    order = Order.objects.create(
+        store=store,
+        user=owner,
+        number="ORD-1",
+        total="150.00",
+        tax_total="0.00",
+        discount_total="0.00",
+        shipping_address={"full_name": "أحمد علي", "phone": "01000000000"},
+    )
+    for v, price in ((variant, "50.00"), (unmapped, "50.00")):
+        OrderItem.objects.create(
+            store=store, order=order, variant=v, product_name=v.sku, sku=v.sku,
+            unit_price=price, quantity=2, line_total="100.00",
+        )
+
+    captured = {}
+    monkeypatch.setattr(
+        client_mod.PosSupplierClient,
+        "push_order",
+        lambda self, payload: (captured.update(payload), {"id": "tx1"})[1],
+    )
+    PosSupplierService().push_order(connection=conn, order=order)
+
+    assert captured["external_id"] == "ORD-1"
+    assert captured["customer_name"] == "أحمد علي"
+    assert captured["customer_phone"] == "01000000000"
+    assert captured["total_amount"] == 150.0
+    # Only the mapped line is sent, with the cashier's product id.
+    assert captured["items"] == [{"product_id": "CASHIER-9", "quantity": 2, "unit_price": 50.0}]
+
+
 # --- Security: encryption at rest -------------------------------------------
 def test_api_key_is_encrypted_at_rest(store_client, make_store, mock_pos):
     store, owner = make_store()

@@ -13,8 +13,8 @@ from __future__ import annotations
 from django.db import transaction
 from django.dispatch import receiver
 
-from apps.core.signals import stock_committed
-from apps.pos.models import PosConnection
+from apps.core.signals import order_confirmed, stock_committed
+from apps.pos.models import PosConnection, PosSupplierConnection
 
 
 @receiver(stock_committed, dispatch_uid="pos.push_stock_update")
@@ -30,3 +30,18 @@ def on_stock_committed(sender, store, variant, warehouse, quantity, reference=""
 
     connection_id, sku = str(connection.id), variant.sku
     transaction.on_commit(lambda: push_stock_update.delay(connection_id, sku))
+
+
+@receiver(order_confirmed, dispatch_uid="pos.push_order_to_cashier")
+def on_order_confirmed(sender, order, **kwargs) -> None:
+    """When a store order is confirmed (paid), push it to the linked cashier so it
+    appears in the cashier's order log / revenue. Best-effort, in a worker."""
+    connection = PosSupplierConnection.all_objects.filter(
+        store=order.store, is_connected=True, is_deleted=False
+    ).first()
+    if connection is None:
+        return
+    from apps.pos.tasks import push_order_to_cashier
+
+    order_id = str(order.id)
+    transaction.on_commit(lambda: push_order_to_cashier.delay(order_id))
