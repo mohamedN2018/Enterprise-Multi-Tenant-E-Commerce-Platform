@@ -21,6 +21,8 @@ class AddressSerializer(serializers.ModelSerializer):
             "postal_code",
             "country",
             "phone",
+            "lat",
+            "lng",
             "is_default",
             "created_at",
             "updated_at",

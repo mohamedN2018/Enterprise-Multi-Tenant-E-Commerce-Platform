@@ -100,7 +100,42 @@ class OrderTrackingView(StoreContextMixin, BaseAPIView):
 class AvailableMethodsView(RequireStoreMixin, BaseAPIView):
     permission_classes = [IsAuthenticated]
 
+    @staticmethod
+    def _coord(value):
+        try:
+            return float(value) if value not in (None, "") else None
+        except (TypeError, ValueError):
+            return None
+
     def get(self, request):
         country = request.query_params.get("country") or self.store.country or None
-        methods = ShippingService().available_methods(store=self.store, country=country)
-        return APIResponse.success(AvailableMethodSerializer(methods, many=True).data)
+        lat = self._coord(request.query_params.get("lat"))
+        lng = self._coord(request.query_params.get("lng"))
+        service = ShippingService()
+        methods = service.available_methods(store=self.store, country=country, lat=lat, lng=lng)
+        # Whether this store can deliver to the location at all (drives the buyer's
+        # "delivery not available in your area" message before they pay).
+        deliverable = service.is_deliverable(store=self.store, country=country, lat=lat, lng=lng)
+        # The store's delivery circles, so the checkout map can show coverage.
+        geo_zones = [
+            {
+                "id": str(z.id),
+                "name": z.name,
+                "center_lat": float(z.center_lat),
+                "center_lng": float(z.center_lng),
+                "radius_km": float(z.radius_km),
+            }
+            for z in ShippingZone.objects.filter(
+                store=self.store,
+                radius_km__isnull=False,
+                center_lat__isnull=False,
+                center_lng__isnull=False,
+            )
+        ]
+        return APIResponse.success(
+            {
+                "deliverable": deliverable,
+                "methods": AvailableMethodSerializer(methods, many=True).data,
+                "geo_zones": geo_zones,
+            }
+        )

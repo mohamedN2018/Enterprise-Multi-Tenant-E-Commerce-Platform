@@ -19,19 +19,54 @@ def _money(value) -> Decimal:
 
 class ShippingService(BaseService):
     # --- Resolution / quoting ---
-    def _zones_for(self, *, store, country: str | None) -> list[ShippingZone]:
+    def _zones_for(self, *, store, country=None, lat=None, lng=None) -> list[ShippingZone]:
+        """Zones that serve a destination. A geo (map) zone matches when the buyer's
+        pinned location falls inside its circle; a country zone matches by country.
+        Falls back to the store's default zone(s) as a nationwide catch-all — so a
+        store that defines ONLY geo circles (no default) restricts delivery to them.
+        """
         zones = list(ShippingZone.objects.filter(store=store))
+        matched = []
+        if lat is not None and lng is not None:
+            matched += [z for z in zones if z.is_geo and z.covers_point(lat, lng)]
         if country:
-            matched = [z for z in zones if z.covers(country)]
-            if matched:
-                return matched
+            matched += [z for z in zones if not z.is_geo and z.covers(country)]
+        if matched:
+            # Preserve order but drop dups.
+            seen, unique = set(), []
+            for z in matched:
+                if z.pk not in seen:
+                    seen.add(z.pk)
+                    unique.append(z)
+            return unique
         return [z for z in zones if z.is_default]
 
-    def available_methods(self, *, store, country: str | None):
-        zones = self._zones_for(store=store, country=country)
+    def _has_geo_zones(self, *, store) -> bool:
+        return ShippingZone.objects.filter(
+            store=store, radius_km__isnull=False, center_lat__isnull=False, center_lng__isnull=False
+        ).exists()
+
+    def available_methods(self, *, store, country=None, lat=None, lng=None):
+        zones = self._zones_for(store=store, country=country, lat=lat, lng=lng)
         return ShippingMethod.objects.filter(zone__in=zones, is_active=True)
 
-    def compute(self, *, store, method_id, country: str | None, subtotal: Decimal, weight):
+    def is_deliverable(self, *, store, country=None, lat=None, lng=None) -> bool:
+        """Can this store deliver to the destination at all? True when it has no geo
+        restriction, or the location falls inside a serviceable zone."""
+        if not self._has_geo_zones(store=store):
+            return True
+        return bool(self._zones_for(store=store, country=country, lat=lat, lng=lng))
+
+    def assert_deliverable(self, *, store, country=None, lat=None, lng=None) -> None:
+        """Guard checkout: a store that restricts delivery to map zones must have the
+        destination inside one of them (or a default zone), else the order is refused."""
+        if not self.is_deliverable(store=store, country=country, lat=lat, lng=lng):
+            raise BusinessRuleError(
+                "Delivery isn't available at your location for this store.",
+                code="delivery_unavailable",
+            )
+
+    def compute(self, *, store, method_id, country=None, subtotal: Decimal = Decimal("0"), weight=0, lat=None, lng=None):
         method = (
             ShippingMethod.objects.filter(id=method_id, is_active=True)
             .select_related("zone")
@@ -44,7 +79,12 @@ class ShippingService(BaseService):
                 errors={"shipping_method_id": ["Not available in this store."]},
             )
         zone = method.zone
-        if not (zone.covers(country) or zone.is_default):
+        serves = (
+            zone.is_default
+            or (zone.is_geo and zone.covers_point(lat, lng))
+            or (not zone.is_geo and zone.covers(country))
+        )
+        if not serves:
             raise BusinessRuleError(
                 "This shipping method does not serve the destination.",
                 code="method_not_serviceable",

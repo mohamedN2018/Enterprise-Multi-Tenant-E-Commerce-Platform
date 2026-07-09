@@ -173,6 +173,15 @@ class CheckoutSerializer(serializers.Serializer):
     currency = serializers.CharField(required=False, allow_blank=True, default="", max_length=3)
     address_id = serializers.UUIDField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_blank=True, default="", max_length=500)
+    # Buyer's pinned delivery location (from the checkout map) — drives geo zones.
+    lat = serializers.DecimalField(
+        max_digits=9, decimal_places=6, required=False, allow_null=True,
+        min_value=Decimal("-90"), max_value=Decimal("90"),
+    )
+    lng = serializers.DecimalField(
+        max_digits=9, decimal_places=6, required=False, allow_null=True,
+        min_value=Decimal("-180"), max_value=Decimal("180"),
+    )
 
 
 class OrderStatusUpdateSerializer(serializers.Serializer):

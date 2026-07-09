@@ -42,9 +42,10 @@ def _seller_with_counts(user_id):
 
 
 def _stores_qs():
-    """All stores with team-size counts annotated (platform-wide)."""
+    """Every store (incl. suspended AND soft-deleted) with team-size counts, so the
+    admin — and only the admin — can see stopped/removed stores and restore them."""
     return (
-        Store.objects.select_related("owner", "settings")
+        Store.all_objects.select_related("owner", "settings")
         .annotate(
             member_count=Count(
                 "memberships",
@@ -123,7 +124,8 @@ class PlatformStoreDetailView(BaseAPIView):
     permission_classes = [IsSuperAdmin]
 
     def _get(self, store_id) -> Store:
-        store = Store.objects.filter(id=store_id).select_related("settings").first()
+        # all_objects so the admin can act on a soft-deleted store (e.g. restore it).
+        store = Store.all_objects.filter(id=store_id).select_related("settings").first()
         if store is None:
             raise NotFoundError("Store not found.")
         return store
@@ -140,6 +142,9 @@ class PlatformStoreDetailView(BaseAPIView):
         data = serializer.validated_data
 
         svc = StoreService()
+        # Restore a soft-deleted store (is_deleted:false) before other edits.
+        if data.get("is_deleted") is False and store.is_deleted:
+            store.restore()
         if "status" in data:
             svc.update_store(store=store, data={"status": data["status"]})
         if "is_verified" in data:

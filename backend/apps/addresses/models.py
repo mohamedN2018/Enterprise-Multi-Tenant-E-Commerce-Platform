@@ -25,6 +25,9 @@ class Address(TenantOwnedModel):
     postal_code = models.CharField(max_length=20, blank=True)
     country = models.CharField(max_length=2)  # ISO 3166-1 alpha-2
     phone = models.CharField(max_length=40, blank=True)
+    # Optional pinned location (from the checkout map) — drives geo delivery zones.
+    lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     is_default = models.BooleanField(default=False)
 
     class Meta(TenantOwnedModel.Meta):
@@ -46,4 +49,6 @@ class Address(TenantOwnedModel):
             "postal_code": self.postal_code,
             "country": self.country,
             "phone": self.phone,
+            "lat": float(self.lat) if self.lat is not None else None,
+            "lng": float(self.lng) if self.lng is not None else None,
         }

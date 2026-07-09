@@ -176,6 +176,8 @@ class PlatformStoreSerializer(serializers.ModelSerializer):
             "name",
             "slug",
             "status",
+            "is_deleted",
+            "deleted_at",
             "owner_id",
             "owner_email",
             "owner_max_stores",
@@ -208,6 +210,8 @@ class PlatformStoreUpdateSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=StoreStatus.choices, required=False)
     is_verified = serializers.BooleanField(required=False)
     max_employees = serializers.IntegerField(required=False, min_value=0)
+    # Set false to restore a soft-deleted store (admin-only recovery).
+    is_deleted = serializers.BooleanField(required=False)
 
 
 class SellerSerializer(serializers.ModelSerializer):

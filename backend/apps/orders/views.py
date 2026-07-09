@@ -135,6 +135,8 @@ class CheckoutView(RequireStoreMixin, BaseAPIView):
             currency=serializer.validated_data.get("currency") or "",
             address_id=serializer.validated_data.get("address_id"),
             notes=serializer.validated_data.get("notes") or "",
+            lat=serializer.validated_data.get("lat"),
+            lng=serializer.validated_data.get("lng"),
         )
         return APIResponse.success(
             OrderSerializer(order).data, message="Order placed.", status_code=201
@@ -159,6 +161,8 @@ class CheckoutQuoteView(RequireStoreMixin, BaseAPIView):
             country=serializer.validated_data.get("country") or "",
             currency=serializer.validated_data.get("currency") or "",
             address_id=serializer.validated_data.get("address_id"),
+            lat=serializer.validated_data.get("lat"),
+            lng=serializer.validated_data.get("lng"),
         )
         return APIResponse.success(quote)
 

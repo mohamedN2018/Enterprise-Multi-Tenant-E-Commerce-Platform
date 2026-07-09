@@ -108,3 +108,25 @@ def shipping_method(db):
         return ShippingService().add_method(store=store, zone=zone, data=data)
 
     return _make
+
+
+@pytest.fixture
+def geo_method(db):
+    """A circular (map) delivery zone + a method inside it. Defaults to a 10 km
+    circle centred on Cairo (30.0444, 31.2357)."""
+
+    def _make(store, *, name="Local", price="20.00", lat="30.0444", lng="31.2357", radius_km="10"):
+        zone = ShippingService().create_zone(
+            store=store,
+            data={
+                "name": "Local circle",
+                "center_lat": Decimal(lat),
+                "center_lng": Decimal(lng),
+                "radius_km": Decimal(radius_km),
+            },
+        )
+        return ShippingService().add_method(
+            store=store, zone=zone, data={"name": name, "price": Decimal(price)}
+        )
+
+    return _make

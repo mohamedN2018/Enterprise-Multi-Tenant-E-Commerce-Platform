@@ -182,12 +182,23 @@ class CheckoutService(BaseService):
         currency=None,
         address_id=None,
         notes="",
+        lat=None,
+        lng=None,
     ) -> Order:
         cart = (
             Cart.objects.filter(store=store, user=user, status=CartStatus.ACTIVE)
             .prefetch_related("items__variant__product")
             .first()
         )
+        # A paused/closed/removed store never takes new orders (it's already hidden
+        # from the storefront; this guards a stale cart or a direct API call).
+        from apps.stores.models import StoreStatus
+
+        if store.is_deleted or store.status in (StoreStatus.SUSPENDED, StoreStatus.CLOSED):
+            raise BusinessRuleError(
+                "This store isn't accepting orders right now.", code="store_unavailable"
+            )
+
         items = list(cart.items.select_related("variant__product")) if cart else []
         if not items:
             raise ValidationError("Your cart is empty.", code="empty_cart")
@@ -207,11 +218,24 @@ class CheckoutService(BaseService):
             )
 
         # Optional shipping address: snapshot it and let it drive the destination
-        # country (overriding the explicit country arg). No address -> unchanged.
-        shipping_address, address_country = self._resolve_address(
+        # country + pinned location (overriding the explicit args). No address ->
+        # unchanged.
+        shipping_address, address_country, addr_lat, addr_lng = self._resolve_address(
             store=store, user=user, address_id=address_id
         )
         country = address_country or country
+        lat = addr_lat if addr_lat is not None else lat
+        lng = addr_lng if addr_lng is not None else lng
+        # Keep the pinned location on the order snapshot even when it came in loose
+        # (no saved address) so the seller can see exactly where to deliver.
+        if lat is not None and lng is not None:
+            shipping_address = {**(shipping_address or {}), "lat": float(lat), "lng": float(lng)}
+
+        # Geo delivery guard: a store that restricts delivery to map zones must have
+        # this destination inside one of them (or a default zone).
+        from apps.shipping.services import ShippingService
+
+        ShippingService().assert_deliverable(store=store, country=country, lat=lat, lng=lng)
 
         priced = self._price_cart(
             store=store,
@@ -221,6 +245,8 @@ class CheckoutService(BaseService):
             shipping_method_id=shipping_method_id,
             country=country,
             currency=currency,
+            lat=lat,
+            lng=lng,
         )
         coupon, coupon_discount = priced["coupon"], priced["coupon_discount"]
         method, order_currency, fx = priced["method"], priced["currency"], priced["fx"]
@@ -270,7 +296,7 @@ class CheckoutService(BaseService):
         order_placed.send(sender=self.__class__, order=order)
         return order
 
-    def _price_cart(self, *, store, user, cart, items, shipping_method_id, country, currency):
+    def _price_cart(self, *, store, user, cart, items, shipping_method_id, country, currency, lat=None, lng=None):
         """Compute the full money breakdown for a cart. The single source of truth
         shared by ``checkout`` (persisted) and ``quote`` (preview), so the total a
         buyer sees at checkout always matches the order that gets placed."""
@@ -291,7 +317,8 @@ class CheckoutService(BaseService):
             Decimal("0"),
         )
         method, shipping_total = self._shipping(
-            store=store, method_id=shipping_method_id, country=country, subtotal=subtotal, weight=weight
+            store=store, method_id=shipping_method_id, country=country,
+            subtotal=subtotal, weight=weight, lat=lat, lng=lng,
         )
         if promo.free_shipping:
             shipping_total = Decimal("0.00")
@@ -310,9 +337,12 @@ class CheckoutService(BaseService):
             "fx": fx,
         }
 
-    def quote(self, *, store, user, shipping_method_id=None, country=None, currency=None, address_id=None) -> dict:
+    def quote(self, *, store, user, shipping_method_id=None, country=None, currency=None, address_id=None, lat=None, lng=None) -> dict:
         """Preview the checkout totals (incl. tax + shipping) without placing the
-        order, so the summary shown to the buyer is the real, final amount."""
+        order, so the summary shown to the buyer is the real, final amount. Also
+        reports whether the store can deliver to the buyer's pinned location."""
+        from apps.shipping.services import ShippingService
+
         cart = (
             Cart.objects.filter(store=store, user=user, status=CartStatus.ACTIVE)
             .prefetch_related("items__variant__product")
@@ -328,13 +358,19 @@ class CheckoutService(BaseService):
             "shipping": "0.00",
             "total": "0.00",
             "shipping_method": None,
+            "deliverable": True,
         }
         if not items:
             return empty
-        _shipping_address, address_country = self._resolve_address(
+        _shipping_address, address_country, addr_lat, addr_lng = self._resolve_address(
             store=store, user=user, address_id=address_id
         )
         country = address_country or country
+        lat = addr_lat if addr_lat is not None else lat
+        lng = addr_lng if addr_lng is not None else lng
+
+        shipping = ShippingService()
+        deliverable = shipping.is_deliverable(store=store, country=country, lat=lat, lng=lng)
         priced = self._price_cart(
             store=store,
             user=user,
@@ -343,6 +379,8 @@ class CheckoutService(BaseService):
             shipping_method_id=shipping_method_id,
             country=country,
             currency=currency,
+            lat=lat,
+            lng=lng,
         )
         fx = priced["fx"]
         return {
@@ -353,6 +391,7 @@ class CheckoutService(BaseService):
             "shipping": str(fx(priced["shipping_total"])),
             "total": str(fx(priced["total"])),
             "shipping_method": priced["method"].name if priced["method"] else None,
+            "deliverable": deliverable,
         }
 
     @atomic
@@ -474,13 +513,13 @@ class CheckoutService(BaseService):
 
     @staticmethod
     def _resolve_address(*, store, user, address_id):
-        """Return (snapshot_dict, country) for a chosen address, else ({}, None)."""
+        """Return (snapshot, country, lat, lng) for a chosen address, else ({}, None, None, None)."""
         if not address_id:
-            return {}, None
+            return {}, None, None, None
         from apps.addresses.services import AddressService
 
         address = AddressService().get_for_user(store=store, user=user, address_id=address_id)
-        return address.snapshot(), address.country or None
+        return address.snapshot(), address.country or None, address.lat, address.lng
 
     @staticmethod
     def _auto_promotions(*, store, items, subtotal):
@@ -490,7 +529,7 @@ class CheckoutService(BaseService):
         return PromotionEngine().evaluate(store=store, items=items, subtotal=subtotal)
 
     @staticmethod
-    def _shipping(*, store, method_id, country, subtotal, weight):
+    def _shipping(*, store, method_id, country, subtotal, weight, lat=None, lng=None):
         # Returns (method|None, shipping_total). No method selected -> free/0.
         if not method_id:
             return None, Decimal("0.00")
@@ -502,6 +541,8 @@ class CheckoutService(BaseService):
             country=country or store.country or None,
             subtotal=subtotal,
             weight=weight,
+            lat=lat,
+            lng=lng,
         )
 
     def _totals(self, *, store, amount: Decimal, country=None) -> tuple[Decimal, Decimal]:

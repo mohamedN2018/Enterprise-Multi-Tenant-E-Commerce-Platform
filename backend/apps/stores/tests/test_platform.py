@@ -201,6 +201,30 @@ def test_platform_lists_all_stores(client_for, make_store, superadmin):
     assert len(resp.json()["data"]) >= 2
 
 
+def test_admin_sees_deleted_store_and_can_restore(client_for, make_store, superadmin):
+    store, _owner = make_store(name="Gone")
+    admin = client_for(superadmin)
+    # Soft-delete via the platform endpoint.
+    assert admin.delete(_platform_store(store.id)).status_code == 200
+    # Only the admin still sees it (with is_deleted flagged for a distinct colour).
+    listed = admin.get(PLATFORM_STORES).json()["data"]
+    row = next(s for s in listed if s["id"] == str(store.id))
+    assert row["is_deleted"] is True
+    # Restore it (is_deleted: false).
+    resp = admin.patch(_platform_store(store.id), {"is_deleted": False}, format="json")
+    assert resp.status_code == 200
+    assert resp.json()["data"]["is_deleted"] is False
+
+
+def test_admin_suspends_store(client_for, make_store, superadmin):
+    store, _owner = make_store(name="Paused")
+    resp = client_for(superadmin).patch(
+        _platform_store(store.id), {"status": StoreStatus.SUSPENDED}, format="json"
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["status"] == StoreStatus.SUSPENDED
+
+
 # --- Employee limit ---------------------------------------------------------
 def test_employee_limit_enforced(client_for, make_store, make_user):
     store, owner = make_store()

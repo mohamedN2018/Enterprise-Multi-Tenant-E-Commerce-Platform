@@ -10,11 +10,32 @@ from apps.shipping.models import ShippingMethod, ShippingZone
 
 
 class ShippingZoneSerializer(serializers.ModelSerializer):
+    is_geo = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = ShippingZone
-        fields = ("id", "name", "code", "countries", "is_default", "created_at")
-        read_only_fields = ("id", "created_at")
-        extra_kwargs = {"code": {"required": False}}
+        fields = (
+            "id", "name", "code", "countries", "is_default",
+            "center_lat", "center_lng", "radius_km", "is_geo", "created_at",
+        )
+        read_only_fields = ("id", "is_geo", "created_at")
+        extra_kwargs = {
+            "code": {"required": False},
+            "center_lat": {"min_value": Decimal("-90"), "max_value": Decimal("90")},
+            "center_lng": {"min_value": Decimal("-180"), "max_value": Decimal("180")},
+            "radius_km": {"min_value": Decimal("0.1"), "max_value": Decimal("2000")},
+        }
+
+    def validate(self, attrs):
+        # A geo zone needs all three of centre lat/lng + radius, or none.
+        merged = {**getattr(self, "initial_data", {}), **attrs}
+        geo_vals = [merged.get("center_lat"), merged.get("center_lng"), merged.get("radius_km")]
+        provided = [v for v in geo_vals if v not in (None, "")]
+        if provided and len(provided) != 3:
+            raise serializers.ValidationError(
+                "A map zone needs a centre (lat & lng) and a radius in km."
+            )
+        return attrs
 
 
 class ShippingMethodSerializer(serializers.ModelSerializer):

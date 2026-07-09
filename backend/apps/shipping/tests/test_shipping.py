@@ -42,7 +42,9 @@ def test_available_methods_for_country(store_client, make_store, make_user, ship
     shipping_method(store, countries=("DE",))
     resp = store_client(make_user(), store).get(METHODS, {"country": "DE"})
     assert resp.status_code == 200
-    assert len(resp.json()["data"]) == 1
+    body = resp.json()["data"]
+    assert body["deliverable"] is True
+    assert len(body["methods"]) == 1
 
 
 def test_checkout_with_shipping_adds_cost(
@@ -112,6 +114,76 @@ def test_set_tracking(store_client, make_store, make_user, make_variant):
         reverse("v1:orders:detail", kwargs={"order_id": order["id"]})
     )
     assert detail.json()["data"]["tracking_number"] == "TRACK123"
+
+
+# --- Geo (map / km-radius) zones -------------------------------------------
+# A point ~2 km from the Cairo centre (inside a 10 km circle) and one ~40 km away.
+NEAR = {"lat": "30.0500", "lng": "31.2400"}
+FAR = {"lat": "30.4000", "lng": "31.2357"}
+
+
+def test_geo_zone_available_inside_circle(store_client, make_store, make_user, geo_method):
+    store, _owner = make_store()
+    geo_method(store)
+    resp = store_client(make_user(), store).get(METHODS, NEAR)
+    body = resp.json()["data"]
+    assert body["deliverable"] is True
+    assert len(body["methods"]) == 1
+    # The circle is returned so the checkout map can draw coverage.
+    assert len(body["geo_zones"]) == 1
+    assert body["geo_zones"][0]["radius_km"] == 10.0
+
+
+def test_geo_zone_unavailable_outside_circle(store_client, make_store, make_user, geo_method):
+    store, _owner = make_store()
+    geo_method(store)  # only a 10 km circle, no default/country zone
+    resp = store_client(make_user(), store).get(METHODS, FAR)
+    body = resp.json()["data"]
+    assert body["deliverable"] is False
+    assert body["methods"] == []
+
+
+def test_checkout_blocked_outside_geo_zone(
+    store_client, make_store, make_user, make_variant, geo_method
+):
+    store, _owner = make_store()
+    geo_method(store)
+    variant = make_variant(store, price="100.00")
+    client = store_client(make_user(), store)
+    client.post(CART_ADD, {"variant_id": str(variant.id), "quantity": 1}, format="json")
+    resp = client.post(CHECKOUT, FAR, format="json")
+    assert resp.status_code == 422
+    assert resp.json()["error_code"] == "delivery_unavailable"
+
+
+def test_checkout_inside_geo_zone_succeeds(
+    store_client, make_store, make_user, make_variant, geo_method
+):
+    store, _owner = make_store()
+    method = geo_method(store, price="20.00")
+    variant = make_variant(store, price="100.00")
+    client = store_client(make_user(), store)
+    client.post(CART_ADD, {"variant_id": str(variant.id), "quantity": 1}, format="json")
+    body = {"shipping_method_id": str(method.id), **NEAR}
+    resp = client.post(CHECKOUT, body, format="json")
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["shipping_total"] == "20.00"
+    assert data["total"] == "120.00"
+
+
+def test_checkout_blocked_when_store_suspended(
+    store_client, make_store, make_user, make_variant
+):
+    from apps.stores.models import StoreStatus
+
+    store, _owner = make_store()
+    store.status = StoreStatus.SUSPENDED
+    store.save(update_fields=["status"])
+    variant = make_variant(store, price="50.00")
+    resp = _checkout(store_client(make_user(), store), variant)
+    assert resp.status_code == 422
+    assert resp.json()["error_code"] == "store_unavailable"
 
 
 def test_employee_cannot_create_zone(store_client, make_store, make_user, add_member):
