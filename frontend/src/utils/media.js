@@ -14,14 +14,43 @@ const neutralSvg = (w, h) =>
       `</g></svg>`
   );
 
-// Branded default product image (static, same-origin) — reliable everywhere and
-// nicer than a bare grey box. Shown whenever a product has no real image.
-const PRODUCT_FALLBACK = '/brand/product-placeholder.svg';
+// Reads a brand CSS variable (an RGB triplet like "242 139 0") as a CSS colour,
+// so generated imagery follows the platform's LIVE theme (recolours on save).
+const brandColor = (name, fallback) => {
+  try {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    if (!v) return fallback;
+    return /^\d/.test(v) ? `rgb(${v.replace(/\s+/g, ',')})` : v;
+  } catch {
+    return fallback;
+  }
+};
+
+// Branded "no image yet" product placeholder that re-colours with the theme's
+// primary colour (and adapts to dark mode). Inline SVG — same-origin, no network.
+export const productPlaceholder = (w = 400, h = 300) => {
+  const dark = document.documentElement.classList.contains('dark');
+  const c = brandColor(dark ? '--c-primary-400' : '--c-primary-600', '#F28B00');
+  const bg = dark ? '#131e36' : '#f6f8fb';
+  const bagFill = dark ? 'none' : brandColor('--c-primary-50', '#FFF3E4');
+  const sub = dark ? '#64748b' : '#9aa7b8';
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="q-shop">` +
+    `<rect width="${w}" height="${h}" fill="${bg}"/>` +
+    `<g transform="translate(${w / 2} ${h * 0.43})" fill="none" stroke="${c}" stroke-width="9" stroke-linejoin="round" stroke-linecap="round">` +
+    `<path d="M-52 -18 h104 a6 6 0 0 1 6 6.6 l-9 74 a14 14 0 0 1 -14 12.4 h-76 a14 14 0 0 1 -14 -12.4 l-9 -74 a6 6 0 0 1 6 -6.6 Z" fill="${bagFill}"/>` +
+    `<path d="M-27 -18 v-9 a27 27 0 0 1 54 0 v9"/>` +
+    `</g>` +
+    `<text x="${w / 2}" y="${h * 0.8}" text-anchor="middle" font-family="Cairo, 'Segoe UI', Arial, sans-serif" font-size="24" font-weight="700" fill="${c}">q-shop</text>` +
+    `<text x="${w / 2}" y="${h * 0.88}" text-anchor="middle" font-family="Cairo, 'Segoe UI', Arial, sans-serif" font-size="14" fill="${sub}">لا توجد صورة</text>` +
+    `</svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+};
 
 // First real image from a product: the cover (`image`) or the first gallery item.
 const realProductImage = (p) => p?.image || p?.images?.[0]?.image || p?.images?.[0] || '';
 
-export const productImage = (p) => realProductImage(p) || PRODUCT_FALLBACK;
+export const productImage = (p) => realProductImage(p) || productPlaceholder();
 
 // Categories carry no uploaded image, so we render a distinct, deterministic
 // tile per category: a brand-coordinated gradient keyed on the name plus its
@@ -66,7 +95,7 @@ export const onImgError = (e) => {
   const el = e.target;
   if (el.dataset.fb) return;
   el.dataset.fb = '1';
-  el.src = PRODUCT_FALLBACK;
+  el.src = productPlaceholder();
 };
 
 export const money = (v, currency = '') => (v == null ? '—' : `${v} ${currency}`.trim());

@@ -298,7 +298,9 @@ onMounted(async () => {
     </main>
 
     <!-- Footer -->
-    <footer class="bg-ink text-slate-300">
+    <!-- Footer follows the brand: a deep tint of the primary colour, so it
+         re-themes with the platform palette (bottom bar uses primary-600). -->
+    <footer class="bg-primary-900 text-white/70">
       <div class="container grid gap-8 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <img src="/brand/dark-logo.png" alt="q-shop" class="mb-4 h-16 w-auto" />
