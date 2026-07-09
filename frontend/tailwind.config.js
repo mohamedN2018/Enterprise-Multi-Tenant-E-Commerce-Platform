@@ -32,8 +32,8 @@ export default {
         lightbg: 'rgb(var(--c-bg) / <alpha-value>)'
       },
       fontFamily: {
-        sans: ['var(--font-sans)', 'Cairo', '"Open Sans"', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Tahoma', 'Arial', 'sans-serif'],
-        heading: ['var(--font-heading)', 'Cairo', 'Roboto', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Arial', 'sans-serif']
+        sans: ['var(--font-sans)', 'Cairo', 'Tajawal', 'Almarai', '"Open Sans"', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Tahoma', 'Arial', 'sans-serif'],
+        heading: ['var(--font-heading)', 'Cairo', 'Tajawal', 'Almarai', 'Roboto', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Arial', 'sans-serif']
       },
       borderRadius: {
         DEFAULT: '0.5rem',

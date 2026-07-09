@@ -267,22 +267,24 @@ class LimitRequestCreateSerializer(serializers.Serializer):
 import re as _re  # noqa: E402
 
 _HEX_RE = _re.compile(r"^#[0-9a-fA-F]{6}$")
-THEME_FONTS = ["Cairo", "Roboto", "Open Sans"]
+THEME_FONTS = ["Cairo", "Tajawal", "Almarai", "Roboto", "Open Sans"]
 DEFAULT_THEME = {
     "preset": "sunset",
     "primary": "#F28B00",
     "secondary": "#F92400",
     "background": "#F5F5F5",
     "font": "Cairo",
+    "heading_font": "Cairo",
 }
 
 
 class PlatformThemeSerializer(serializers.Serializer):
     """Validates a (partial) theme update. All fields optional so the admin can
-    tweak one thing at a time; colors must be #RRGGBB, font from a known set."""
+    tweak one thing at a time; colors must be #RRGGBB, fonts from a known set."""
 
     preset = serializers.CharField(max_length=40, required=False, allow_blank=True)
     primary = serializers.RegexField(_HEX_RE, required=False)
     secondary = serializers.RegexField(_HEX_RE, required=False)
     background = serializers.RegexField(_HEX_RE, required=False)
     font = serializers.ChoiceField(choices=THEME_FONTS, required=False)
+    heading_font = serializers.ChoiceField(choices=THEME_FONTS, required=False)

@@ -88,10 +88,10 @@ export function applyBrand(config) {
     for (const k in s) root.setProperty(`--c-secondary-${k}`, s[k]);
   }
   if (config.background) root.setProperty('--c-bg', triplet(config.background));
-  if (config.font) {
-    root.setProperty('--font-sans', `'${config.font}'`);
-    root.setProperty('--font-heading', `'${config.font}'`);
-  }
+  if (config.font) root.setProperty('--font-sans', `'${config.font}'`);
+  // Headings can use their own face; fall back to the body font.
+  const heading = config.heading_font || config.font;
+  if (heading) root.setProperty('--font-heading', `'${heading}'`);
 }
 
 // Load the marketplace theme: apply the cached copy instantly (no flash of the
