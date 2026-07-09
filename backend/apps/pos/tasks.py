@@ -15,9 +15,11 @@ import urllib.request
 
 from celery import shared_task
 
+from apps.core.exceptions import ValidationError
 from apps.pos import keys
 from apps.pos.client import USER_AGENT
 from apps.pos.models import PosConnection
+from apps.pos.security import open_public_url
 from apps.pos.services import PosService
 
 logger = logging.getLogger(__name__)
@@ -50,9 +52,10 @@ def push_stock_update(self, connection_id: str, sku: str) -> str:
         },
     )
     try:
-        with urllib.request.urlopen(request, timeout=WEBHOOK_TIMEOUT) as resp:
+        # SSRF-hardened (also re-checks the stored webhook URL + redirects).
+        with open_public_url(request, timeout=WEBHOOK_TIMEOUT) as resp:
             return f"sent:{resp.status}"
-    except (urllib.error.URLError, OSError) as exc:
+    except (urllib.error.URLError, OSError, ValidationError) as exc:
         logger.warning("POS webhook to %s failed: %s", connection.webhook_url, exc)
         # Retry transient failures; give up quietly after max_retries.
         try:

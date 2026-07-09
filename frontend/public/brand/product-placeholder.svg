@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" role="img" aria-label="q-shop">
-  <rect width="400" height="300" fill="#f6f8fb"/>
-  <g transform="translate(200 128)" fill="none" stroke="#F28B00" stroke-width="9" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M-52 -18 h104 a6 6 0 0 1 6 6.6 l-9 74 a14 14 0 0 1 -14 12.4 h-76 a14 14 0 0 1 -14 -12.4 l-9 -74 a6 6 0 0 1 6 -6.6 Z" fill="#FFF3E4"/>
-    <path d="M-27 -18 v-9 a27 27 0 0 1 54 0 v9"/>
-  </g>
-  <text x="200" y="238" text-anchor="middle" font-family="Cairo, 'Segoe UI', Arial, sans-serif" font-size="24" font-weight="700" fill="#F28B00">q-shop</text>
-  <text x="200" y="262" text-anchor="middle" font-family="Cairo, 'Segoe UI', Arial, sans-serif" font-size="14" fill="#9aa7b8">لا توجد صورة</text>
-</svg>

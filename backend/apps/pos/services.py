@@ -28,7 +28,7 @@ from apps.inventory.services import InventoryService
 from apps.pos import keys
 from apps.pos.client import PosAuthError, PosSupplierClient, PosUnavailableError
 from apps.pos.models import PosConnection, PosImportedProduct, PosSupplierConnection
-from apps.pos.security import assert_public_url, is_public_url
+from apps.pos.security import assert_public_url, is_public_url, open_public_url
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,9 @@ class PosService(BaseService):
             raise ConflictError(
                 "This store is already linked to a cashier system.", code="pos_already_linked"
             )
+        # The webhook is fetched server-side (push_stock_update) — block SSRF targets.
+        if webhook_url:
+            assert_public_url(webhook_url)
         plain = keys.generate_key()
         connection = PosConnection.objects.create(
             store=store,
@@ -68,6 +71,8 @@ class PosService(BaseService):
         if "is_active" in data:
             connection.is_active = bool(data["is_active"])
         if "webhook_url" in data:
+            if data["webhook_url"]:
+                assert_public_url(data["webhook_url"])  # block SSRF targets
             connection.webhook_url = data["webhook_url"] or ""
             # A URL needs a signing secret; clearing the URL clears the secret.
             if connection.webhook_url and not connection.webhook_secret:
@@ -540,7 +545,8 @@ class PosSupplierService(BaseService):
             from apps.pos.client import USER_AGENT
 
             request = urllib.request.Request(image_url, headers={"User-Agent": USER_AGENT})
-            with urllib.request.urlopen(request, timeout=8) as resp:
+            # SSRF-hardened open (re-checks the URL + any redirect target).
+            with open_public_url(request, timeout=8) as resp:
                 if getattr(resp, "status", 200) != 200:
                     return
                 data = resp.read(5 * 1024 * 1024)  # cap at 5 MB

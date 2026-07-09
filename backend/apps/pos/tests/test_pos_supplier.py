@@ -181,7 +181,7 @@ def test_client_sends_browser_user_agent(monkeypatch):
         captured["key"] = req.get_header("X-api-key")
         return _FakeResp(b'{"store":"S","productCount":1}')
 
-    monkeypatch.setattr(client_mod.urllib.request, "urlopen", _fake_urlopen)
+    monkeypatch.setattr(client_mod.security, "open_public_url", lambda req, timeout=None: _fake_urlopen(req, timeout))
     PosSupplierClient(api_url="https://x/api", api_key="k").verify()
     assert "Mozilla/5.0" in (captured["ua"] or "")
     assert captured["key"] == "k"
@@ -206,7 +206,7 @@ def test_arabic_store_name_header_is_latin1_safe():
 def test_non_json_response_becomes_unavailable_not_500(monkeypatch):
     """A 200 with a non-JSON body is surfaced as a clean error, never a 500."""
     monkeypatch.setattr(
-        client_mod.urllib.request, "urlopen", lambda req, timeout=None: _FakeResp(b"<html>oops</html>")
+        client_mod.security, "open_public_url", lambda req, timeout=None: _FakeResp(b"<html>oops</html>")
     )
     client = PosSupplierClient(api_url="https://q-shop.example/api", api_key="k")
     with pytest.raises(PosUnavailableError):
@@ -385,7 +385,7 @@ def test_client_409_raises_out_of_stock(monkeypatch):
             req.full_url, 409, "Conflict", {}, io.BytesIO(b'{"out_of_stock":["Cola"]}')
         )
 
-    monkeypatch.setattr(client_mod.urllib.request, "urlopen", _conflict)
+    monkeypatch.setattr(client_mod.security, "open_public_url", _conflict)
     with pytest.raises(PosOutOfStockError) as excinfo:
         PosSupplierClient(api_url="https://x/api", api_key="k").push_order({"external_id": "O1"})
     assert excinfo.value.items == ["Cola"]
@@ -442,6 +442,27 @@ def test_ssrf_guard_blocks_internal_targets(monkeypatch):
         security.socket, "getaddrinfo", lambda *a, **k: [(2, 1, 6, "", ("93.184.216.34", 443))]
     )
     assert security.is_public_url("https://example.com/api") is True
+
+
+@override_settings(POS_ALLOW_UNSAFE_URLS=False)
+def test_open_public_url_blocks_internal_initial_and_redirect(monkeypatch):
+    """The hardened opener refuses an internal initial target AND re-validates every
+    redirect hop, so a public URL can't bounce a fetch to cloud metadata / the LAN."""
+    import urllib.request
+
+    monkeypatch.setattr(
+        security.socket, "getaddrinfo", lambda *a, **k: [(2, 1, 6, "", ("169.254.169.254", 80))]
+    )
+    # Internal initial URL is refused before any connection.
+    with pytest.raises(ValidationError):
+        security.open_public_url("http://metadata.internal/x", timeout=1)
+    # A 3xx to an internal host is refused mid-flight by the redirect handler.
+    handler = security._PublicOnlyRedirect()
+    with pytest.raises(ValidationError):
+        handler.redirect_request(
+            urllib.request.Request("https://ok.example/a"), None, 302, "Found", {},
+            "http://169.254.169.254/latest/meta-data/",
+        )
 
 
 # --- Security: rate limiting ------------------------------------------------

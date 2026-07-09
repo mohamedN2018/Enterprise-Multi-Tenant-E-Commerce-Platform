@@ -15,6 +15,7 @@ import urllib.request
 from urllib.parse import quote
 
 from apps.core.exceptions import DomainError
+from apps.pos import security
 
 # POS providers are often fronted by Cloudflare, which blocks the default
 # "Python-urllib/x" agent as a bot. Present a normal browser UA so our
@@ -86,7 +87,8 @@ class PosSupplierClient:
         attempt = 0
         while True:
             try:
-                with urllib.request.urlopen(request, timeout=self.timeout) as resp:
+                # SSRF-hardened: validates the target + every redirect hop is public.
+                with security.open_public_url(request, timeout=self.timeout) as resp:
                     body = resp.read().decode("utf-8", errors="replace")
             except urllib.error.HTTPError as exc:
                 if exc.code == 401:

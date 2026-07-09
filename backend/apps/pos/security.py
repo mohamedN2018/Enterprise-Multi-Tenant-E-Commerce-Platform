@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import ipaddress
 import socket
+import urllib.request
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -56,3 +57,25 @@ def assert_public_url(url: str) -> None:
             "addresses are not allowed).",
             code="blocked_url",
         )
+
+
+class _PublicOnlyRedirect(urllib.request.HTTPRedirectHandler):
+    """Re-validate every 3xx target: a public URL must not be able to redirect a
+    server-side fetch to an internal address (SSRF via redirect)."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        assert_public_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def open_public_url(request, *, timeout):
+    """``urlopen`` for server-side fetches of a seller-supplied URL: refuses a
+    non-public initial target AND re-validates every redirect hop, so neither the
+    URL nor a redirect can point us at localhost / cloud metadata / the LAN.
+
+    Use this instead of ``urllib.request.urlopen`` for any URL the seller controls.
+    """
+    url = request.full_url if isinstance(request, urllib.request.Request) else request
+    assert_public_url(url)
+    opener = urllib.request.build_opener(_PublicOnlyRedirect())
+    return opener.open(request, timeout=timeout)

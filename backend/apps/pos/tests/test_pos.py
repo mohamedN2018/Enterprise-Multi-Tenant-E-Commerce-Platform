@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
@@ -236,6 +237,22 @@ def test_cashier_reports_order_status_two_way(store_client, make_store):
     )
     order.refresh_from_db()
     assert order.status == OrderStatus.DELIVERED
+
+
+@override_settings(POS_ALLOW_UNSAFE_URLS=False)
+def test_webhook_url_ssrf_is_blocked(store_client, make_store, monkeypatch):
+    """An internal webhook_url (SSRF target) is rejected when linking a cashier."""
+    from apps.pos import security
+
+    monkeypatch.setattr(
+        security.socket, "getaddrinfo", lambda *a, **k: [(2, 1, 6, "", ("169.254.169.254", 80))]
+    )
+    store, owner = make_store()
+    resp = store_client(owner, store).post(
+        CONNECTION_URL, {"webhook_url": "http://metadata.internal/hook"}, format="json"
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error_code"] == "blocked_url"
 
 
 def test_order_status_unknown_order_and_bad_key(store_client, make_store):
