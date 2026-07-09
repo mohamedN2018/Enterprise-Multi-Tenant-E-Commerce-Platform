@@ -233,53 +233,71 @@
   opacity: 0;
 }
 
-/* Dark mode: a coordinated surface ladder used across templates.
-   page #0b1220  <  section #0f172a  <  card #1e293b  <  hover #334155  */
+/* ────────────────────────────────────────────────────────────────────────
+   DARK MODE — NEUTRAL SURFACE LADDER  (edit these 10 values to retune it all)
+
+   The whole app's dark neutrals come from these variables, so light-mode
+   utilities (bg-white, bg-slate-50, text-slate-600 …) map onto ONE coherent
+   dark palette instead of each page choosing its own greys.
+     page  <  surface-2 (sections)  <  surface (cards)  <  surface-3 (fills/hover)
+   ──────────────────────────────────────────────────────────────────────── */
+.dark {
+  --d-page: #0b1220; /* app background */
+  --d-surface: #1e293b; /* cards / white surfaces */
+  --d-surface-2: #0f172a; /* subtle sections / lightbg */
+  --d-surface-3: #334155; /* slate-50/100 fills + hover */
+  --d-text: #e2e8f0; /* primary text (ink) */
+  --d-text-soft: #cbd5e1; /* secondary text (slate-600/700) */
+  --d-muted: #94a3b8; /* muted / slate-500 */
+  --d-faint: #64748b; /* faint / slate-400 */
+  --d-border: #334155; /* default borders */
+  --d-border-strong: #475569; /* stronger borders (inputs) */
+}
 .dark body {
-  background-color: #0b1220;
+  background-color: var(--d-page);
 }
 .dark .bg-white {
-  background-color: #1e293b;
+  background-color: var(--d-surface);
 }
 .dark .bg-lightbg {
-  background-color: #0f172a;
+  background-color: var(--d-surface-2);
 }
 .dark .bg-slate-50,
 .dark .bg-slate-50\/60,
 .dark .bg-slate-50\/70,
 .dark .bg-slate-100 {
-  background-color: #334155;
+  background-color: var(--d-surface-3);
 }
 .dark .text-ink {
-  color: #e2e8f0;
+  color: var(--d-text);
 }
 .dark .text-muted {
-  color: #94a3b8;
+  color: var(--d-muted);
 }
 .dark .text-slate-700,
 .dark .text-slate-600 {
-  color: #cbd5e1;
+  color: var(--d-text-soft);
 }
 .dark .text-slate-500 {
-  color: #94a3b8;
+  color: var(--d-muted);
 }
 .dark .text-slate-400 {
-  color: #64748b;
+  color: var(--d-faint);
 }
 .dark .border-slate-100,
 .dark .border-slate-200 {
-  border-color: #334155;
+  border-color: var(--d-border);
 }
 .dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
 .dark .divide-slate-50 > :not([hidden]) ~ :not([hidden]) {
-  border-color: #334155;
+  border-color: var(--d-border);
 }
 .dark .skeleton {
   background-color: rgba(51, 65, 85, 0.7);
 }
 /* Extra structural overrides for full dark-mode coverage */
 .dark .bg-slate-200 {
-  background-color: #334155;
+  background-color: var(--d-surface-3);
 }
 .dark .bg-white\/90,
 .dark .bg-white\/95,
@@ -287,20 +305,82 @@
   background-color: rgba(15, 23, 42, 0.9);
 }
 .dark .border-slate-300 {
-  border-color: #475569;
+  border-color: var(--d-border-strong);
 }
 .dark .border-slate-50 {
-  border-color: #1e293b;
+  border-color: var(--d-surface);
 }
 .dark .text-slate-800,
 .dark .text-slate-900,
 .dark .text-ink\/90 {
-  color: #e2e8f0;
+  color: var(--d-text);
 }
 .dark .bg-lightbg\/70,
 .dark .bg-slate-50\/40 {
-  background-color: #1e293b;
+  background-color: var(--d-surface);
 }
+.dark .bg-slate-100\/70 {
+  background-color: var(--d-surface-3);
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   STATUS / ACCENT COLOURS IN DARK MODE  (one place to tune them all)
+
+   Pastel status chips & banners (bg-*-50/100 + text-*-600/700 + border-*-200)
+   are designed for a white page. On a dark page a bright pastel block glares,
+   so here we remap each colour family ONCE — for every page at once:
+     • soft background  → a translucent tint of the colour (sits on the dark UI)
+     • text             → a lighter shade (readable on the tint)
+     • border           → a translucent edge
+   To rebalance a colour across the whole app, edit only its line below.
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* emerald (success / positive) */
+.dark .bg-emerald-50, .dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.15); }
+.dark .text-emerald-600, .dark .text-emerald-700, .dark .text-emerald-800 { color: rgb(110 231 183); }
+.dark .border-emerald-100, .dark .border-emerald-200 { border-color: rgba(16, 185, 129, 0.32); }
+
+/* amber (warning / pending) */
+.dark .bg-amber-50, .dark .bg-amber-50\/60, .dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.15); }
+.dark .text-amber-600, .dark .text-amber-700, .dark .text-amber-800 { color: rgb(252 211 77); }
+.dark .border-amber-100, .dark .border-amber-200 { border-color: rgba(245, 158, 11, 0.32); }
+
+/* rose (danger / negative) */
+.dark .bg-rose-50, .dark .bg-rose-100 { background-color: rgba(244, 63, 94, 0.15); }
+.dark .text-rose-600, .dark .text-rose-700, .dark .text-rose-800 { color: rgb(253 164 175); }
+.dark .border-rose-100, .dark .border-rose-200 { border-color: rgba(244, 63, 94, 0.32); }
+
+/* red / green one-offs — keep them in family with rose / emerald */
+.dark .bg-red-50, .dark .bg-red-100 { background-color: rgba(239, 68, 68, 0.15); }
+.dark .text-red-600, .dark .text-red-700 { color: rgb(252 165 165); }
+.dark .bg-green-50, .dark .bg-green-100 { background-color: rgba(34, 197, 94, 0.15); }
+.dark .text-green-600, .dark .text-green-700 { color: rgb(134 239 172); }
+
+/* sky / blue (info) */
+.dark .bg-sky-50, .dark .bg-sky-100 { background-color: rgba(14, 165, 233, 0.15); }
+.dark .text-sky-600, .dark .text-sky-700, .dark .text-sky-800 { color: rgb(125 211 252); }
+.dark .border-sky-100, .dark .border-sky-200 { border-color: rgba(14, 165, 233, 0.32); }
+.dark .bg-blue-50, .dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.15); }
+.dark .text-blue-600, .dark .text-blue-700 { color: rgb(147 197 253); }
+
+/* violet / indigo (accent) */
+.dark .bg-violet-50, .dark .bg-violet-100 { background-color: rgba(139, 92, 246, 0.15); }
+.dark .text-violet-600, .dark .text-violet-700 { color: rgb(196 181 253); }
+.dark .bg-indigo-50, .dark .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.15); }
+.dark .text-indigo-600, .dark .text-indigo-700 { color: rgb(165 180 252); }
+
+/* brand tints (primary/secondary follow the runtime theme variables) */
+.dark .bg-primary-50, .dark .bg-primary-50\/40, .dark .bg-primary-50\/50, .dark .bg-primary-100 {
+  background-color: rgb(var(--c-primary-500) / 0.16);
+}
+.dark .text-primary-700, .dark .text-primary-800 { color: rgb(var(--c-primary-400)); }
+.dark .border-primary-100, .dark .border-primary-200 { border-color: rgb(var(--c-primary-500) / 0.35); }
+.dark .bg-secondary-50, .dark .bg-secondary-50\/60, .dark .bg-secondary-100 {
+  background-color: rgb(var(--c-secondary-500) / 0.16);
+}
+.dark .text-secondary-700, .dark .text-secondary-800 { color: rgb(var(--c-secondary-400)); }
+.dark .border-secondary-100, .dark .border-secondary-200 { border-color: rgb(var(--c-secondary-500) / 0.35); }
+
 /* Chart tooltips (ApexCharts) in dark mode */
 .dark .apexcharts-tooltip {
   background: #0f172a !important;
