@@ -31,7 +31,13 @@ export const activeStore = {
   }
 };
 
-const http = axios.create({ baseURL: BASE_URL, headers: { 'Content-Type': 'application/json' } });
+// A 30s timeout so a hung/unreachable server (e.g. a gateway 504 during a
+// redeploy) fails with a clear message instead of spinning forever.
+const http = axios.create({
+  baseURL: BASE_URL,
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json' }
+});
 
 http.interceptors.request.use((config) => {
   const token = tokens.access;
@@ -89,6 +95,14 @@ export const apiPut = (url, data, config) => http.put(url, data, config).then((r
 export const apiDelete = (url, config) => http.delete(url, config).then((r) => r.data);
 
 export const errorMessage = (err) => {
+  // No HTTP response = timeout / network / gateway (504) — the server didn't
+  // answer. Give a clear, retryable message instead of a raw axios string.
+  if (err?.code === 'ECONNABORTED' || (!err?.response && err?.request)) {
+    return t('common.serverUnreachable');
+  }
+  if (err?.response?.status === 502 || err?.response?.status === 503 || err?.response?.status === 504) {
+    return t('common.serverBusy');
+  }
   const body = err?.response?.data;
   const errors = body?.errors;
   // Field validation errors arrive as { field: ["msg", ...] } or { detail: "…" }.

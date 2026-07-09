@@ -17,7 +17,8 @@ export default {
       category: 'القسم', brand: 'العلامة التجارية', searchDots: 'بحث…', allStatuses: 'كل الحالات',
       deleteSelected: 'حذف المحدد', saveChanges: 'حفظ التغييرات', physical: 'مادي', digital: 'رقمي',
       sku: 'SKU', stock: 'المخزون', close: 'إغلاق', cannotUndo: 'لا يمكن التراجع عن هذا الإجراء.',
-      somethingWrong: 'حدث خطأ ما. حاول مرة أخرى.', showingPrefix: 'عرض', showingOf: 'من'
+      somethingWrong: 'حدث خطأ ما. حاول مرة أخرى.', showingPrefix: 'عرض', showingOf: 'من',
+      serverUnreachable: 'تعذّر الوصول إلى الخادم. تحقّق من اتصالك وحاول مرة أخرى.', serverBusy: 'الخادم مشغول مؤقتًا (قد يكون قيد التحديث). حاول مرة أخرى بعد لحظات.'
     },
     valid: {
       required: 'هذا الحقل مطلوب', email: 'أدخل بريدًا إلكترونيًا صحيحًا', min: 'يجب ألا يقل عن {n} أحرف',
@@ -440,7 +441,8 @@ export default {
       category: 'Category', brand: 'Brand', searchDots: 'Search…', allStatuses: 'All statuses',
       deleteSelected: 'Delete selected', saveChanges: 'Save changes', physical: 'Physical', digital: 'Digital',
       sku: 'SKU', stock: 'Stock', close: 'Close', cannotUndo: 'This action cannot be undone.',
-      somethingWrong: 'Something went wrong. Please try again.', showingPrefix: 'Showing', showingOf: 'of'
+      somethingWrong: 'Something went wrong. Please try again.', showingPrefix: 'Showing', showingOf: 'of',
+      serverUnreachable: "Couldn't reach the server. Check your connection and try again.", serverBusy: 'The server is temporarily busy (it may be updating). Please try again in a moment.'
     },
     valid: {
       required: 'This field is required', email: 'Enter a valid email address', min: 'Must be at least {n} characters',
