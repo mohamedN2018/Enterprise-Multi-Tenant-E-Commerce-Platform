@@ -41,7 +41,8 @@ export default {
       subtitle: 'كل ما تحتاجه للتسوّق من متاجر مستقلة موثوقة — منتجات متنوّعة، دفع آمن، وتوصيل سريع.',
       trustedTitle: 'تسوّق من متاجر موثوقة', trustedText: 'آلاف المنتجات في مكان واحد.',
       dealsTitle: 'عروض وخصومات', dealsText: 'أفضل الأسعار من بائعين مستقلين.',
-      secureTitle: 'دفع آمن', secureText: 'حماية كاملة لكل عملية شراء.'
+      secureTitle: 'دفع آمن', secureText: 'حماية كاملة لكل عملية شراء.',
+      backToStore: 'العودة للمتجر'
     },
     home: {
       heroBadge: 'أهلاً بك في q-shop', heroTitle: 'كل ما تحب، من', heroHighlight: 'متاجر مستقلة',
@@ -279,6 +280,10 @@ export default {
       createAccount: 'أنشئ حسابك', registerSubtitle: 'ابدأ التسوق في دقائق.', confirmPassword: 'تأكيد كلمة المرور',
       alreadyHave: 'لديك حساب بالفعل؟', welcomeBack: 'أهلاً بعودتك!', accountCreated: 'تم إنشاء الحساب! سجّل الدخول من فضلك.',
       passwordsNoMatch: 'كلمتا المرور غير متطابقتين.',
+      asCustomer: 'عميل', asSeller: 'بائع', rememberMe: 'تذكّرني',
+      agreePrefix: 'أوافق على', terms: 'الشروط والأحكام', mustAgree: 'يجب الموافقة على الشروط والأحكام أولًا.',
+      pwWeak: 'ضعيفة', pwFair: 'مقبولة', pwGood: 'جيدة', pwStrong: 'قوية',
+      pwReqLen: '8 أحرف على الأقل', pwReqCase: 'حرف كبير وصغير', pwReqNum: 'رقم واحد', pwReqSym: 'رمز خاص',
       sellerSignIn: 'دخول البائعين', sellerSubtitle: 'ادخل إلى لوحة تحكم متجرك.',
       sellerLoginLink: 'هل أنت بائع أو موظف؟ ادخل من هنا', customerLoginLink: 'العودة لدخول العملاء',
       backToSignIn: 'العودة لتسجيل الدخول', checkEmail: 'تحقّق من بريدك',
@@ -458,7 +463,8 @@ export default {
       subtitle: 'Everything you need to shop from trusted independent stores — diverse products, secure payment, and fast delivery.',
       trustedTitle: 'Shop from trusted stores', trustedText: 'Thousands of products in one place.',
       dealsTitle: 'Deals & discounts', dealsText: 'Best prices from independent sellers.',
-      secureTitle: 'Secure payment', secureText: 'Full protection on every purchase.'
+      secureTitle: 'Secure payment', secureText: 'Full protection on every purchase.',
+      backToStore: 'Back to store'
     },
     home: {
       heroBadge: 'Welcome to q-shop', heroTitle: 'Everything you love, from', heroHighlight: 'independent stores',
@@ -696,6 +702,10 @@ export default {
       createAccount: 'Create your account', registerSubtitle: 'Start shopping in minutes.', confirmPassword: 'Confirm password',
       alreadyHave: 'Already have an account?', welcomeBack: 'Welcome back!', accountCreated: 'Account created! Please sign in.',
       passwordsNoMatch: 'Passwords do not match.',
+      asCustomer: 'Customer', asSeller: 'Seller', rememberMe: 'Remember me',
+      agreePrefix: 'I agree to the', terms: 'Terms & Conditions', mustAgree: 'Please accept the Terms & Conditions first.',
+      pwWeak: 'Weak', pwFair: 'Fair', pwGood: 'Good', pwStrong: 'Strong',
+      pwReqLen: 'At least 8 chars', pwReqCase: 'Upper & lower case', pwReqNum: 'A number', pwReqSym: 'A symbol',
       sellerSignIn: 'Seller sign in', sellerSubtitle: 'Access your store dashboard.',
       sellerLoginLink: 'Are you a seller or staff? Sign in here', customerLoginLink: 'Back to customer sign in',
       backToSignIn: 'Back to sign in', checkEmail: 'Check your email',

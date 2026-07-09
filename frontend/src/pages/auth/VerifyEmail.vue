@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { CheckCircle2, XCircle, Mail } from 'lucide-vue-next';
+import { CheckCircle2, XCircle, Mail, KeyRound } from 'lucide-vue-next';
 import FormField from '@/components/ui/FormField.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import { apiPost, errorMessage } from '@/services/http';
@@ -64,7 +64,7 @@ onMounted(() => {
       <h1 class="text-2xl font-bold">{{ $t('auth.verifyFailed') }}</h1>
       <p class="mt-2 text-sm text-muted">{{ message || $t('auth.linkInvalid') }}</p>
       <form class="mt-6 space-y-3 text-start" @submit.prevent="resend">
-        <FormField v-model="resendEmail" :label="$t('auth.resendTo')" type="email" placeholder="you@example.com" required />
+        <FormField v-model="resendEmail" :icon="Mail" :label="$t('auth.resendTo')" type="email" placeholder="you@example.com" required />
         <button type="submit" class="btn btn-outline w-full" :disabled="resending"><Mail class="h-4 w-4" /> {{ $t('auth.resendEmailBtn') }}</button>
       </form>
     </template>
@@ -74,7 +74,7 @@ onMounted(() => {
       <h1 class="text-2xl font-bold">{{ $t('auth.verifyTitle') }}</h1>
       <p class="mt-2 text-sm text-muted">{{ $t('auth.verifyPrompt') }}</p>
       <form class="mt-6 space-y-3 text-start" @submit.prevent="verify(token)">
-        <FormField v-model="token" :label="$t('auth.verifyToken')" required />
+        <FormField v-model="token" :icon="KeyRound" :label="$t('auth.verifyToken')" required />
         <button type="submit" class="btn btn-primary w-full">{{ $t('auth.verifyBtn') }}</button>
       </form>
     </template>

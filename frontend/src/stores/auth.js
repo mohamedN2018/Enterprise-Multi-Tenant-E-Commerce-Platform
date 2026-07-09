@@ -24,8 +24,8 @@ export const useAuthStore = defineStore('auth', {
       }
       this.ready = true;
     },
-    async login(email, password) {
-      const data = await apiPost('/auth/login/', { email, password });
+    async login(email, password, remember_me = false) {
+      const data = await apiPost('/auth/login/', { email, password, remember_me });
       tokens.set({ access: data.tokens.access, refresh: data.tokens.refresh });
       this.user = data.user;
       return data;

@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { MailCheck } from 'lucide-vue-next';
+import { MailCheck, Mail } from 'lucide-vue-next';
 import FormField from '@/components/ui/FormField.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import { apiPost, errorMessage } from '@/services/http';
@@ -41,7 +41,7 @@ const submit = async () => {
       <p class="mt-1 text-sm text-muted">{{ $t('auth.forgotSubtitle') }}</p>
       <div v-if="error" class="mt-4 rounded-lg border border-secondary-200 bg-secondary-50 px-4 py-2.5 text-sm text-secondary-700">{{ error }}</div>
       <form class="mt-6 space-y-4" novalidate @submit.prevent="submit">
-        <FormField v-model="email" :label="$t('common.email')" type="email" placeholder="you@example.com" autocomplete="email" :error="errors.email" @update:model-value="clear('email')" />
+        <FormField v-model="email" :icon="Mail" :label="$t('common.email')" type="email" placeholder="you@example.com" autocomplete="email" autofocus :error="errors.email" @update:model-value="clear('email')" />
         <button type="submit" class="btn btn-primary btn-lg w-full" :disabled="loading"><Spinner v-if="loading" :size="18" /><span v-else>{{ $t('auth.sendResetLink') }}</span></button>
       </form>
       <p class="mt-6 text-center text-sm text-muted"><RouterLink :to="{ name: 'login' }" class="font-semibold text-primary-600 hover:underline">{{ $t('auth.backToSignIn') }}</RouterLink></p>
