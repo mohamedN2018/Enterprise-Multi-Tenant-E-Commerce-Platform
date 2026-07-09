@@ -112,6 +112,47 @@ class PosService(BaseService):
         self.touch(connection=connection)
         return results
 
+    # --- Inbound: the cashier reports a status change for an online order ---
+    # Cashier vocabulary -> our fulfillment status (two-way sync).
+    _ORDER_STATUS_MAP = {
+        "accepted": "processing",
+        "preparing": "processing",
+        "processing": "processing",
+        "ready": "shipped",
+        "shipped": "shipped",
+        "out_for_delivery": "out_for_delivery",
+        "on_the_way": "out_for_delivery",
+        "shipping": "out_for_delivery",
+        "delivered": "delivered",
+        "completed": "delivered",
+        "fulfilled": "delivered",
+        "cancelled": "cancelled",
+        "canceled": "cancelled",
+        "rejected": "cancelled",
+    }
+
+    def record_order_status(self, *, connection: PosConnection, external_id: str, status: str, note: str = ""):
+        """Map a cashier status onto the matching store order (by its number) and
+        apply it. Unknown statuses are accepted but ignored so the cashier is never
+        blocked. Returns the order."""
+        from apps.orders.models import Order
+        from apps.orders.services import CheckoutService
+
+        order = Order.all_objects.filter(
+            store=connection.store, number=external_id, is_deleted=False
+        ).first()
+        if order is None:
+            raise NotFoundError(
+                "No order with this reference in this store.", code="order_not_found"
+            )
+        mapped = self._ORDER_STATUS_MAP.get(str(status or "").strip().lower())
+        self.touch(connection=connection)
+        if mapped is None:
+            return order  # unrecognised status — no-op, don't block the cashier
+        return CheckoutService().apply_pos_status(
+            order=order, status=mapped, note=note or f"cashier: {status}"
+        )
+
     # --- Outbound / pull: current levels ---
     def stock_snapshot(self, *, store, skus: list[str] | None = None) -> list[dict]:
         variants = ProductVariant.all_objects.filter(store=store, is_deleted=False, is_active=True)

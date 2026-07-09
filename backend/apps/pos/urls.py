@@ -16,6 +16,7 @@ urlpatterns = [
     path("connection/rotate/", views.PosConnectionRotateView.as_view(), name="connection-rotate"),
     path("sales/", views.PosSaleView.as_view(), name="sales"),
     path("stock/", views.PosStockView.as_view(), name="stock"),
+    path("order-status/", views.PosOrderStatusView.as_view(), name="order-status"),
     # Outbound: link an external POS supplier and import its catalog.
     path("supplier/", views.PosSupplierView.as_view(), name="supplier"),
     path("supplier/import/", views.PosSupplierImportView.as_view(), name="supplier-import"),

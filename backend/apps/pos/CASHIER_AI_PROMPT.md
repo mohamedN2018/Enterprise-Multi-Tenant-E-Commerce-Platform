@@ -77,16 +77,25 @@ Headers: x-api-key: <المفتاح>, Content-Type: application/json
 
 ---
 
-## 3) 🔁 تواصل رجوعي بين النظامين (يُكمل التكامل)
+## 3) 🔁 تواصل رجوعي بين النظامين (جاهز على المنصة ✅)
 
-لكي تعرف المنصة أن الكاشير استلم/جهّز الطلب:
-- عند تغيير موظف الكاشير لحالة طلب أونلاين (`accepted` / `preparing` / `ready` / `delivered` / `rejected`)، أرسل webhook إلى المنصة:
-  ```
-  POST {STORE_URL}/api/v1/pos/order-status
-  Body: { "external_id": "QSH-000123", "status": "preparing", "at": "<ISO>" }
-  Header: X-POS-Signature: <HMAC(secret, body)>
-  ```
-- اطلب من فريق المنصة قيمة `STORE_URL` و`secret` (سيوفّرونها من إعدادات الربط). لو لم تتوفر بعد، اجعل هذه الخطوة اختيارية خلف Feature flag.
+المنصة **نفّذت بالفعل** endpoint لاستقبال حالة الطلب من الكاشير، فتظهر التحديثات مباشرةً في خطّ زمن الطلب عند العميل والبائع. عليك فقط استدعاؤه عند تغيير حالة أي طلب أونلاين:
+
+```
+POST {STORE_URL}/api/v1/pos/order-status/
+Headers: X-POS-Key: <نفس مفتاح الكاشير الذي تستخدمه لتسجيل المبيعات>, Content-Type: application/json
+Body: { "external_id": "QSH-000123", "status": "preparing", "at": "<ISO>", "note": "" }
+```
+
+- **المصادقة**: بنفس مفتاح الكاشير (`X-POS-Key`) الذي أصدره لك المتجر من إعدادات الربط — نفس المفتاح المستخدم في `/sales` و`/stock`. (لا حاجة لـ HMAC.)
+- **قيم `status` المقبولة** (تُطابَق تلقائيًا مع حالات المنصة):
+  - `accepted` / `preparing` / `processing` → قيد التجهيز
+  - `ready` / `shipped` → تم الشحن
+  - `out_for_delivery` / `on_the_way` → خرج للتوصيل
+  - `delivered` / `completed` → تم التسليم
+  - `cancelled` / `rejected` → أُلغي
+- **الرد**: `200` مع `{ "order": "<id>", "status": "<الحالة عندنا>" }`. طلب غير معروف → `404`. مفتاح خاطئ → `401`. الحالات النهائية (تم التسليم/أُلغي) لا تتغيّر بعد ذلك.
+- اطلب `STORE_URL` من فريق المنصة (رابط المنصة العام). اجعل الاستدعاء best-effort (لا يُفشل عملية الكاشير لو تعذّر الاتصال).
 
 ---
 

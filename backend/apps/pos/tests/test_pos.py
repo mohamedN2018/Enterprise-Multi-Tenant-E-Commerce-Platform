@@ -16,6 +16,7 @@ CONNECTION_URL = reverse("v1:pos:connection")
 ROTATE_URL = reverse("v1:pos:connection-rotate")
 SALES_URL = reverse("v1:pos:sales")
 STOCK_URL = reverse("v1:pos:stock")
+ORDER_STATUS_URL = reverse("v1:pos:order-status")
 
 
 def _link(store_client, store, owner, **body):
@@ -198,3 +199,57 @@ def test_cashier_sale_does_not_echo_to_webhook(
         )
 
     assert calls == []  # POS-originated deduction is not echoed back
+
+
+# --- Two-way: the cashier reports an order status back to us -----------------
+def test_cashier_reports_order_status_two_way(store_client, make_store):
+    from apps.orders.models import Order, OrderStatus
+
+    store, owner = make_store()
+    key = _link(store_client, store, owner)
+    order = Order.objects.create(
+        store=store, user=owner, number="ORD-STATUS-1", status=OrderStatus.CONFIRMED,
+        total="100.00", tax_total="0.00", discount_total="0.00", shipping_address={},
+    )
+
+    # "preparing" -> processing
+    r1 = APIClient().post(
+        ORDER_STATUS_URL, {"external_id": "ORD-STATUS-1", "status": "preparing"},
+        format="json", HTTP_X_POS_KEY=key,
+    )
+    assert r1.status_code == 200
+    order.refresh_from_db()
+    assert order.status == OrderStatus.PROCESSING
+
+    # "delivered" -> delivered (forward jump is allowed for a POS-driven update)
+    APIClient().post(
+        ORDER_STATUS_URL, {"external_id": "ORD-STATUS-1", "status": "delivered"},
+        format="json", HTTP_X_POS_KEY=key,
+    )
+    order.refresh_from_db()
+    assert order.status == OrderStatus.DELIVERED
+
+    # Terminal state is final: a late update is ignored.
+    APIClient().post(
+        ORDER_STATUS_URL, {"external_id": "ORD-STATUS-1", "status": "processing"},
+        format="json", HTTP_X_POS_KEY=key,
+    )
+    order.refresh_from_db()
+    assert order.status == OrderStatus.DELIVERED
+
+
+def test_order_status_unknown_order_and_bad_key(store_client, make_store):
+    store, owner = make_store()
+    key = _link(store_client, store, owner)
+    # Unknown reference -> 404.
+    r404 = APIClient().post(
+        ORDER_STATUS_URL, {"external_id": "NOPE", "status": "delivered"},
+        format="json", HTTP_X_POS_KEY=key,
+    )
+    assert r404.status_code == 404
+    # Bad key -> 401.
+    r401 = APIClient().post(
+        ORDER_STATUS_URL, {"external_id": "NOPE", "status": "delivered"},
+        format="json", HTTP_X_POS_KEY="pos_wrong",
+    )
+    assert r401.status_code == 401

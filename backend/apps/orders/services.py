@@ -456,6 +456,26 @@ class CheckoutService(BaseService):
         order_status_changed.send(sender=self.__class__, order=order, status=new_status)
         return order
 
+    @atomic
+    def apply_pos_status(self, *, order: Order, status, note: str = "") -> Order:
+        """Set an order's status from the linked cashier (two-way sync). The cashier
+        is authoritative on physical fulfillment, so — unlike ``advance_status`` —
+        this allows forward jumps; terminal states (delivered/cancelled) are final
+        and late updates are ignored."""
+        try:
+            new_status = OrderStatus(status)
+        except ValueError as exc:
+            raise ValidationError("Unknown order status.", code="invalid_status") from exc
+        if order.status in (OrderStatus.DELIVERED, OrderStatus.CANCELLED):
+            return order  # already final
+        if order.status == new_status:
+            return order
+        order.status = new_status
+        order.save(update_fields=["status", "updated_at"])
+        self._record_event(order, new_status, note or "Updated by the cashier")
+        order_status_changed.send(sender=self.__class__, order=order, status=new_status)
+        return order
+
     @staticmethod
     def _record_event(order: Order, status, note: str = "") -> None:
         OrderEvent.objects.create(store=order.store, order=order, status=status, note=note or "")

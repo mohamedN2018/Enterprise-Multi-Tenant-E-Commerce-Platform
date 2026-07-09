@@ -22,6 +22,7 @@ from apps.pos.serializers import (
     PosConnectionCreateSerializer,
     PosConnectionSerializer,
     PosConnectionUpdateSerializer,
+    PosOrderStatusSerializer,
     PosSaleSerializer,
     PosSupplierConnectSerializer,
     PosSupplierSerializer,
@@ -117,6 +118,26 @@ class PosSaleView(_PosMachineView):
             reference=payload.validated_data.get("reference", ""),
         )
         return APIResponse.success({"items": results}, message="Sale recorded.")
+
+
+@extend_schema(tags=["POS"])
+class PosOrderStatusView(_PosMachineView):
+    """The cashier reports a status change for an online order it received, so the
+    buyer's order timeline stays in sync (two-way integration)."""
+
+    def post(self, request: Request) -> Response:
+        payload = PosOrderStatusSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        order = PosService().record_order_status(
+            connection=request.pos_connection,
+            external_id=payload.validated_data["external_id"],
+            status=payload.validated_data["status"],
+            note=payload.validated_data.get("note", ""),
+        )
+        return APIResponse.success(
+            {"order": str(order.id), "status": order.status},
+            message="Order status updated.",
+        )
 
 
 @extend_schema(tags=["POS"])

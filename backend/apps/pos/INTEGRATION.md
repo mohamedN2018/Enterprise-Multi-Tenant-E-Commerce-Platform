@@ -124,9 +124,31 @@ Our payload matches the DTO exactly.
 
 ---
 
+## Reverse direction — the cashier reports order status back to us
+
+Two-way sync: after we push an order, the cashier can report its progress so the
+buyer's/seller's order timeline stays in sync.
+
+```
+POST {STORE_URL}/api/v1/pos/order-status/
+Headers: X-POS-Key: <the inbound cashier key>, Content-Type: application/json
+Body:    { "external_id": "<order number>", "status": "preparing", "at": "<ISO>", "note": "" }
+```
+
+- Auth: the **inbound** cashier key (`X-POS-Key`) — the same key used for `/sales`
+  and `/stock` (issued from the store's cashier connection). Not the outbound key.
+- Status vocabulary → our fulfillment status: `accepted|preparing|processing`→processing,
+  `ready|shipped`→shipped, `out_for_delivery|on_the_way`→out_for_delivery,
+  `delivered|completed`→delivered, `cancelled|rejected`→cancelled.
+- Reply `200 {order, status}`; unknown order → 404; bad key → 401. Terminal states
+  (delivered/cancelled) are final. Forward jumps are allowed (the cashier is
+  authoritative on physical fulfillment). Each change records an OrderEvent.
+
 ## Where this lives in our code
 
 - Client (HTTP, headers, error mapping): `backend/apps/pos/client.py`
 - Payload build + confirmation checks: `PosSupplierService.push_order` in `backend/apps/pos/services.py`
 - Manual re-send endpoint: `OrderManagePushView` → `POST /api/v1/orders/manage/<id>/push-to-cashier/`
 - Auto-push on order confirm: `pos.push_order_to_cashier` Celery task (`backend/apps/pos/tasks.py`)
+- Inbound status callback: `PosOrderStatusView` → `POST /api/v1/pos/order-status/`
+  (`PosService.record_order_status` → `CheckoutService.apply_pos_status`)

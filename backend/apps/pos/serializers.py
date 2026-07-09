@@ -55,6 +55,15 @@ class PosSaleSerializer(serializers.Serializer):
     reference = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
 
 
+class PosOrderStatusSerializer(serializers.Serializer):
+    """The cashier reporting a status change for an online order it received."""
+
+    external_id = serializers.CharField(max_length=64)
+    status = serializers.CharField(max_length=40)
+    at = serializers.DateTimeField(required=False)
+    note = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+
+
 # --- Outbound supplier (import products from an external POS) ---
 class PosSupplierSerializer(serializers.ModelSerializer):
     """Safe read view — never exposes the stored supplier API key."""
