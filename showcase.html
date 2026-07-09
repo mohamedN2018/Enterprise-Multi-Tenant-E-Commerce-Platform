@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>q-shop · منصة التجارة الإلكترونية متعددة التجار</title>
+<meta name="description" content="منصة تجارة إلكترونية على مستوى المؤسسات، بأسلوب Shopify، تستضيف عددًا غير محدود من المتاجر المعزولة." />
+<style>
+  /* ============ Tokens ============ */
+  :root{
+    --ink:#0b1220;
+    --ink-2:#131d33;
+    --primary:#F28B00;
+    --primary-soft:#ffb454;
+    --ember:#F92400;
+    --sand:#FBF6EF;
+    --paper:#ffffff;
+    --card:#ffffff;
+    --line:#ece3d6;
+    --text:#1a2233;
+    --muted:#6c6f78;
+    --ring: rgba(242,139,0,.35);
+
+    --bg:var(--sand);
+    --fg:var(--text);
+    --shadow: 0 1px 2px rgba(20,20,40,.04), 0 12px 34px -12px rgba(20,20,40,.14);
+
+    --maxw:1180px;
+    --r:18px;
+    --font: "Segoe UI", Tahoma, "Noto Kufi Arabic", "Geeza Pro", system-ui, Arial, sans-serif;
+    --mono: "Cascadia Code", "SF Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --sand:#0d1526; --paper:#111a2e; --card:#131e36;
+      --line:#22304d; --text:#eef1f7; --muted:#9aa6bd;
+      --bg:#0a1120; --fg:var(--text);
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 18px 40px -18px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="light"]{
+    --sand:#FBF6EF; --paper:#fff; --card:#fff; --line:#ece3d6;
+    --text:#1a2233; --muted:#6c6f78; --bg:var(--sand); --fg:var(--text);
+    --shadow: 0 1px 2px rgba(20,20,40,.04), 0 12px 34px -12px rgba(20,20,40,.14);
+  }
+  :root[data-theme="dark"]{
+    --sand:#0d1526; --paper:#111a2e; --card:#131e36; --line:#22304d;
+    --text:#eef1f7; --muted:#9aa6bd; --bg:#0a1120; --fg:var(--text);
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 18px 40px -18px rgba(0,0,0,.6);
+  }
+
+  /* ============ Reset / base ============ */
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font-family:var(--font); font-size:clamp(1rem,.96rem + .2vw,1.075rem);
+    line-height:1.75; -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  h1,h2,h3{margin:0; line-height:1.15; text-wrap:balance; font-weight:800; letter-spacing:-.01em}
+  p{margin:0}
+  a{color:inherit; text-decoration:none}
+  .wrap{max-width:var(--maxw); margin-inline:auto; padding-inline:clamp(20px,4vw,40px)}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ============ Nav ============ */
+  .nav{
+    position:sticky; top:0; z-index:50;
+    -webkit-backdrop-filter:saturate(1.4) blur(12px);
+    backdrop-filter:saturate(1.4) blur(12px);
+    background:color-mix(in srgb, var(--bg) 78%, transparent);
+    border-bottom:1px solid var(--line);
+  }
+  .nav .wrap{display:flex; align-items:center; gap:20px; height:66px}
+  .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:1.2rem}
+  .brand .dot{
+    width:30px; height:30px; border-radius:9px; display:grid; place-items:center;
+    background:linear-gradient(135deg,var(--primary),var(--ember)); color:#fff;
+    font-weight:900; font-size:1rem; box-shadow:0 6px 16px -4px var(--ring);
+  }
+  .brand b{color:var(--primary)}
+  .nav nav{display:flex; gap:26px; margin-inline-start:auto; font-size:.95rem; color:var(--muted)}
+  .nav nav a:hover{color:var(--primary)}
+  @media (max-width:820px){ .nav nav{display:none} }
+  .tbtn{
+    margin-inline-start:auto; border:1px solid var(--line); background:var(--card);
+    color:var(--fg); width:40px; height:40px; border-radius:11px; cursor:pointer;
+    display:grid; place-items:center; font-size:1.1rem;
+  }
+  .nav nav + .tbtn{margin-inline-start:0}
+  .tbtn:hover{border-color:var(--primary)}
+
+  /* ============ Hero ============ */
+  .hero{position:relative; overflow:hidden; color:#f6f8ff;
+    background:
+      radial-gradient(680px 420px at 82% -10%, rgba(242,139,0,.30), transparent 60%),
+      radial-gradient(560px 460px at 8% 110%, rgba(249,36,0,.22), transparent 55%),
+      linear-gradient(160deg,#0b1220 0%, #0e1730 55%, #17223f 100%);
+  }
+  .orb{position:absolute; border-radius:50%; filter:blur(60px); opacity:.6; pointer-events:none;
+    animation:drift 14s ease-in-out infinite alternate}
+  .orb.a{width:340px;height:340px; background:rgba(242,139,0,.35); top:-80px; inset-inline-end:-60px}
+  .orb.b{width:300px;height:300px; background:rgba(249,36,0,.28); bottom:-120px; inset-inline-start:18%}
+  @keyframes drift{to{transform:translateY(28px) translateX(-18px)}}
+  .hero .wrap{position:relative; padding-block:clamp(70px,11vw,120px)}
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:9px; font-size:.82rem; font-weight:700;
+    letter-spacing:.02em; padding:7px 15px; border-radius:100px;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); color:#ffd8a8;
+  }
+  .eyebrow .pip{width:8px;height:8px;border-radius:50%;background:var(--primary-soft);box-shadow:0 0 0 4px rgba(255,180,84,.22)}
+  .hero h1{font-size:clamp(2.3rem,5.4vw,4.4rem); font-weight:900; letter-spacing:-.02em; margin-top:24px; max-width:16ch}
+  .hero h1 .grad{background:linear-gradient(120deg,var(--primary-soft),var(--primary) 55%,var(--ember)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .hero .lede{margin-top:22px; max-width:56ch; font-size:clamp(1.05rem,1rem + .5vw,1.3rem); color:#c7cfe2; line-height:1.85}
+  .cta{display:flex; flex-wrap:wrap; gap:14px; margin-top:36px}
+  .btn{display:inline-flex; align-items:center; gap:9px; padding:14px 26px; border-radius:13px; font-weight:800; font-size:1rem; cursor:pointer; border:1px solid transparent; transition:transform .15s ease, box-shadow .2s ease}
+  .btn-p{background:linear-gradient(135deg,var(--primary),#ff7a00); color:#fff; box-shadow:0 14px 30px -10px var(--ring)}
+  .btn-p:hover{transform:translateY(-2px)}
+  .btn-g{background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.2); color:#fff}
+  .btn-g:hover{background:rgba(255,255,255,.14)}
+
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; margin-top:60px;
+    background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.12); border-radius:16px; overflow:hidden}
+  .stat{background:linear-gradient(180deg, rgba(13,20,40,.5), rgba(13,20,40,.2)); padding:22px 18px}
+  .stat b{display:block; font-size:clamp(1.7rem,4vw,2.5rem); font-weight:900; color:#fff; letter-spacing:-.02em}
+  .stat span{font-size:.86rem; color:#aeb8d0}
+  @media (max-width:680px){ .stats{grid-template-columns:repeat(2,1fr)} }
+
+  /* ============ Section scaffold ============ */
+  section{padding-block:clamp(64px,9vw,110px)}
+  .kicker{color:var(--primary); font-weight:800; font-size:.86rem; letter-spacing:.04em; margin-bottom:12px}
+  .h2{font-size:clamp(1.8rem,1.3rem + 2vw,2.9rem); font-weight:900; letter-spacing:-.02em}
+  .sub{color:var(--muted); max-width:60ch; margin-top:14px; font-size:1.08rem}
+  .head{margin-bottom:46px}
+
+  /* value props */
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:22px}
+  @media (max-width:900px){ .grid3{grid-template-columns:1fr} }
+  .prop{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:30px; box-shadow:var(--shadow)}
+  .prop .ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-size:1.5rem;
+    background:linear-gradient(135deg, rgba(242,139,0,.16), rgba(249,36,0,.12)); margin-bottom:18px}
+  .prop h3{font-size:1.35rem; margin-bottom:10px}
+  .prop p{color:var(--muted)}
+
+  /* personas */
+  .grid4{display:grid; grid-template-columns:repeat(4,1fr); gap:18px}
+  @media (max-width:960px){ .grid4{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:520px){ .grid4{grid-template-columns:1fr} }
+  .persona{position:relative; background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:26px; overflow:hidden; box-shadow:var(--shadow)}
+  .persona::before{content:""; position:absolute; inset-block-start:0; inset-inline:0; height:4px; background:linear-gradient(90deg,var(--primary),var(--ember))}
+  .persona .tag{font-size:.8rem; color:var(--primary); font-weight:800}
+  .persona h3{font-size:1.25rem; margin:8px 0 12px}
+  .persona ul{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px; color:var(--muted); font-size:.96rem}
+  .persona li{position:relative; padding-inline-start:20px}
+  .persona li::before{content:""; position:absolute; inset-inline-start:0; top:.62em; width:8px;height:8px;border-radius:3px; background:var(--primary); opacity:.85}
+
+  /* feature domains */
+  .domains{display:grid; grid-template-columns:repeat(6,1fr); gap:18px}
+  .domain{grid-column:span 2; background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:28px; box-shadow:var(--shadow); transition:transform .18s ease, border-color .18s ease}
+  .domain:hover{transform:translateY(-4px); border-color:var(--ring)}
+  .domain .hd{display:flex; align-items:center; gap:12px; margin-bottom:16px}
+  .domain .hd .g{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:1.3rem;background:linear-gradient(135deg, rgba(242,139,0,.18), rgba(249,36,0,.12))}
+  .domain h3{font-size:1.2rem}
+  .domain p{color:var(--muted); font-size:.96rem; margin-bottom:16px}
+  .chips{display:flex; flex-wrap:wrap; gap:7px}
+  .chip{font-size:.8rem; padding:5px 11px; border-radius:100px; background:color-mix(in srgb,var(--primary) 10%, transparent); color:var(--primary); font-weight:600; border:1px solid color-mix(in srgb,var(--primary) 20%, transparent)}
+  /* first two feature tiles wide, rest span 3 */
+  .domains .wide{grid-column:span 3}
+  @media (max-width:1000px){ .domains{grid-template-columns:repeat(2,1fr)} .domain,.domains .wide{grid-column:span 1} }
+  @media (max-width:560px){ .domains{grid-template-columns:1fr} }
+
+  /* tech stack */
+  .tech{background:var(--paper)}
+  .stack{display:grid; grid-template-columns:repeat(3,1fr); gap:22px}
+  @media (max-width:900px){ .stack{grid-template-columns:1fr} }
+  .layer{border:1px solid var(--line); border-radius:var(--r); padding:26px; background:var(--card)}
+  .layer h3{font-size:1.15rem; display:flex; align-items:center; gap:10px; margin-bottom:18px}
+  .layer h3 .b{width:10px;height:22px;border-radius:4px;background:linear-gradient(var(--primary),var(--ember))}
+  .tlist{display:flex; flex-wrap:wrap; gap:8px}
+  .t{font-size:.86rem; font-weight:600; padding:8px 13px; border-radius:10px; background:var(--bg); border:1px solid var(--line); color:var(--fg)}
+  .t small{color:var(--muted); font-weight:500}
+
+  /* architecture strip */
+  .arch{display:grid; grid-template-columns:repeat(2,1fr); gap:20px}
+  @media (max-width:820px){ .arch{grid-template-columns:1fr} }
+  .arow{display:flex; gap:16px; padding:22px; border:1px solid var(--line); border-radius:14px; background:var(--card)}
+  .arow .n{font-family:var(--mono); font-weight:800; color:var(--primary); font-size:1.05rem; min-width:34px}
+  .arow h4{margin:0 0 6px; font-size:1.08rem}
+  .arow p{color:var(--muted); font-size:.95rem}
+
+  /* security band */
+  .band{position:relative; overflow:hidden; color:#f4f6ff;
+    background:radial-gradient(500px 300px at 85% 0%, rgba(242,139,0,.24), transparent 60%), linear-gradient(150deg,#0b1220 0%, #122038 55%, #16213e 100%);
+    background-color:#0d1730; border-radius:24px; padding:clamp(34px,5vw,56px)}
+  .band .h2{color:#fff}
+  .secgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:30px}
+  @media (max-width:820px){ .secgrid{grid-template-columns:1fr} }
+  .sec{display:flex; gap:11px; align-items:flex-start; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:15px 16px; font-size:.95rem}
+  .sec .k{color:var(--primary-soft); font-weight:900}
+
+  /* localization */
+  .loc{display:grid; grid-template-columns:1.1fr .9fr; gap:34px; align-items:center}
+  @media (max-width:820px){ .loc{grid-template-columns:1fr} }
+  .loc .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:26px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px}
+  .locrow{display:flex; align-items:center; gap:14px}
+  .locrow .flag{font-size:1.7rem}
+  .locrow b{font-size:1.05rem}
+  .locrow span{color:var(--muted); font-size:.9rem}
+
+  /* closing */
+  .close{text-align:center}
+  .close .h2{max-width:22ch; margin-inline:auto}
+  .close .sub{margin-inline:auto}
+
+  footer{border-top:1px solid var(--line); padding-block:36px; color:var(--muted); font-size:.9rem}
+  footer .wrap{display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between}
+
+  /* reveal */
+  .rv{opacity:0; transform:translateY(22px); transition:opacity .6s ease, transform .6s ease}
+  .rv.in{opacity:1; transform:none}
+  @media (prefers-reduced-motion:reduce){
+    .rv{opacity:1; transform:none; transition:none}
+    .orb{animation:none}
+    html{scroll-behavior:auto}
+  }
+  :focus-visible{outline:3px solid var(--ring); outline-offset:2px; border-radius:6px}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="dot">q</span> <span>q-<b>shop</b></span></a>
+    <nav>
+      <a href="#features">المميزات</a>
+      <a href="#tech">التقنيات</a>
+      <a href="#arch">الهندسة</a>
+      <a href="#security">الأمان</a>
+    </nav>
+    <button type="button" class="tbtn" id="themeToggle" aria-label="تبديل السمة" title="تبديل الوضع الفاتح/الداكن">◐</button>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <span class="orb a"></span><span class="orb b"></span>
+    <div class="wrap">
+      <span class="eyebrow"><span class="pip"></span> منصة SaaS للتجارة الإلكترونية · عربيّ أولًا</span>
+      <h1>أطلق سوقك الإلكتروني <span class="grad">متعدد التجار</span> بمعايير المؤسسات</h1>
+      <p class="lede">منصة على أسلوب Shopify تستضيف عددًا غير محدود من المتاجر المعزولة تمامًا داخل نظام واحد — كتالوج، مخزون، طلبات، مدفوعات، شحن، ولاء، وتكامل كاشير. مبنيّة بواجهة RTL كاملة للسوق العربي.</p>
+      <div class="cta">
+        <a class="btn btn-p" href="#features">استكشف المميزات ↩</a>
+        <a class="btn btn-g" href="#tech">حزمة التقنيات</a>
+      </div>
+
+      <div class="stats num">
+        <div class="stat"><b>+24</b><span>وحدة عمل متكاملة</span></div>
+        <div class="stat"><b>+451</b><span>اختبار آلي</span></div>
+        <div class="stat"><b>2</b><span>لغة · RTL/LTR</span></div>
+        <div class="stat"><b>4</b><span>أدوار مستخدمين</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VALUE PROPS -->
+  <section class="wrap" id="why">
+    <div class="head rv">
+      <div class="kicker">لماذا q-shop</div>
+      <h2 class="h2">قوّة المشروع في ثلاث كلمات</h2>
+      <p class="sub">ليست واجهة متجر بسيطة — بل بنية تحتية كاملة لسوق تجاري، مبنية لتُشغَّل في الإنتاج.</p>
+    </div>
+    <div class="grid3">
+      <div class="prop rv">
+        <div class="ic">🏢</div>
+        <h3>على مستوى المؤسسات</h3>
+        <p>معمارية نظيفة متعددة الطبقات، أمان بمعايير OWASP، و+451 اختبارًا آليًا. نظام إنتاجي حقيقي، لا نموذج تعليمي.</p>
+      </div>
+      <div class="prop rv">
+        <div class="ic">🌍</div>
+        <h3>عربيّ أولًا</h3>
+        <p>واجهة RTL كاملة، العربية هي الأساس، خطوط عربية محلية، والجنيه المصري افتراضيًا — مصمّم للسوق المحلي.</p>
+      </div>
+      <div class="prop rv">
+        <div class="ic">🧩</div>
+        <h3>شامل ومتكامل</h3>
+        <p>أكثر من 24 وحدة تغطّي كل جوانب التجارة: من الكتالوج والمخزون إلى الاحتيال والتصنيع وتكامل الكاشير.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PERSONAS -->
+  <section class="wrap">
+    <div class="head rv">
+      <div class="kicker">مصمّمة لكل الأطراف</div>
+      <h2 class="h2">أربعة أدوار · تجربة مخصّصة لكلٍّ منها</h2>
+    </div>
+    <div class="grid4">
+      <div class="persona rv">
+        <div class="tag">العميل</div>
+        <h3>تسوّق سلس</h3>
+        <ul>
+          <li>تصفّح وبحث وفلترة</li>
+          <li>سلة وحجز مخزون فوري</li>
+          <li>تتبّع الطلب والتسليم</li>
+          <li>تقييم موثّق بعد الاستلام</li>
+        </ul>
+      </div>
+      <div class="persona rv">
+        <div class="tag">البائع</div>
+        <h3>لوحة متجر كاملة</h3>
+        <ul>
+          <li>كتالوج ومخزون متعدد المستودعات</li>
+          <li>طلبات وشحن ومرتجعات</li>
+          <li>عروض وتسعير وتحصيلات</li>
+          <li>تقارير ومخططات حيّة</li>
+        </ul>
+      </div>
+      <div class="persona rv">
+        <div class="tag">موظف المتجر</div>
+        <h3>صلاحيات دقيقة</h3>
+        <ul>
+          <li>وصول محدّد لكل قسم</li>
+          <li>يمنحه المالك ما يحتاجه فقط</li>
+          <li>إخفاء ما لا يخصّه</li>
+          <li>حماية على مستوى الرابط</li>
+        </ul>
+      </div>
+      <div class="persona rv">
+        <div class="tag">مدير المنصة</div>
+        <h3>إشراف مركزي</h3>
+        <ul>
+          <li>مراقبة كل المتاجر</li>
+          <li>الموافقة على حدود البائعين</li>
+          <li>تخصيص هوية المنصة بالكامل</li>
+          <li>مراجعة الاحتيال والمخاطر</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURE DOMAINS -->
+  <section class="wrap" id="features">
+    <div class="head rv">
+      <div class="kicker">خريطة المميزات</div>
+      <h2 class="h2">كل ما يحتاجه سوق إلكتروني حديث</h2>
+      <p class="sub">مجالات عمل مستقلة تتكامل معًا في منصة واحدة — كل مجال بمنطق عمل ناضج واختبارات تغطّيه.</p>
+    </div>
+    <div class="domains">
+      <div class="domain wide rv">
+        <div class="hd"><span class="g">🛒</span><h3>تجربة العميل</h3></div>
+        <p>واجهة متجر احترافية متجاوبة: صفحة رئيسية غنية، صفحة منتج بمعرض ومتغيّرات، سلة وإتمام شراء متكامل مع الكوبونات والضريبة والشحن.</p>
+        <div class="chips"><span class="chip">بحث فوري</span><span class="chip">متغيّرات المنتج</span><span class="chip">Wishlist</span><span class="chip">تتبّع الطلب</span><span class="chip">تقييم موثّق</span></div>
+      </div>
+      <div class="domain wide rv">
+        <div class="hd"><span class="g">🏪</span><h3>كونسول البائع</h3></div>
+        <p>إدارة كاملة للمتجر: كتالوج، منتجات رقمية وحزم، مخزون متعدد المستودعات، طلبات، تسعير متقدّم، وفريق بصلاحيات.</p>
+        <div class="chips"><span class="chip">منتجات رقمية</span><span class="chip">تراخيص</span><span class="chip">مجموعات عملاء</span><span class="chip">قواعد تسعير</span><span class="chip">إدارة فريق</span></div>
+      </div>
+
+      <div class="domain rv">
+        <div class="hd"><span class="g">📦</span><h3>المخزون والتوريد</h3></div>
+        <p>مستودعات متعددة، حجز وحركات، دفعات بتواريخ صلاحية، أرقام تسلسلية، وتصنيع خفيف (BOM وأوامر تشغيل).</p>
+        <div class="chips"><span class="chip">Warehouses</span><span class="chip">Batches</span><span class="chip">Serials</span><span class="chip">BOM</span></div>
+      </div>
+      <div class="domain rv">
+        <div class="hd"><span class="g">💳</span><h3>المدفوعات والمالية</h3></div>
+        <p>بوابات دفع قابلة للتوسّع، مرتجعات واسترداد، تحصيلات بائعين بدفتر أستاذ وعمولة منصة، وضرائب وعملات متعددة.</p>
+        <div class="chips"><span class="chip">Payouts</span><span class="chip">Ledger</span><span class="chip">Tax Zones</span><span class="chip">Multi-currency</span></div>
+      </div>
+      <div class="domain rv">
+        <div class="hd"><span class="g">🎁</span><h3>التسويق والولاء</h3></div>
+        <p>كوبونات وحملات وبطاقات هدايا، ونظام ولاء متكامل: نقاط، محفظة رصيد، وبرنامج إحالة.</p>
+        <div class="chips"><span class="chip">Coupons</span><span class="chip">Campaigns</span><span class="chip">Gift Cards</span><span class="chip">Loyalty</span><span class="chip">Referrals</span></div>
+      </div>
+
+      <div class="domain wide rv">
+        <div class="hd"><span class="g">🔌</span><h3>تكامل نظام الكاشير (POS)</h3></div>
+        <p>تكامل ثنائي الاتجاه مع أنظمة نقاط البيع: استيراد كتالوج المورّد، ودفع الطلبات الأونلاين لسجل الكاشير مع التحقق من المخزون قبل الدفع — بمفاتيح مشفّرة ومزامنة خلفية.</p>
+        <div class="chips"><span class="chip">استيراد الكتالوج</span><span class="chip">دفع الطلبات</span><span class="chip">تحقق المخزون</span><span class="chip">مفاتيح مشفّرة</span></div>
+      </div>
+      <div class="domain wide rv">
+        <div class="hd"><span class="g">🛡️</span><h3>الأمان والإشراف</h3></div>
+        <p>فحص احتيال قائم على القواعد عند الدفع، تحكّم أدوار دقيق (RBAC)، مراجعة تقييمات، وإشعارات — كلها تحت إشراف مدير منصة مركزي.</p>
+        <div class="chips"><span class="chip">Fraud Scoring</span><span class="chip">RBAC</span><span class="chip">مراجعة التقييمات</span><span class="chip">Notifications</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TECH STACK -->
+  <section class="tech">
+    <div class="wrap">
+      <div class="head rv" id="tech">
+        <div class="kicker">حزمة التقنيات</div>
+        <h2 class="h2">مبنيّة بأدوات حديثة وموثوقة</h2>
+        <p class="sub">تقنيات مُختارة بعناية عبر كل طبقة — من قاعدة البيانات إلى البكسل الأخير في الواجهة.</p>
+      </div>
+      <div class="stack">
+        <div class="layer rv">
+          <h3><span class="b"></span> الخلفية · Backend</h3>
+          <div class="tlist">
+            <span class="t">Python 3.13</span>
+            <span class="t">Django 5.1</span>
+            <span class="t">DRF 3.15</span>
+            <span class="t">SimpleJWT <small>مصادقة</small></span>
+            <span class="t">Celery 5.4 <small>+ Beat</small></span>
+            <span class="t">Channels 4.2 <small>ASGI</small></span>
+            <span class="t">Argon2</span>
+            <span class="t">Fernet <small>تشفير</small></span>
+            <span class="t">drf-spectacular <small>OpenAPI</small></span>
+            <span class="t">Pillow</span>
+            <span class="t">boto3 <small>S3</small></span>
+            <span class="t">Sentry</span>
+          </div>
+        </div>
+        <div class="layer rv">
+          <h3><span class="b"></span> الواجهة · Frontend</h3>
+          <div class="tlist">
+            <span class="t">Vue 3 <small>Composition</small></span>
+            <span class="t">Vite 5</span>
+            <span class="t">Pinia <small>حالة</small></span>
+            <span class="t">Vue Router 4</span>
+            <span class="t">Tailwind CSS 3</span>
+            <span class="t">ApexCharts</span>
+            <span class="t">Axios</span>
+            <span class="t">i18n <small>مخصّص · RTL</small></span>
+            <span class="t">Cairo <small>خط محلي</small></span>
+            <span class="t">Lucide <small>أيقونات</small></span>
+          </div>
+        </div>
+        <div class="layer rv">
+          <h3><span class="b"></span> البنية · Infra</h3>
+          <div class="tlist">
+            <span class="t">PostgreSQL 16</span>
+            <span class="t">Redis 7</span>
+            <span class="t">Docker <small>Compose</small></span>
+            <span class="t">Gunicorn</span>
+            <span class="t">Uvicorn</span>
+            <span class="t">Nginx <small>Reverse Proxy</small></span>
+            <span class="t">WhiteNoise</span>
+            <span class="t">Dokploy <small>نشر آلي</small></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section class="wrap" id="arch">
+    <div class="head rv">
+      <div class="kicker">التميّز الهندسي</div>
+      <h2 class="h2">هندسة تحت السطح تستحق الثقة</h2>
+    </div>
+    <div class="arch">
+      <div class="arow rv"><div class="n">01</div><div><h4>عزل متعدد المستأجرين</h4><p>كل صف بيانات مرتبط بمتجره، ويُفرض العزل تلقائيًا عبر Middleware ومديري استعلام مُقيّدين — استحالة تسرّب بيانات بين المتاجر.</p></div></div>
+      <div class="arow rv"><div class="n">02</div><div><h4>معمارية نظيفة</h4><p>فصل واضح Models → Repositories → Services → Views. منطق العمل كله في طبقة خدمات، وواجهات رفيعة قابلة للاختبار.</p></div></div>
+      <div class="arow rv"><div class="n">03</div><div><h4>غلاف استجابة موحّد</h4><p>كل استجابات الـ API بصيغة ثابتة <span style="font-family:var(--mono);font-size:.85em">{success, message, data, errors}</span> مع أكواد أخطاء واضحة.</p></div></div>
+      <div class="arow rv"><div class="n">04</div><div><h4>عقد موحّد للنماذج</h4><p>مفاتيح UUID، طوابع زمنية، حذف ناعم، وطوابع تدقيق على كل نموذج — مع قابلية رصد بمعرّف طلب فريد في السجلّات.</p></div></div>
+    </div>
+  </section>
+
+  <!-- SECURITY BAND -->
+  <section class="wrap" id="security">
+    <div class="band rv">
+      <div class="kicker" style="color:var(--primary-soft)">الأمان والجودة</div>
+      <h2 class="h2">مبنيّة آمنة من الأساس</h2>
+      <div class="secgrid">
+        <div class="sec"><span class="k">JWT</span> مصادقة بتدوير التوكِن وقائمة سوداء وخاصية "تذكّرني".</div>
+        <div class="sec"><span class="k">Argon2</span> تجزئة كلمات المرور بالمعيار الأقوى حاليًا.</div>
+        <div class="sec"><span class="k">Fernet</span> تشفير المفاتيح الحساسة عند التخزين.</div>
+        <div class="sec"><span class="k">Throttle</span> تحديد معدّل الطلبات لكل نقطة حساسة.</div>
+        <div class="sec"><span class="k">SSRF</span> حماية عند الاتصال بالخدمات الخارجية.</div>
+        <div class="sec"><span class="k">RBAC</span> أدوار وصلاحيات دقيقة لكل قسم.</div>
+        <div class="sec"><span class="k">+451</span> اختبار آلي يغطّي منطق العمل الحرج.</div>
+        <div class="sec"><span class="k">Devices</span> إدارة جلسات الأجهزة وإلغاء الوصول.</div>
+        <div class="sec"><span class="k">OpenAPI</span> توثيق تلقائي لكل نقاط الـ API.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOCALIZATION -->
+  <section class="wrap">
+    <div class="loc">
+      <div class="rv">
+        <div class="kicker">التوطين</div>
+        <h2 class="h2">مصمّمة للسوق العربي</h2>
+        <p class="sub">دعم RTL كامل من الجذور، والعربية هي اللغة الأساسية — حتى بيانات المنتجات تُترجم من الخادم عبر ترويسة اللغة.</p>
+      </div>
+      <div class="card rv">
+        <div class="locrow"><span class="flag">🇪🇬</span><div><b>العربية أولًا</b><br><span>RTL كامل · خطوط Cairo المحلية · الجنيه المصري افتراضيًا</span></div></div>
+        <div class="locrow"><span class="flag">🌐</span><div><b>الإنجليزية احتياطية</b><br><span>تبديل فوري للغة والاتجاه · دعم عملات متعددة</span></div></div>
+        <div class="locrow"><span class="flag">🎨</span><div><b>هوية قابلة للتخصيص</b><br><span>المدير يغيّر الألوان والخطوط والقوالب الجاهزة مباشرةً</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLOSING -->
+  <section class="wrap close">
+    <div class="rv">
+      <h2 class="h2">كل ما يحتاجه إطلاق سوق إلكتروني عربي حديث — في نظام واحد جاهز</h2>
+      <p class="sub">اتساع في المميزات، وعمق في الهندسة، وأمان على مستوى المؤسسات.</p>
+      <div class="cta" style="justify-content:center; margin-top:30px">
+        <a class="btn btn-p" href="#top">ابدأ من الأعلى ↩</a>
+        <a class="btn btn-g" style="border-color:var(--line); color:var(--fg); background:var(--card)" href="#features">راجع المميزات</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© q-shop — منصة التجارة الإلكترونية متعددة التجار</span>
+    <span>مبنيّة بـ Django · Vue · PostgreSQL · Redis · Docker</span>
+  </div>
+</footer>
+
+<script>
+  // Theme toggle (stamps data-theme; overrides prefers-color-scheme)
+  (function(){
+    var root = document.documentElement;
+    var btn = document.getElementById('themeToggle');
+    function current(){
+      return root.getAttribute('data-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    }
+    btn.addEventListener('click', function(){
+      var next = current() === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      btn.textContent = next === 'dark' ? '☀' : '◐';
+    });
+  })();
+
+  // Scroll reveal
+  (function(){
+    var els = document.querySelectorAll('.rv');
+    if(!('IntersectionObserver' in window)){ els.forEach(function(e){e.classList.add('in')}); return; }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, {threshold:.12, rootMargin:'0px 0px -40px 0px'});
+    els.forEach(function(e){ io.observe(e); });
+  })();
+</script>
+</body>
+</html>

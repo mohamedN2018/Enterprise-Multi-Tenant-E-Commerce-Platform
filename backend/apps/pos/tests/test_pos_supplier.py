@@ -287,6 +287,72 @@ def test_push_order_maps_items_and_skips_unmapped(make_store, make_variant, monk
     assert order.pos_synced_at is not None
 
 
+def test_push_order_raises_when_no_line_maps_to_cashier(make_store, make_variant, monkeypatch):
+    """No line maps to a cashier product → must NOT silently push an empty order;
+    it raises and never POSTs, so the seller isn't told it was 'sent'."""
+    from apps.orders.models import Order, OrderItem
+    from apps.pos.models import PosSupplierConnection
+
+    store, owner = make_store()
+    _p, unmapped = make_variant(store, sku="LOCAL-ONLY", stock=5)
+    conn = PosSupplierConnection.objects.create(
+        store=store, provider="q-shop POS", api_url="https://x/api", api_key="k", is_connected=True
+    )
+    order = Order.objects.create(
+        store=store, user=owner, number="ORD-NO-MAP", total="100.00",
+        tax_total="0.00", discount_total="0.00", shipping_address={},
+    )
+    OrderItem.objects.create(
+        store=store, order=order, variant=unmapped, product_name="x", sku="LOCAL-ONLY",
+        unit_price="50.00", quantity=2, line_total="100.00",
+    )
+
+    called = {"pushed": False}
+    monkeypatch.setattr(
+        client_mod.PosSupplierClient, "push_order",
+        lambda self, payload: called.update(pushed=True) or {"id": "tx"},
+    )
+    with pytest.raises(ConflictError) as exc:
+        PosSupplierService().push_order(connection=conn, order=order)
+    assert exc.value.code == "pos_no_cashier_items"
+    assert called["pushed"] is False  # never POSTed an empty order
+    order.refresh_from_db()
+    assert order.pos_synced_at is None
+
+
+def test_push_order_raises_when_cashier_returns_no_id(make_store, make_variant, monkeypatch):
+    """A 200 without an { id } isn't a confirmation — treat as NOT sent and don't
+    stamp the order as synced."""
+    from apps.orders.models import Order, OrderItem
+    from apps.pos.models import PosImportedProduct, PosSupplierConnection
+
+    store, owner = make_store()
+    product, variant = make_variant(store, sku="MAP-2", stock=5)
+    conn = PosSupplierConnection.objects.create(
+        store=store, provider="q-shop POS", api_url="https://x/api", api_key="k", is_connected=True
+    )
+    PosImportedProduct.objects.create(
+        store=store, connection=conn, external_id="CASHIER-2", product=product
+    )
+    order = Order.objects.create(
+        store=store, user=owner, number="ORD-NOID", total="50.00",
+        tax_total="0.00", discount_total="0.00", shipping_address={},
+    )
+    OrderItem.objects.create(
+        store=store, order=order, variant=variant, product_name="x", sku="MAP-2",
+        unit_price="50.00", quantity=1, line_total="50.00",
+    )
+    # Cashier answers 200 but with no id → not confirmed.
+    monkeypatch.setattr(
+        client_mod.PosSupplierClient, "push_order", lambda self, payload: {"duplicate": True}
+    )
+    with pytest.raises(PosUnavailableError):
+        PosSupplierService().push_order(connection=conn, order=order)
+    order.refresh_from_db()
+    assert order.pos_synced_at is None
+    assert not order.pos_reference
+
+
 def test_check_cashier_stock_flags_shortfall(make_store, make_variant, monkeypatch):
     """Before payment we flag lines the cashier can't fulfil; unreachable → allow."""
     from apps.pos.models import PosImportedProduct, PosSupplierConnection

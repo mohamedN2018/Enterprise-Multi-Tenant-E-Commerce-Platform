@@ -40,7 +40,13 @@ const pushToCashier = async () => {
   try {
     const res = await seller.pushOrderToCashier(order.value.id);
     order.value = res.data;
-    ui.success(t('orderDetailPage.posSent'));
+    // Trust the cashier's confirmation, not just a 2xx: the server only stamps
+    // pos_synced_at when the cashier replied with a real order id.
+    if (res.data?.pos_synced_at) {
+      ui.success(t('orderDetailPage.posSent'));
+    } else {
+      ui.error(t('orderDetailPage.posNotConfirmed'));
+    }
   } catch (e) {
     ui.error(errorMessage(e));
   } finally {

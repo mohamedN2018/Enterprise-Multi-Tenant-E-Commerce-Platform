@@ -239,10 +239,16 @@ class PosSupplierService(BaseService):
     # --- Push a placed order to the cashier (so it shows in the cashier log) ---
     def push_order(self, *, connection: PosSupplierConnection, order) -> dict:
         """Send a confirmed store order to the cashier's order log / revenue. Each
-        line is mapped to its cashier product id from the import; lines with no
-        cashier equivalent are omitted (the cashier ignores unknown ids). Idempotent
+        line is mapped to its **cashier** product id (``external_id`` from the
+        import — NOT our store product id), so the cashier recognises it. Idempotent
         on the cashier side via ``external_id`` (the order number), so retries are
-        safe."""
+        safe.
+
+        Raises rather than pretending success: if no line maps to a cashier product
+        the order can't be recorded there, and if the cashier doesn't answer with an
+        ``{id}`` we treat it as NOT sent — the caller must never report "sent" on a
+        response we didn't confirm.
+        """
         store = connection.store
         items = []
         for line in order.items.all():
@@ -256,10 +262,20 @@ class PosSupplierService(BaseService):
                 continue  # not a cashier product — can't be recorded there
             items.append(
                 {
+                    # The cashier's own product id (from GET /integration/products),
+                    # not the store product id — otherwise the cashier ignores it.
                     "product_id": ref.external_id,
                     "quantity": line.quantity,
                     "unit_price": float(line.unit_price),
                 }
+            )
+        # Guard: an order whose products aren't linked to the cashier would be
+        # recorded there as an empty sale. Fail loudly instead of silently "sending".
+        if not items:
+            raise ConflictError(
+                "None of this order's products are linked to the cashier. "
+                "Re-import the cashier catalogue, then try again.",
+                code="pos_no_cashier_items",
             )
         address = order.shipping_address if isinstance(order.shipping_address, dict) else {}
         address_str = "، ".join(
@@ -278,13 +294,21 @@ class PosSupplierService(BaseService):
             "items": items,
         }
         client = self._client(store=store, api_url=connection.api_url, api_key=connection.api_key)
+        # The client raises on 401/404/5xx/non-JSON (PosUnavailableError) and on
+        # 409 out-of-stock (PosOutOfStockError); a plain 200/201 returns the body.
         result = client.push_order(payload)
-        # Record the sync on the order so the seller can see it was sent.
-        ref = str(result.get("id") or "")
-        if ref:
-            order.pos_reference = ref
-            order.pos_synced_at = timezone.now()
-            order.save(update_fields=["pos_reference", "pos_synced_at", "updated_at"])
+        # Only a response carrying an { id } is a real confirmation. Anything else
+        # (empty body, no id) means the cashier did NOT record it — don't stamp
+        # "synced" and don't let the caller claim success.
+        ref = str(result.get("id") or "").strip()
+        if not ref:
+            raise PosUnavailableError(
+                "The cashier accepted the request but returned no order id, so the "
+                "order was not confirmed. Please try again."
+            )
+        order.pos_reference = ref
+        order.pos_synced_at = timezone.now()
+        order.save(update_fields=["pos_reference", "pos_synced_at", "updated_at"])
         return result
 
     def check_cashier_stock(self, *, store, lines) -> list:
