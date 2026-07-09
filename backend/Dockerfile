@@ -41,10 +41,17 @@ USER app
 EXPOSE 8000
 
 ENTRYPOINT ["sh", "/app/entrypoint.sh"]
-# Default (production) command: ASGI server with Uvicorn workers under Gunicorn.
-CMD ["gunicorn", "config.asgi:application", \
-     "--worker-class", "uvicorn.workers.UvicornWorker", \
+# Default (production) command: the WSGI app under Gunicorn with threaded sync
+# workers. The API is fully synchronous (DRF views + ORM); serving it via the
+# ASGI/Uvicorn worker ran DB access in an async context and raised
+# SynchronousOnlyOperation under concurrency (login/theme → 504/502). No
+# WebSocket consumers are wired yet (see config/asgi.py), so WSGI loses nothing;
+# switch back to config.asgi with an async-safe stack when realtime lands.
+CMD ["gunicorn", "config.wsgi:application", \
      "--bind", "0.0.0.0:8000", \
      "--workers", "3", \
+     "--threads", "4", \
+     "--worker-class", "gthread", \
+     "--timeout", "60", \
      "--access-logfile", "-", \
      "--error-logfile", "-"]

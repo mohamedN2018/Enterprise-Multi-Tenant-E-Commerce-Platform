@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Mail, Lock, AlertCircle, ShieldCheck } from 'lucide-vue-next';
+import { Mail, Lock, AlertCircle } from 'lucide-vue-next';
 import FormField from '@/components/ui/FormField.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import { useAuthStore } from '@/stores/auth';
@@ -102,12 +102,7 @@ const resendVerification = async () => {
       </button>
     </form>
 
-    <!-- Everyone uses this one form; the system routes each role automatically. -->
-    <p class="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-muted">
-      <ShieldCheck class="h-3.5 w-3.5 text-primary-500" /> {{ $t('auth.autoRouteHint') }}
-    </p>
-
-    <p class="mt-5 border-t border-slate-100 pt-5 text-center text-sm text-muted dark:border-slate-800">
+    <p class="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-muted dark:border-slate-800">
       {{ $t('auth.noAccount') }}
       <RouterLink :to="{ name: 'register' }" class="font-semibold text-primary-600 hover:underline">{{ $t('auth.createOne') }}</RouterLink>
     </p>
