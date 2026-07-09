@@ -29,7 +29,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useCartStore } from '@/stores/cart';
 import { storefront } from '@/services/storefront';
 import { useI18n } from '@/i18n';
-import { useTheme } from '@/theme';
+import { useTheme, brand } from '@/theme';
 import { catName } from '@/utils/i18nData';
 import CartFlyout from '@/components/CartFlyout.vue';
 import SearchBox from '@/components/SearchBox.vue';
@@ -40,9 +40,18 @@ const cart = useCartStore();
 const { t } = useI18n();
 const { theme } = useTheme();
 
-// Support contact points (each shortcut has a distinct function).
-const SUPPORT_PHONE = '+0121234567890';
-const SUPPORT_EMAIL = 'support@q-shop.com';
+// Support contact points + footer info — admin-editable via Platform Settings
+// (fall back to sensible defaults when the platform config hasn't loaded yet).
+const cfg = computed(() => brand.value || {});
+const SUPPORT_PHONE = computed(() => cfg.value.support_phone || '+0121234567890');
+const SUPPORT_EMAIL = computed(() => cfg.value.support_email || 'support@q-shop.com');
+const address = computed(() => cfg.value.address || '123 Market Street, Cairo');
+const socials = computed(() => [
+  { icon: Facebook, url: cfg.value.facebook },
+  { icon: Twitter, url: cfg.value.twitter },
+  { icon: Instagram, url: cfg.value.instagram },
+  { icon: Linkedin, url: cfg.value.linkedin }
+]);
 
 const categories = ref([]);
 const catOpen = ref(false);
@@ -116,7 +125,7 @@ onMounted(async () => {
         <div class="ms-auto flex items-center gap-3 text-muted">
           <div class="hidden items-center gap-1 lg:flex">
             <span class="text-ink">{{ t('nav.callUs') }}:</span>
-            <a :href="`tel:${SUPPORT_PHONE}`" class="hover:text-primary-600" dir="ltr">(+012) 1234 567890</a>
+            <a :href="`tel:${SUPPORT_PHONE}`" class="hover:text-primary-600" dir="ltr">{{ SUPPORT_PHONE }}</a>
           </div>
           <div class="relative">
             <button class="flex items-center gap-1 hover:text-primary-600" @click="accountOpen = !accountOpen">
@@ -306,10 +315,7 @@ onMounted(async () => {
           <img src="/brand/dark-logo.png" alt="q-shop" class="mb-4 h-16 w-auto" />
           <p class="text-sm leading-7">{{ t('footer.about') }}</p>
           <div class="mt-4 flex gap-2">
-            <a href="#" class="grid h-9 w-9 place-items-center rounded-full border border-white/20 hover:bg-primary-600 hover:text-white"><Facebook class="h-4 w-4" /></a>
-            <a href="#" class="grid h-9 w-9 place-items-center rounded-full border border-white/20 hover:bg-primary-600 hover:text-white"><Twitter class="h-4 w-4" /></a>
-            <a href="#" class="grid h-9 w-9 place-items-center rounded-full border border-white/20 hover:bg-primary-600 hover:text-white"><Instagram class="h-4 w-4" /></a>
-            <a href="#" class="grid h-9 w-9 place-items-center rounded-full border border-white/20 hover:bg-primary-600 hover:text-white"><Linkedin class="h-4 w-4" /></a>
+            <a v-for="(s, i) in socials" :key="i" :href="s.url || '#'" :target="s.url ? '_blank' : undefined" rel="noopener" class="grid h-9 w-9 place-items-center rounded-full border border-white/20 hover:bg-primary-600 hover:text-white"><component :is="s.icon" class="h-4 w-4" /></a>
           </div>
         </div>
         <div>
@@ -338,7 +344,7 @@ onMounted(async () => {
             <input type="email" :placeholder="t('footer.yourEmail')" class="w-full border-0 bg-transparent px-4 py-2.5 text-sm text-ink focus:outline-none" />
             <button class="btn btn-primary rounded-none px-5"><Mail class="h-4 w-4" /></button>
           </form>
-          <p class="mt-4 flex items-center gap-2 text-sm"><MapPin class="h-4 w-4 text-primary-500" /> 123 Market Street, Cairo</p>
+          <p class="mt-4 flex items-center gap-2 text-sm"><MapPin class="h-4 w-4 text-primary-500" /> {{ address }}</p>
         </div>
       </div>
       <div class="bg-primary-600">

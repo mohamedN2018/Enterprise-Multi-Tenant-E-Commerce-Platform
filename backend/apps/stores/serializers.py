@@ -268,23 +268,51 @@ import re as _re  # noqa: E402
 
 _HEX_RE = _re.compile(r"^#[0-9a-fA-F]{6}$")
 THEME_FONTS = ["Cairo", "Tajawal", "Almarai", "Roboto", "Open Sans"]
+# The platform config singleton — branding (theme) + general site settings. One
+# blob, served at /platform/theme/ and applied app-wide on boot.
 DEFAULT_THEME = {
+    # Branding
     "preset": "sunset",
     "primary": "#F28B00",
     "secondary": "#F92400",
     "background": "#F5F5F5",
     "font": "Cairo",
     "heading_font": "Cairo",
+    # General site settings
+    "platform_name": "q-shop",
+    "support_email": "support@q-shop.com",
+    "support_phone": "+0121234567890",
+    "address": "123 Market Street, Cairo",
+    "facebook": "",
+    "twitter": "",
+    "instagram": "",
+    "linkedin": "",
+    # Defaults for new visitors (respected only until they choose their own)
+    "default_language": "ar",
+    "default_mode": "light",
 }
 
 
 class PlatformThemeSerializer(serializers.Serializer):
-    """Validates a (partial) theme update. All fields optional so the admin can
-    tweak one thing at a time; colors must be #RRGGBB, fonts from a known set."""
+    """Validates a (partial) platform-config update — branding + site settings. All
+    fields optional so the admin can tweak one thing at a time; colors must be
+    #RRGGBB, fonts from a known set."""
 
+    # Branding
     preset = serializers.CharField(max_length=40, required=False, allow_blank=True)
     primary = serializers.RegexField(_HEX_RE, required=False)
     secondary = serializers.RegexField(_HEX_RE, required=False)
     background = serializers.RegexField(_HEX_RE, required=False)
     font = serializers.ChoiceField(choices=THEME_FONTS, required=False)
     heading_font = serializers.ChoiceField(choices=THEME_FONTS, required=False)
+    # General site settings
+    platform_name = serializers.CharField(max_length=60, required=False, allow_blank=True)
+    support_email = serializers.EmailField(required=False, allow_blank=True)
+    support_phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
+    address = serializers.CharField(max_length=200, required=False, allow_blank=True)
+    facebook = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    twitter = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    instagram = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    linkedin = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    default_language = serializers.ChoiceField(choices=["ar", "en"], required=False)
+    default_mode = serializers.ChoiceField(choices=["light", "dark"], required=False)

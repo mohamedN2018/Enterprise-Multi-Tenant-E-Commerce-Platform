@@ -348,6 +348,17 @@ export default {
     },
     orderTrack: { current: 'الحالية', trackingNo: 'رقم التتبّع', carrier: 'شركة الشحن', updateTitle: 'تحديث حالة الطلب والشحن', moveTo: 'تحديث إلى: {label}', trackingPlaceholder: 'رقم التتبّع من شركة الشحن', carrierPlaceholder: 'مثال: بوسطة، أرامكس', statusUpdated: 'تم تحديث حالة الطلب.', trackTitle: 'تتبّع الشحنة', delivered: 'تم تسليم طلبك بنجاح 🎉' },
     appearance: { title: 'مظهر المنصة', subtitle: 'خصّص ألوان وخط المنصة بالكامل — يظهر لكل المستخدمين.', nav: 'المظهر والهوية', presets: 'ثيمات جاهزة', custom: 'تخصيص كامل', primary: 'اللون الأساسي', secondary: 'اللون الثانوي', background: 'لون الخلفية', font: 'الخط', save: 'حفظ وتطبيق', reset: 'استرجاع الافتراضي', liveHint: 'التغييرات بتظهر مباشرة في المعاينة؛ اضغط حفظ لتطبيقها للجميع.', saved: 'تم حفظ مظهر المنصة.', previewTitle: 'معاينة حية', sampleProduct: 'منتج تجريبي', tagPrimary: 'مميّز', tagSale: 'خصم', theme_sunset: 'غروب (الافتراضي)', theme_ocean: 'محيط', theme_forest: 'غابة', theme_grape: 'عنبي', theme_rose: 'وردي', theme_charcoal: 'فحمي', theme_royal: 'ملكي', theme_mint: 'نعناعي', theme_sand: 'رملي', presetsHint: 'اختر ثيمًا جاهزًا متناسقًا بضغطة واحدة، أو خصّص بالكامل بالأسفل.', customHint: 'اختر ألوانك وخطوطك؛ باقي درجات كل لون بتتولّد تلقائيًا بتناسق.', headingFont: 'خط العناوين', bodyFont: 'خط النص', fontSampleHeading: 'عنوان تجريبي', fontSampleBody: 'نموذج نص عادي للمعاينة.', previewLight: 'الوضع النهاري', previewDark: 'الوضع الليلي', tagSuccess: 'مكتمل', tagPending: 'قيد الانتظار', tagDanger: 'ملغي' },
+    platformSettings: {
+      nav: 'إعدادات المنصة', title: 'إعدادات المنصة', subtitle: 'تحكّم كامل في بيانات المنصة الأساسية — تظهر لكل المستخدمين.',
+      identity: 'هوية المنصة', platformName: 'اسم المنصة', platformNameHint: 'يظهر في عنوان الصفحة وأنحاء الموقع.',
+      contact: 'بيانات التواصل', contactHint: 'تظهر في تذييل المتجر والشريط العلوي.',
+      supportEmail: 'بريد الدعم', supportPhone: 'هاتف الدعم', address: 'العنوان',
+      social: 'روابط التواصل الاجتماعي', socialHint: 'اتركها فاضية لإخفاء الرابط.',
+      defaults: 'الإعدادات الافتراضية للزوّار الجدد', defaultsHint: 'تُطبَّق على الزائر الجديد فقط، ويظل اختياره الشخصي مقدَّمًا.',
+      defaultLanguage: 'اللغة الافتراضية', arabic: 'العربية', english: 'الإنجليزية',
+      defaultMode: 'الوضع الافتراضي', light: 'نهاري', dark: 'ليلي',
+      save: 'حفظ وتطبيق', saved: 'تم حفظ إعدادات المنصة.', appliesHint: 'التغييرات تُطبَّق على كل المستخدمين فور الحفظ.'
+    },
     roles: { platform: 'المشرف العام', owner: 'مالك', manager: 'مدير', employee: 'موظف', member: 'عضو' },
     perms: {
       catalog: 'المنتجات والكتالوج', inventory: 'المخزون', sales: 'المبيعات والطلبات', marketing: 'التسويق والعروض',
@@ -754,6 +765,17 @@ export default {
     },
     orderTrack: { current: 'Current', trackingNo: 'Tracking number', carrier: 'Carrier', updateTitle: 'Update order status & shipping', moveTo: 'Mark as {label}', trackingPlaceholder: 'Carrier tracking number', carrierPlaceholder: 'e.g. Bosta, Aramex', statusUpdated: 'Order status updated.', trackTitle: 'Track shipment', delivered: 'Your order was delivered 🎉' },
     appearance: { title: 'Platform appearance', subtitle: 'Fully customize the marketplace colors and font — applied to everyone.', nav: 'Appearance', presets: 'Ready-made themes', custom: 'Full customization', primary: 'Primary color', secondary: 'Secondary color', background: 'Background color', font: 'Font', save: 'Save & apply', reset: 'Reset to default', liveHint: 'Changes preview live; press Save to apply for everyone.', saved: 'Platform appearance saved.', previewTitle: 'Live preview', sampleProduct: 'Sample product', tagPrimary: 'Featured', tagSale: 'Sale', theme_sunset: 'Sunset (default)', theme_ocean: 'Ocean', theme_forest: 'Forest', theme_grape: 'Grape', theme_rose: 'Rose', theme_charcoal: 'Charcoal', theme_royal: 'Royal', theme_mint: 'Mint', theme_sand: 'Sand', presetsHint: 'Pick a balanced ready-made theme in one click, or fully customise below.', customHint: 'Choose your colours and fonts; the rest of each colour scale is generated in harmony.', headingFont: 'Heading font', bodyFont: 'Body font', fontSampleHeading: 'Sample heading', fontSampleBody: 'A normal line of body text for preview.', previewLight: 'Light mode', previewDark: 'Dark mode', tagSuccess: 'Completed', tagPending: 'Pending', tagDanger: 'Cancelled' },
+    platformSettings: {
+      nav: 'Platform settings', title: 'Platform settings', subtitle: 'Full control over the core platform info — shown to everyone.',
+      identity: 'Platform identity', platformName: 'Platform name', platformNameHint: 'Shown in the page title and around the site.',
+      contact: 'Contact info', contactHint: 'Shown in the storefront footer and top bar.',
+      supportEmail: 'Support email', supportPhone: 'Support phone', address: 'Address',
+      social: 'Social links', socialHint: 'Leave a field empty to hide that link.',
+      defaults: 'Defaults for new visitors', defaultsHint: "Applied to a brand-new visitor only; the visitor's own choice always wins.",
+      defaultLanguage: 'Default language', arabic: 'Arabic', english: 'English',
+      defaultMode: 'Default mode', light: 'Light', dark: 'Dark',
+      save: 'Save & apply', saved: 'Platform settings saved.', appliesHint: 'Changes apply to everyone as soon as you save.'
+    },
     roles: { platform: 'Super Admin', owner: 'Owner', manager: 'Manager', employee: 'Employee', member: 'Member' },
     perms: {
       catalog: 'Products & catalog', inventory: 'Inventory', sales: 'Sales & orders', marketing: 'Marketing & promotions',

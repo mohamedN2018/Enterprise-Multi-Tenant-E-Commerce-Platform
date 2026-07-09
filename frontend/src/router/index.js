@@ -18,6 +18,7 @@ const CONSOLE_PAGES = [
   ['platform', 'platform', () => import('@/pages/admin/Platform.vue')],
   ['sellers/:id', 'seller-detail', () => import('@/pages/admin/SellerDetail.vue')],
   ['appearance', 'appearance', () => import('@/pages/admin/Appearance.vue')],
+  ['platform-settings', 'platform-settings', () => import('@/pages/admin/PlatformSettings.vue')],
   ['analytics', 'analytics', () => import('@/pages/admin/Analytics.vue')],
   ['products', 'products', () => import('@/pages/admin/Products.vue')],
   ['categories', 'categories', () => import('@/pages/admin/Categories.vue')],
@@ -146,6 +147,7 @@ const CONSOLE_TITLE_KEYS = {
   platform: 'admin.platform',
   'seller-detail': 'platformPage.sellerDetailTitle',
   appearance: 'appearance.title',
+  'platform-settings': 'platformSettings.title',
   analytics: 'admin.analytics',
   products: 'admin.products',
   categories: 'admin.categories',
@@ -210,7 +212,9 @@ router.beforeEach(async (to) => {
     // The admin panel is separate from the stores: a super-admin must enter a
     // store before opening any store-scoped console page. Platform-panel pages
     // (the panel itself + a seller's detail page) are reachable without one.
-    const PLATFORM_PAGES = new Set(['admin-platform', 'admin-seller-detail', 'admin-appearance']);
+    const PLATFORM_PAGES = new Set([
+      'admin-platform', 'admin-seller-detail', 'admin-appearance', 'admin-platform-settings'
+    ]);
     if (isSuper && to.path.startsWith('/admin') && !PLATFORM_PAGES.has(to.name) && !activeStore.id) {
       return { name: 'admin-platform' };
     }
@@ -219,8 +223,10 @@ router.beforeEach(async (to) => {
     if (!isSuper) {
       const tenant = useTenantStore();
       const seg = /^(?:admin|seller)-(.+)$/.exec(to.name || '');
-      // Platform branding is super-admin only.
-      if (seg && seg[1] === 'appearance') return { name: 'seller-dashboard' };
+      // Platform branding + settings are super-admin only.
+      if (seg && (seg[1] === 'appearance' || seg[1] === 'platform-settings')) {
+        return { name: 'seller-dashboard' };
+      }
       if (seg && tenant.role === 'employee') {
         const area = PAGE_AREA[seg[1]];
         if (area && !tenant.canArea(area)) return { name: 'seller-dashboard' };

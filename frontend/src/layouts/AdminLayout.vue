@@ -146,7 +146,8 @@ const platformGroups = computed(() => [
     title: t('admin.platformTitle'),
     links: [
       { label: t('admin.adminPanel'), to: cr('platform'), icon: Globe },
-      { label: t('appearance.nav'), to: cr('appearance'), icon: Palette }
+      { label: t('appearance.nav'), to: cr('appearance'), icon: Palette },
+      { label: t('platformSettings.nav'), to: cr('platform-settings'), icon: Settings }
     ]
   }
 ]);

@@ -434,3 +434,39 @@ def test_invalid_theme_color_rejected(client_for, superadmin):
     assert client_for(superadmin).patch(
         PLATFORM_THEME, {"primary": "red"}, format="json"
     ).status_code == 400
+
+
+def test_platform_settings_persist_and_are_public(client_for, superadmin):
+    """General platform settings (name, contact, defaults) save + serve publicly."""
+    from rest_framework.test import APIClient
+
+    resp = client_for(superadmin).patch(
+        PLATFORM_THEME,
+        {
+            "platform_name": "SouqMasr",
+            "support_email": "help@souq.example",
+            "support_phone": "+201000000000",
+            "default_language": "en",
+            "default_mode": "dark",
+            "facebook": "https://facebook.com/souq",
+        },
+        format="json",
+    )
+    assert resp.status_code == 200
+    data = APIClient().get(PLATFORM_THEME).json()["data"]
+    assert data["platform_name"] == "SouqMasr"
+    assert data["support_email"] == "help@souq.example"
+    assert data["default_language"] == "en"
+    assert data["default_mode"] == "dark"
+    assert data["facebook"] == "https://facebook.com/souq"
+    assert data["primary"].startswith("#")  # branding defaults untouched
+
+
+def test_invalid_platform_settings_rejected(client_for, superadmin):
+    # Bad email and out-of-choice language/mode are rejected.
+    assert client_for(superadmin).patch(
+        PLATFORM_THEME, {"support_email": "not-an-email"}, format="json"
+    ).status_code == 400
+    assert client_for(superadmin).patch(
+        PLATFORM_THEME, {"default_mode": "sepia"}, format="json"
+    ).status_code == 400

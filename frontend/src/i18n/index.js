@@ -38,6 +38,16 @@ export function setLocale(l) {
   if (typeof window !== 'undefined' && window.location) window.location.reload();
 }
 
+// Apply the platform's default language for a brand-new visitor only — an explicit
+// user choice (stored) always wins. Persisted so it's stable (no header races).
+export function initDefaultLocale(lang) {
+  if (localStorage.getItem('locale')) return;
+  const next = lang === 'en' ? 'en' : 'ar';
+  locale.value = next;
+  localStorage.setItem('locale', next);
+  applyDir();
+}
+
 export function useI18n() {
   return { t, locale, dir, setLocale };
 }

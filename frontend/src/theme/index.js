@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { initDefaultLocale } from '@/i18n';
 
 // Light is the default theme; persisted per user in localStorage.
 const stored = localStorage.getItem('theme');
@@ -16,6 +17,15 @@ export function setTheme(t) {
 
 export function toggleTheme() {
   setTheme(theme.value === 'dark' ? 'light' : 'dark');
+}
+
+// Apply the platform's default light/dark mode for a visitor who hasn't chosen
+// one yet (not persisted, so it keeps following the admin default until the user
+// toggles — which then persists their choice).
+export function initDefaultMode(mode) {
+  if (localStorage.getItem('theme')) return;
+  theme.value = mode === 'dark' ? 'dark' : 'light';
+  applyTheme();
 }
 
 export function useTheme() {
@@ -96,10 +106,17 @@ export function applyBrand(config) {
 
 // Load the marketplace theme: apply the cached copy instantly (no flash of the
 // default palette), then refresh from the public endpoint.
+// Apply first-visit defaults (light/dark + language) from the platform config.
+const applyDefaults = (config) => {
+  if (!config) return;
+  initDefaultMode(config.default_mode);
+  initDefaultLocale(config.default_language);
+};
+
 export async function loadBrand() {
   try {
     const cached = JSON.parse(localStorage.getItem('brand') || 'null');
-    if (cached) { brand.value = cached; applyBrand(cached); }
+    if (cached) { brand.value = cached; applyBrand(cached); applyDefaults(cached); }
   } catch {
     /* ignore */
   }
@@ -111,6 +128,7 @@ export async function loadBrand() {
       brand.value = config;
       applyBrand(config);
       localStorage.setItem('brand', JSON.stringify(config));
+      applyDefaults(config);
     }
   } catch {
     /* offline / not deployed yet — defaults from :root apply */
