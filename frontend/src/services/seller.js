@@ -8,6 +8,7 @@ export const seller = {
   createStore: (payload) => http.post('/stores/', payload),
   store: (id) => http.get(`/stores/${id}/`),
   updateStore: (id, payload) => http.patch(`/stores/${id}/`, payload),
+  deleteStore: (id) => http.delete(`/stores/${id}/`),
   storeSettings: (id) => http.get(`/stores/${id}/settings/`),
   updateStoreSettings: (id, payload) => http.patch(`/stores/${id}/settings/`, payload),
   members: (id) => http.get(`/stores/${id}/members/`),

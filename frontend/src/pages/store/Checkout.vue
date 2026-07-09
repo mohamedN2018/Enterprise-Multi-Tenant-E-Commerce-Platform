@@ -1,11 +1,12 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Plus, MapPin, Lock, Check, Truck, StickyNote } from 'lucide-vue-next';
+import { Plus, MapPin, Lock, Check, Truck, StickyNote, Navigation, AlertTriangle } from 'lucide-vue-next';
 import FormField from '@/components/ui/FormField.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import PageHero from '@/components/ui/PageHero.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import DeliveryMap from '@/components/DeliveryMap.vue';
 import { useCartStore } from '@/stores/cart';
 import { useUiStore } from '@/stores/ui';
 import { shop } from '@/services/shop';
@@ -27,6 +28,12 @@ const savingAddress = ref(false);
 const shippingMethods = ref([]);
 const selectedMethod = ref(null);
 const notes = ref('');
+// Geo delivery: the store's delivery circles, the buyer's pinned location, and
+// whether the store can deliver there.
+const geoZones = ref([]);
+const pinned = ref(null); // { lat, lng }
+const deliverable = ref(true);
+const hasGeoZones = computed(() => geoZones.value.length > 0);
 
 const blankAddress = () => ({
   label: 'Home',
@@ -57,15 +64,30 @@ const refreshQuote = async () => {
       shipping_method_id: selectedMethod.value || undefined,
       address_id: selectedAddress.value || undefined,
       country: chosen?.country || cart.shopStore?.country || '',
-      currency: cart.shopStore?.currency || ''
+      currency: cart.shopStore?.currency || '',
+      lat: pinned.value?.lat,
+      lng: pinned.value?.lng
     });
     quote.value = res.data;
+    if (res.data?.deliverable != null) deliverable.value = res.data.deliverable;
   } catch {
     quote.value = null;
   }
 };
-// Re-quote whenever the shipping method or address changes.
+// Re-quote whenever the shipping method, address, or pinned location changes.
 watch([selectedMethod, selectedAddress], refreshQuote);
+// A saved address may already carry a pin; adopt it so the map + zones match.
+watch(selectedAddress, () => {
+  const chosen = addresses.value.find((a) => a.id === selectedAddress.value);
+  if (chosen?.lat != null && chosen?.lng != null) {
+    pinned.value = { lat: Number(chosen.lat), lng: Number(chosen.lng) };
+  }
+});
+// When the buyer moves the pin, refresh available methods + availability.
+watch(pinned, async () => {
+  await loadShipping();
+  await refreshQuote();
+});
 
 const loadAddresses = async () => {
   try {
@@ -95,7 +117,13 @@ const saveAddress = async () => {
   if (!run()) return;
   savingAddress.value = true;
   try {
-    const res = await shop.createAddress(cart.headers, form.value);
+    // Remember the pinned map location on the address, if one was chosen.
+    const payload = { ...form.value };
+    if (pinned.value) {
+      payload.lat = Number(pinned.value.lat.toFixed(6));
+      payload.lng = Number(pinned.value.lng.toFixed(6));
+    }
+    const res = await shop.createAddress(cart.headers, payload);
     const created = res.data;
     addresses.value.push(created);
     selectedAddress.value = created.id;
@@ -111,12 +139,31 @@ const saveAddress = async () => {
 
 const loadShipping = async () => {
   try {
-    const res = await shop.availableShipping(cart.headers);
-    shippingMethods.value = res.data || [];
-    if (shippingMethods.value.length) selectedMethod.value = shippingMethods.value[0].id;
+    const res = await shop.availableShipping(cart.headers, {
+      country: cart.shopStore?.country || '',
+      lat: pinned.value?.lat,
+      lng: pinned.value?.lng
+    });
+    const body = res.data || {};
+    // New shape: { deliverable, methods, geo_zones }. Tolerate an old list too.
+    shippingMethods.value = Array.isArray(body) ? body : body.methods || [];
+    geoZones.value = body.geo_zones || [];
+    if (body.deliverable != null) deliverable.value = body.deliverable;
+    // Keep the selected method valid for the current location.
+    if (!shippingMethods.value.some((m) => m.id === selectedMethod.value)) {
+      selectedMethod.value = shippingMethods.value[0]?.id || null;
+    }
   } catch {
     shippingMethods.value = [];
   }
+};
+
+const useMyLocation = () => {
+  if (!navigator.geolocation) return ui.error(t('shippingPage.geoUnsupported'));
+  navigator.geolocation.getCurrentPosition(
+    (pos) => (pinned.value = { lat: pos.coords.latitude, lng: pos.coords.longitude }),
+    () => ui.error(t('shippingPage.geoDenied'))
+  );
 };
 
 const placeOrder = async () => {
@@ -128,15 +175,23 @@ const placeOrder = async () => {
       shipping_method_id: selectedMethod.value || undefined,
       country: chosen?.country || cart.shopStore?.country || '',
       currency: cart.shopStore?.currency || '',
-      notes: notes.value.trim() || undefined
+      notes: notes.value.trim() || undefined,
+      lat: pinned.value?.lat,
+      lng: pinned.value?.lng
     });
     ui.success(t('checkout.orderPlaced'));
     router.push({ name: 'order-confirmation', params: { id: order.id } });
   } catch (e) {
+    const code = e?.response?.data?.error_code;
     // Cashier ran out of stock between browsing and paying → tell the buyer clearly.
-    if (e?.response?.data?.error_code === 'out_of_stock') {
+    if (code === 'out_of_stock') {
       const items = e.response.data.errors?.out_of_stock || [];
       ui.error(t('checkout.outOfStock', { items: items.join('، ') }));
+    } else if (code === 'delivery_unavailable') {
+      deliverable.value = false;
+      ui.error(t('checkout.deliveryUnavailable'));
+    } else if (code === 'store_unavailable') {
+      ui.error(t('checkout.storeUnavailable'));
     } else {
       ui.error(errorMessage(e));
     }
@@ -215,6 +270,23 @@ onMounted(async () => {
           </form>
         </section>
 
+        <!-- Delivery location (only when the store delivers by map zones) -->
+        <section v-if="hasGeoZones" class="card p-6">
+          <div class="mb-3 flex items-center justify-between">
+            <h2 class="flex items-center gap-2 font-semibold"><Navigation class="h-5 w-5 text-primary-600" /> {{ $t('checkout.deliveryLocation') }}</h2>
+            <button class="btn btn-ghost btn-sm" @click="useMyLocation"><MapPin class="h-4 w-4" /> {{ $t('shippingPage.useMyLocation') }}</button>
+          </div>
+          <p class="mb-3 text-sm text-muted">{{ pinned ? $t('checkout.locationSet') : $t('checkout.pickLocation') }}</p>
+          <DeliveryMap v-model="pinned" editable :circles="geoZones" height="280px" />
+          <div v-if="pinned && !deliverable" class="mt-3 flex items-start gap-2 rounded-lg border border-secondary-200 bg-secondary-50 p-3 text-sm text-secondary-700 dark:border-secondary-500/30 dark:bg-secondary-500/10">
+            <AlertTriangle class="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{{ $t('checkout.deliveryUnavailable') }}</span>
+          </div>
+          <div v-else-if="pinned && deliverable" class="mt-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+            <Check class="h-4 w-4 shrink-0" /> {{ $t('checkout.deliveryAvailable') }}
+          </div>
+        </section>
+
         <!-- Shipping method -->
         <section v-if="shippingMethods.length" class="card p-6">
           <h2 class="mb-4 flex items-center gap-2 font-semibold"><Truck class="h-5 w-5 text-primary-600" /> {{ $t('checkout.shippingMethod') }}</h2>
@@ -262,10 +334,11 @@ onMounted(async () => {
             <div v-if="quote" class="flex justify-between"><dt class="text-slate-500">{{ $t('orderDetailPage.shipping') }}</dt><dd>{{ Number(quote.shipping) > 0 ? `${quote.shipping} ${currency}` : $t('checkout.free') }}</dd></div>
             <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>{{ $t('common.total') }}</dt><dd>{{ totals.total }} {{ currency }}</dd></div>
           </dl>
-          <button class="btn btn-primary btn-lg mt-5 w-full" :disabled="placing" @click="placeOrder">
+          <button class="btn btn-primary btn-lg mt-5 w-full" :disabled="placing || (hasGeoZones && !deliverable)" @click="placeOrder">
             <Spinner v-if="placing" :size="18" />
             <template v-else><Lock class="h-4 w-4" /> {{ $t('checkout.placeOrder') }}</template>
           </button>
+          <p v-if="hasGeoZones && !deliverable" class="mt-2 text-center text-xs text-secondary-600">{{ $t('checkout.deliveryUnavailableShort') }}</p>
           <p class="mt-3 flex items-center justify-center gap-1 text-xs text-slate-400">
             <Check class="h-3.5 w-3.5" /> {{ $t('checkout.secureCheckout') }}
           </p>

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { Store as StoreIcon, SlidersHorizontal, Cpu, CheckCircle2, Plug, Download, Unlink } from 'lucide-vue-next';
+import { useRouter } from 'vue-router';
+import { Store as StoreIcon, SlidersHorizontal, Cpu, CheckCircle2, Plug, Download, Unlink, AlertTriangle, Pause, Play, Trash2 } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import FormField from '@/components/ui/FormField.vue';
 import Spinner from '@/components/ui/Spinner.vue';
@@ -16,6 +17,7 @@ import { useValidation, url, required } from '@/utils/validators';
 
 const tenant = useTenantStore();
 const ui = useUiStore();
+const router = useRouter();
 
 const loading = ref(true);
 const storeId = ref(null);
@@ -147,6 +149,40 @@ const saveProfile = async () => {
     ui.error(errorMessage(e));
   } finally {
     savingProfile.value = false;
+  }
+};
+
+// Pause / resume: a paused store disappears from the storefront for everyone.
+const dangerBusy = ref(false);
+const isPaused = computed(() => profile.value?.status === 'suspended');
+const togglePause = async () => {
+  dangerBusy.value = true;
+  const next = isPaused.value ? 'active' : 'suspended';
+  try {
+    await seller.updateStore(storeId.value, { status: next });
+    profile.value.status = next;
+    await tenant.refresh();
+    ui.success(isPaused.value ? t('settingsPage.storePaused') : t('settingsPage.storeResumed'));
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    dangerBusy.value = false;
+  }
+};
+
+const deleteStore = async () => {
+  if (!window.confirm(t('settingsPage.confirmDelete'))) return;
+  dangerBusy.value = true;
+  try {
+    await seller.deleteStore(storeId.value);
+    ui.success(t('settingsPage.storeDeleted'));
+    tenant.select?.(null);
+    await tenant.refresh();
+    router.push({ name: 'home' });
+  } catch (e) {
+    ui.error(errorMessage(e));
+  } finally {
+    dangerBusy.value = false;
   }
 };
 
@@ -311,6 +347,30 @@ onMounted(load);
           </template>
         </div>
         <p v-else class="mt-4 text-sm text-muted">{{ $t('posPage.noPermission') }}</p>
+      </section>
+
+      <!-- Danger zone (owner only): pause hides the store from everyone; delete
+           removes it (the platform admin can still restore it). -->
+      <section v-if="profile && tenant.canDeleteStore" class="card border-secondary-200 p-6 lg:col-span-2 dark:border-secondary-500/30">
+        <h2 class="flex items-center gap-2 font-semibold text-secondary-600"><AlertTriangle class="h-5 w-5" /> {{ $t('settingsPage.dangerZone') }}</h2>
+        <div class="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="font-medium text-ink">{{ isPaused ? $t('settingsPage.resumeStore') : $t('settingsPage.pauseStore') }}</p>
+            <p class="text-sm text-muted">{{ isPaused ? $t('settingsPage.resumeHint') : $t('settingsPage.pauseHint') }}</p>
+          </div>
+          <button class="btn btn-outline btn-sm shrink-0" :disabled="dangerBusy" @click="togglePause">
+            <component :is="isPaused ? Play : Pause" class="h-4 w-4" /> {{ isPaused ? $t('settingsPage.resumeStore') : $t('settingsPage.pauseStore') }}
+          </button>
+        </div>
+        <div class="mt-4 flex flex-col gap-4 border-t border-secondary-100 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-secondary-500/20">
+          <div>
+            <p class="font-medium text-ink">{{ $t('settingsPage.deleteStore') }}</p>
+            <p class="text-sm text-muted">{{ $t('settingsPage.deleteHint') }}</p>
+          </div>
+          <button class="btn btn-sm shrink-0 border border-secondary-300 bg-secondary-50 text-secondary-700 hover:bg-secondary-500 hover:text-white" :disabled="dangerBusy" @click="deleteStore">
+            <Trash2 class="h-4 w-4" /> {{ $t('settingsPage.deleteStore') }}
+          </button>
+        </div>
       </section>
     </div>
   </div>

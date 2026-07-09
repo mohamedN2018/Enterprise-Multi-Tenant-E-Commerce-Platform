@@ -19,7 +19,9 @@ import {
   UserPlus,
   Package,
   ChevronDown,
-  ArrowRight
+  ArrowRight,
+  RotateCcw,
+  Trash2
 } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import DataTable from '@/components/ui/DataTable.vue';
@@ -210,6 +212,29 @@ const setStatus = async (row, status) => {
   }
 };
 
+// Soft-delete a store: it vanishes from every storefront; only the admin still
+// sees it here (greyed out) and can bring it back.
+const deleteStore = async (row) => {
+  if (!window.confirm(t('platformPage.confirmDelete', { name: row.name }))) return;
+  try {
+    await platform.deleteStore(row.id);
+    row.is_deleted = true;
+    ui.success(t('platformPage.storeDeleted'));
+  } catch (e) {
+    ui.error(errorMessage(e));
+  }
+};
+
+const restoreStore = async (row) => {
+  try {
+    await platform.updateStore(row.id, { is_deleted: false });
+    row.is_deleted = false;
+    ui.success(t('platformPage.storeRestored'));
+  } catch (e) {
+    ui.error(errorMessage(e));
+  }
+};
+
 // --- Per-store employee limit ----------------------------------------------
 const showEmp = ref(false);
 const savingEmp = ref(false);
@@ -384,19 +409,39 @@ onMounted(load);
             <!-- Their stores (quick view — only when expanded) -->
             <div v-if="expanded.has(g.email)">
               <div v-if="g.stores.length" class="divide-y divide-slate-100 dark:divide-slate-800">
-                <div v-for="st in g.stores" :key="st.id" class="flex flex-wrap items-center gap-3 px-4 py-3">
-                  <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary-50 text-primary-600"><StoreIcon class="h-4 w-4" /></span>
+                <div
+                  v-for="st in g.stores"
+                  :key="st.id"
+                  class="flex flex-wrap items-center gap-3 px-4 py-3"
+                  :class="st.is_deleted ? 'bg-secondary-50/60 dark:bg-secondary-500/10' : st.status === 'suspended' ? 'bg-amber-50/60 dark:bg-amber-500/10' : ''"
+                >
+                  <span
+                    class="grid h-9 w-9 shrink-0 place-items-center rounded-lg"
+                    :class="st.is_deleted ? 'bg-secondary-100 text-secondary-600' : st.status === 'suspended' ? 'bg-amber-100 text-amber-700' : 'bg-primary-50 text-primary-600'"
+                  ><StoreIcon class="h-4 w-4" /></span>
                   <div class="min-w-0 flex-1">
-                    <p class="truncate font-medium text-ink">{{ st.name }}</p>
+                    <p class="flex items-center gap-2 truncate font-medium" :class="st.is_deleted ? 'text-secondary-700 line-through dark:text-secondary-400' : 'text-ink'">
+                      {{ st.name }}
+                      <span v-if="st.is_deleted" class="chip border-secondary-200 bg-secondary-100 text-secondary-700">{{ $t('platformPage.deleted') }}</span>
+                      <span v-else-if="st.status === 'suspended'" class="chip border-amber-200 bg-amber-100 text-amber-700">{{ $t('platformPage.paused') }}</span>
+                    </p>
                     <p class="text-xs text-muted">{{ st.slug }}</p>
                   </div>
                   <span dir="ltr" class="chip border-amber-200 bg-amber-50 text-amber-700" :title="$t('platformPage.totalProducts')"><Package class="h-3.5 w-3.5" /> {{ st.product_count ?? 0 }}</span>
-                  <button class="chip border-slate-200 bg-slate-50 text-slate-600 hover:border-primary-300" :title="$t('platformPage.setEmployeeLimit')" @click="openEmp(st)"><Users class="h-3.5 w-3.5" /> <span dir="ltr">{{ st.employee_count }} / {{ st.max_employees }}</span> <Pencil class="h-3 w-3 opacity-60" /></button>
-                  <select :value="st.status" class="input h-9 max-w-[140px] py-1 text-sm" @change="setStatus(st, $event.target.value)">
-                    <option v-for="s in STATUSES" :key="s" :value="s">{{ $t('platformPage.st.' + s) }}</option>
-                  </select>
-                  <button class="btn btn-primary btn-sm" :title="$t('platformPage.manageHint')" @click="enterStore(st)"><LogIn class="h-4 w-4" /> {{ $t('platformPage.manage') }}</button>
-                  <button class="btn btn-ghost btn-sm" @click="viewStorefront(st)"><Eye class="h-4 w-4" /> {{ $t('platformPage.view') }}</button>
+                  <button v-if="!st.is_deleted" class="chip border-slate-200 bg-slate-50 text-slate-600 hover:border-primary-300" :title="$t('platformPage.setEmployeeLimit')" @click="openEmp(st)"><Users class="h-3.5 w-3.5" /> <span dir="ltr">{{ st.employee_count }} / {{ st.max_employees }}</span> <Pencil class="h-3 w-3 opacity-60" /></button>
+
+                  <!-- Deleted: only restore. Otherwise: status + manage/view. -->
+                  <template v-if="st.is_deleted">
+                    <button class="btn btn-outline btn-sm" @click="restoreStore(st)"><RotateCcw class="h-4 w-4" /> {{ $t('platformPage.restore') }}</button>
+                  </template>
+                  <template v-else>
+                    <select :value="st.status" class="input h-9 max-w-[140px] py-1 text-sm" @change="setStatus(st, $event.target.value)">
+                      <option v-for="s in STATUSES" :key="s" :value="s">{{ $t('platformPage.st.' + s) }}</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" :title="$t('platformPage.manageHint')" @click="enterStore(st)"><LogIn class="h-4 w-4" /> {{ $t('platformPage.manage') }}</button>
+                    <button class="btn btn-ghost btn-sm" @click="viewStorefront(st)"><Eye class="h-4 w-4" /> {{ $t('platformPage.view') }}</button>
+                    <button class="text-slate-400 hover:text-secondary-500" :title="$t('platformPage.deleteStore')" @click="deleteStore(st)"><Trash2 class="h-4 w-4" /></button>
+                  </template>
                 </div>
               </div>
               <div v-else class="flex flex-wrap items-center gap-2 px-4 py-3 text-sm text-muted">
