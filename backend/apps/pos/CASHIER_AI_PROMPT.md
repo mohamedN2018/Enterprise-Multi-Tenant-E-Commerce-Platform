@@ -1,0 +1,100 @@
+# 🛎️ برومت جاهز — فعّل استقبال الطلبات الأونلاين + تنبيه صوتي + تواصل بين النظامين
+
+انسخ النص التالي كاملًا واعطه لـ AI مشروع الكاشير **q-shop POS** (NestJS API + Next.js POS).
+
+---
+
+أنت تعمل على مشروع نظام الكاشير **q-shop POS** (‏`apps/api` NestJS + Prisma، و‏`apps/pos` Next.js). متجر إلكتروني خارجي (منصة marketplace) مربوط بنا عبر مفتاح API، ويرسل إلينا **كل طلب أونلاين مؤكَّد فورًا** على `POST /api/integration/orders`. المطلوب ثلاث مهام:
+
+## 🎯 الهدف
+1. **استقبال الطلب** وتسجيله بشكل صحيح (موجود جزئيًا — تحقّق منه ووسّعه).
+2. **تنبيه موظف الكاشير صوتيًا + Popup فور وصول أي طلب أونلاين جديد** (الأهم — «يسمع» الطلب في المحل).
+3. **تواصل رجوعي** يبلّغ المنصة بحالة الطلب (يُكمل التكامل ثنائي الاتجاه).
+
+---
+
+## 1) عقد الاستقبال — الـ Payload الذي ترسله المنصة
+
+```
+POST {API_URL}/api/integration/orders
+Headers: x-api-key: <المفتاح>, Content-Type: application/json
+```
+```json
+{
+  "external_id": "QSH-000123",       // رقم الطلب — مفتاح idempotency
+  "customer_name": "أحمد علي",
+  "customer_phone": "01000000000",
+  "address": "شارع ...، القاهرة",
+  "notes": "التوصيل بعد 5 مساءً",
+  "total_amount": 250.0,             // مطلوب، رقم
+  "tax_amount": 0.0,
+  "discount_amount": 0.0,
+  "payment_method": "ONLINE",
+  "source": "online",                // جديد — علامة أنه طلب أونلاين
+  "currency": "EGP",                 // جديد
+  "placed_at": "2026-07-09T18:30:00+00:00",  // جديد — وقت الطلب ISO
+  "items": [
+    { "product_id": "<POS product id>", "quantity": 2, "unit_price": 50.0 }
+  ]
+}
+```
+
+**قواعد مهمة:**
+- `product_id` هو **id منتج الكاشير نفسه** (المُصدَّر من `GET /api/integration/products`) — تجاهُل أي id غير معروف (موجود بالفعل).
+- الرد عند النجاح لازم يكون **200/201** وبه `{ "id": "<txId>" }` (أو `{ "id", "duplicate": true }` لو الطلب اتبعت قبل كده بنفس `external_id`).
+- عند نقص المخزون: **409** بالشكل `{ "message": "...", "out_of_stock": [{ "product_id", "requested", "available" }] }`.
+
+**المطلوب تنفيذه هنا:**
+- أضِف الحقول الجديدة إلى `CreateOrderDto`: `source?: string`, `currency?: string`, `placed_at?: string` (كلها اختيارية).
+- احفظها ضمن `meta` في الـ transaction (بجانب `external_id`, `phone`, `address`, `notes` الموجودين).
+- تأكد أن الطلب يُسجَّل بـ `source = 'ONLINE'` (موجود)، وأن `placed_at` مخزَّن ليُعرض ويُرتَّب به.
+
+---
+
+## 2) 🔔 تنبيه صوتي + Popup للطلبات الأونلاين الجديدة (الأهم)
+
+عايز موظف الكاشير **يسمع صوتًا ويرى Popup** فور وصول أي طلب أونلاين جديد. نفّذ الطريقة الأبسط والأكثر موثوقية (**Polling**):
+
+### Backend (NestJS)
+1. أضِف عمودًا على جدول `transaction`: `acknowledged_at DateTime?` (لتمييز الطلب «المقروء»).
+2. Endpoint محمي بـ JWT (لموظفي الكاشير) يرجّع الطلبات الأونلاين الجديدة:
+   ```
+   GET /api/orders/online/new?since=<ISO timestamp>
+   ```
+   - يرجّع transactions حيث `source = 'ONLINE'` و(`created_at > since` أو `acknowledged_at IS NULL`)، مرتبة بالأحدث.
+   - كل عنصر: `id, external_id, customer_name, phone, address, notes, total_amount, currency, placed_at, items:[{ name, quantity, unit_price }]`.
+3. Endpoint للإقرار: `POST /api/orders/:id/ack` → يضبط `acknowledged_at = now()` (كي لا يرنّ مرتين).
+
+### Frontend (Next.js POS)
+1. Hook/Composable يعمل **polling كل 10 ثوانٍ** على `/api/orders/online/new?since=<آخر وقت رأيته>`، ويحفظ آخر `since` في الحالة.
+2. عند وصول طلب جديد:
+   - **شغّل صوت تنبيه**: ضع ملف `public/sounds/new-order.mp3` وشغّله عبر `new Audio('/sounds/new-order.mp3').play()`.
+     - ⚠️ بسبب سياسة المتصفحات، الصوت لا يعمل قبل أول تفاعل من المستخدم — أضِف زر **«تفعيل تنبيه الطلبات»** يعمل unlock للصوت مرة واحدة عند بدء الوردية.
+   - **اعرض Popup/Toast بارز** يحتوي: اسم العميل، الإجمالي + العملة، عدد الأصناف، أول سطر من العنوان، وزر **«عرض الطلب»**.
+   - أضِف **Badge/عدّاد** على أيقونة الطلبات في الشريط العلوي.
+3. أضِف تبويب **«طلبات أونلاين»** يعرض هذه الطلبات بتفاصيلها الكاملة (العميل/العنوان/الملاحظات/الأصناف)، مع زر **«استلمت / جهّزت»** يستدعي `/ack`.
+4. اجعل التنبيه يعمل من أي شاشة داخل لوحة الكاشير (Hook على مستوى الـ layout).
+
+---
+
+## 3) 🔁 تواصل رجوعي بين النظامين (يُكمل التكامل)
+
+لكي تعرف المنصة أن الكاشير استلم/جهّز الطلب:
+- عند تغيير موظف الكاشير لحالة طلب أونلاين (`accepted` / `preparing` / `ready` / `delivered` / `rejected`)، أرسل webhook إلى المنصة:
+  ```
+  POST {STORE_URL}/api/v1/pos/order-status
+  Body: { "external_id": "QSH-000123", "status": "preparing", "at": "<ISO>" }
+  Header: X-POS-Signature: <HMAC(secret, body)>
+  ```
+- اطلب من فريق المنصة قيمة `STORE_URL` و`secret` (سيوفّرونها من إعدادات الربط). لو لم تتوفر بعد، اجعل هذه الخطوة اختيارية خلف Feature flag.
+
+---
+
+## ✅ معايير القبول
+- أي طلب أونلاين مؤكَّد من المنصة يظهر في الكاشير خلال **≤ 10 ثوانٍ** مصحوبًا بـ **صوت + Popup**.
+- الطلب يظهر **مرة واحدة فقط** (اعتمادًا على `external_id`) ولا يرنّ بعد الإقرار.
+- تفاصيل العميل والعنوان والملاحظات والأصناف والإجمالي كلها ظاهرة.
+- الرد دائمًا `{ id }` عند النجاح، و**409** عند نقص المخزون، و**401** عند مفتاح خاطئ.
+- (إن نُفِّذ التواصل الرجوعي) تصل حالة الطلب إلى المنصة.
+
+> ملاحظة توافق: الـ `ValidationPipe` عندنا `whitelist: true` — أي حقل غير معرّف في الـ DTO يُحذف بصمت، لذا **أضِف الحقول الجديدة إلى `CreateOrderDto`** حتى لا تُفقد `source/currency/placed_at`.

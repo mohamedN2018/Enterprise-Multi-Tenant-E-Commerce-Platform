@@ -291,6 +291,11 @@ class PosSupplierService(BaseService):
             "tax_amount": float(order.tax_total),
             "discount_amount": float(order.discount_total),
             "payment_method": "ONLINE",
+            # Marks this as a fresh online order + when it was placed, so the
+            # cashier can surface/alert new arrivals and show their time.
+            "source": "online",
+            "currency": order.currency or "",
+            "placed_at": order.created_at.isoformat() if order.created_at else None,
             "items": items,
         }
         client = self._client(store=store, api_url=connection.api_url, api_key=connection.api_key)

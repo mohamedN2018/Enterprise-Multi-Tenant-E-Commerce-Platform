@@ -179,6 +179,15 @@ const placeOrder = async () => {
       lat: pinned.value?.lat,
       lng: pinned.value?.lng
     });
+    // Confirm immediately so the order is accepted (stock committed) and, when the
+    // store is linked to a cashier, pushed there automatically so staff are alerted.
+    // Best-effort: if it can't confirm (e.g. a fraud hold), the order still stands
+    // and the seller can confirm it from the dashboard.
+    try {
+      await shop.confirmOrder(cart.headers, order.id);
+    } catch {
+      /* order placed; confirmation/push will be done from the dashboard */
+    }
     ui.success(t('checkout.orderPlaced'));
     router.push({ name: 'order-confirmation', params: { id: order.id } });
   } catch (e) {

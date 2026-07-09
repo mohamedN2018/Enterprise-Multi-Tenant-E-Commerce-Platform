@@ -6,6 +6,8 @@ export const shop = {
   // Orders
   orders: (headers, params) => http.get('/orders/', { headers, params }),
   order: (headers, id) => http.get(`/orders/${id}/`, { headers }),
+  // Confirm a just-placed order (commits stock + pushes it to the linked cashier).
+  confirmOrder: (headers, id) => http.post(`/orders/${id}/confirm/`, null, { headers }),
   cancelOrder: (headers, id) => http.post(`/orders/${id}/cancel/`, null, { headers }),
 
   // Addresses

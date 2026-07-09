@@ -71,6 +71,9 @@ Each product the cashier returns looks like:
   "tax_amount":      0.0,            // number
   "discount_amount": 0.0,            // number
   "payment_method":  "ONLINE",
+  "source":          "online",       // marks a fresh online order (for alerts)
+  "currency":        "EGP",
+  "placed_at":       "2026-07-09T18:30:00+00:00",  // ISO 8601
   "items": [
     { "product_id": "b1f2…",         // MUST be the cashier product id (GET /products)
       "quantity":   2,
